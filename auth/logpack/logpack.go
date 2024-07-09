@@ -1,7 +1,6 @@
 package logpack
 
 import (
-	"auth/models"
 	"fmt"
 	"log"
 )
@@ -30,29 +29,29 @@ func Fatal(msg string, funcName string) {
 	log.Println("FATAL:", funcName, "-", msg)
 }
 
-func FInfo(msg string, loginUser *models.User, funcName string) {
-	log.Println("INFO:", funcName, GetLoginUserId(loginUser), "-", msg)
+func FInfo(msg string, loginId int64, funcName string) {
+	log.Println("INFO:", funcName, GetLoginUserId(loginId), "-", msg)
 }
 
-func FError(msg string, loginUser *models.User, funcName string, err error) {
+func FError(msg string, loginId int64, funcName string, err error) {
 	errStr := ""
 	if err != nil {
 		errStr = fmt.Sprintf("\n%s", err.Error())
 	}
-	log.Println("ERROR:", funcName, GetLoginUserId(loginUser), "-", msg, errStr)
+	log.Println("ERROR:", funcName, GetLoginUserId(loginId), "-", msg, errStr)
 }
 
-func FWarn(msg string, loginUser *models.User, funcName string) {
-	log.Println("WARNING:", funcName, GetLoginUserId(loginUser), "-", msg)
+func FWarn(msg string, loginId int64, funcName string) {
+	log.Println("WARNING:", funcName, GetLoginUserId(loginId), "-", msg)
 }
 
-func FFatal(msg string, loginUser *models.User, funcName string) {
-	log.Println("FATAL:", funcName, GetLoginUserId(loginUser), "-", msg)
+func FFatal(msg string, loginId int64, funcName string) {
+	log.Println("FATAL:", funcName, GetLoginUserId(loginId), "-", msg)
 }
 
-func GetLoginUserId(loginUser *models.User) string {
-	if loginUser == nil {
+func GetLoginUserId(loginId int64) string {
+	if loginId <= 0 {
 		return ""
 	}
-	return fmt.Sprintf(", LoginId: %d", loginUser.Id)
+	return fmt.Sprintf(", LoginId: %d", loginId)
 }
