@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+
+	beego "github.com/beego/beego/v2/adapter"
 )
 
 func IsEmpty(x interface{}) bool {
@@ -40,4 +42,36 @@ func ObjectToJsonString(obj interface{}) string {
 		return ""
 	}
 	return string(b)
+}
+
+func GetAuthHost() string {
+	if !IsEmpty(AuthHost) {
+		return AuthHost
+	}
+	AuthHost = beego.AppConfig.String("authhost")
+	return AuthHost
+}
+
+func GetAuthPort() string {
+	if !IsEmpty(AuthPort) {
+		return AuthPort
+	}
+	AuthPort = beego.AppConfig.String("authport")
+	return AuthPort
+}
+
+func GetAssetsHost() string {
+	if !IsEmpty(AssetsHost) {
+		return AssetsHost
+	}
+	AssetsHost = beego.AppConfig.String("assethost")
+	return AssetsHost
+}
+
+func GetAssetsPort() string {
+	if !IsEmpty(AssetsPort) {
+		return AssetsPort
+	}
+	AssetsPort = beego.AppConfig.String("assetport")
+	return AssetsPort
 }

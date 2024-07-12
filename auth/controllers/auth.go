@@ -42,6 +42,34 @@ func (this *AuthController) BeginUpdatePasskey() {
 	this.ResponseSuccessfullyWithAnyData(nil, "Begin registration successfully", utils.GetFuncName(), response)
 }
 
+// Logout handler
+func (this *AuthController) Quit() {
+	this.DestroySession()
+	this.Redirect("/login", 302)
+	this.StopRun()
+}
+
+// Logout handler
+func (this *AuthController) IsLoggingOn() {
+	user, isLogin := this.SimpleAuthCheck()
+	if !isLogin {
+		this.ResponseError("User is not logged in", utils.GetFuncName(), nil)
+		return
+	}
+	this.ResponseSuccessfullyWithAnyData(user, fmt.Sprintf("LoginUser Id: %d", user.Id), utils.GetFuncName(), user.Id)
+}
+
+func (this *AuthController) GenRandomUsername() {
+	username, err := utils.GetNewRandomUsername()
+	if err != nil {
+		this.ResponseError("Create new username failed", utils.GetFuncName(), err)
+		return
+	}
+	result := make(map[string]string)
+	result["username"] = username
+	this.ResponseSuccessfullyWithAnyData(nil, fmt.Sprintf("Get random username: %s", username), utils.GetFuncName(), utils.ObjectToJsonString(result))
+}
+
 func (this *AuthController) BeginRegistration() {
 	logpack.Info("begin registration ----------------------", utils.GetFuncName())
 	username := this.GetString("username")

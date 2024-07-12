@@ -17,8 +17,7 @@ func init() {
 	beego.Router("/passkey/confirmStart", &controllers.AuthController{}, "post:BeginConfirmPasskey")
 	beego.Router("/passkey/confirmFinish", &controllers.AuthController{}, "post:FinishConfirmPasskey")
 	beego.Router("/passkey/cancelRegister", &controllers.AuthController{}, "post:CancelRegister")
-
-	//Login/Register routing
-	beego.Router("/exit", &controllers.LoginController{}, "get:Quit")
-	beego.Router("/gen-random-username", &controllers.LoginController{}, "get:GenRandomUsername")
+	beego.Router("/is-logging", &controllers.AuthController{}, "get:IsLoggingOn")
+	beego.Router("/exit", &controllers.AuthController{}, "get:Quit")
+	beego.Router("/gen-random-username", &controllers.AuthController{}, "get:GenRandomUsername")
 }

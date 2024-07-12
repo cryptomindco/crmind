@@ -8,6 +8,8 @@ import (
 
 // API Gateway initialization
 func init() {
+	beego.Router("/", &controllers.MainController{})
+
 	//Auth service api gateway
 	beego.Router("/passkey/registerStart", &controllers.AuthController{}, "post:BeginRegistration")
 	beego.Router("/passkey/registerFinish", &controllers.AuthController{}, "post:FinishRegistration")
@@ -20,4 +22,8 @@ func init() {
 	beego.Router("/passkey/cancelRegister", &controllers.AuthController{}, "post:CancelRegister")
 	beego.Router("/exit", &controllers.AuthController{}, "get:Quit")
 	beego.Router("/gen-random-username", &controllers.AuthController{}, "get:GenRandomUsername")
+	beego.Router("/", &controllers.AuthController{}, "get:GenRandomUsername")
+
+	beego.Router("/login", &controllers.AuthController{})
+
 }

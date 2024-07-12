@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "crmind/routers"
+	"crmind/utils"
 	"io"
 	"log"
 	"math/rand"
@@ -39,6 +40,13 @@ func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	beego.BConfig.AppName = "crmind"
 	beego.BConfig.Log.AccessLogs = true
-	//handler for web authn
+	initServiceConfig()
 	beego.Run()
+}
+
+func initServiceConfig() {
+	utils.AuthHost = beego.AppConfig.String("authhost")
+	utils.AuthPort = beego.AppConfig.String("authport")
+	utils.AssetsHost = beego.AppConfig.String("assethost")
+	utils.AssetsPort = beego.AppConfig.String("assetport")
 }

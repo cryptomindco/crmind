@@ -1,0 +1,120 @@
+</div>
+</main>
+<div class="floatingButtonWrap" data-controller="chat" data-chat-chat-list="{{.ChatMsgList}}"
+  data-chat-login-name="{{.LoginUser.Username}}" data-chat-unread-count="{{.ItemUnreadChatCount}}">
+  <div class="floatingButtonInner">
+    <a class="floatingButton cursor-pointer" {{if gt .ItemUnreadChatCount 0}}data-after-type="red badge top right"
+      data-after-text="{{.ItemUnreadChatCount}}" {{end}} id="floatingBtn" data-action="click->chat#floatingBtnClick">
+      <i class="fa fa-comment icon-default"></i>
+    </a>
+    <div id="floatingMenu" class="floatingMenu main-shadow">
+      <div class="d-flex no-gutters">
+        <div id="chatMsgListCol" class="col-12 col-md-4 px-0 border-right">
+          <div class="settings-tray pb-0">
+            <div class="d-flex justify-content-between">
+              <h5 class="fw-600 mb-0">Chat Box</h5>
+              <span class="chat-box-icon cursor-pointer material-symbols-outlined"
+                  data-action="click->chat#floatingBtnClick">close</span>
+            </div>
+            <div class="search-box">
+              <div class="input-wrapper h-100">
+                <span class="chat-box-icon material-symbols-outlined h-100">add</span>
+                <input class="chat-search-input h-100" id="searchInput" data-action="input->chat#chatInputChange"
+                  placeholder="Search user here" type="text">
+              </div>
+            </div>
+            <ul id="myUL" class="search-suggest-list">
+              {{range $index,$elem := .UsernameList}}
+              <li><a data-action="click->chat#newChat" class="cursor-pointer"
+                  data-chat-username-param="{{$elem}}">{{$elem}}</a></li>
+              {{end}}
+            </ul>
+          </div>
+          <div class="left-list" id="chatMsgList">
+          </div>
+        </div>
+        <div id="chatContentCol" class="col-12 col-md-8 px-0">
+          <div class="settings-tray">
+            <div class="friend-drawer no-gutters friend-drawer--grey justify-content-between">
+              <div class="d-flex ai-center">
+                <span id="backToListBtn" class="material-symbols-outlined fs-20i cursor-pointer d-none"  data-action="click->chat#backToList">arrow_back_ios</span>
+                <img class="profile-image" src="/static/images/avatar.png" alt="">
+                <div class="text">
+                  <h6 class="fw-600" id="currentTarget"></h6>
+                  <p class="text-muted" id="pinMsg"></p>
+                </div>
+                <span id="deleteChatBtn" class="chat-box-icon cursor-pointer material-symbols-outlined ms-2 fs-18i d-none"
+                  data-action="click->chat#deleteChatBtnClick">delete</span>
+              </div>
+              <div class="d-flex ai-center">
+                <span class="chat-box-icon cursor-pointer material-symbols-outlined"
+                  data-action="click->chat#floatingBtnClick">close</span>
+              </div>
+            </div>
+          </div>
+          <div class="chat-panel">
+            <div id="chatContentArea" class="chat-content-area">
+            </div>
+            <div class="row">
+              <div class="col-12">
+                <div class="chat-box-tray">
+                  <!-- <span class="chat-box-icon material-symbols-outlined">
+                                sentiment_very_satisfied
+                            </span> -->
+                  <input type="text" id="msgContent"
+                    data-action="input->chat#msgContentChange keydown.enter->chat#sendMsg" class="chat-search-input"
+                    placeholder="Type your message here...">
+                  <!-- <span class="chat-box-icon material-symbols-outlined">mic</span> -->
+                  <span id="sendButton" data-action="click->chat#sendMsg"
+                    class="disabled-icon chat-box-icon cursor-pointer material-symbols-outlined">send</span>
+                </div>
+                <span class="error d-none" id="chaterr_msg"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="deleteConfirmDialog" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="chatStaticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="chatStaticBackdropLabel">Confirm Delete Chat</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <span>Are you sure you want to delete this conversation?</span>
+        </div>
+        <span class="error d-none" id="deleteerr_msg"></span>
+        <div class="modal-footer">
+          <button type="button" data-action="click->chat#deleteChat" class="btn btn-linkedin">Confirm</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- <script>
+  $(document).mouseup(function(e) 
+{
+    var container = $("#floatingMenu");
+    var floatingBtn = $("#floatingBtn")
+    // if the target of the click isn't the container nor a descendant of the container
+    if (!container.is(e.target) && container.has(e.target).length === 0 && !floatingBtn.is(e.target) && floatingBtn.has(e.target).length === 0)
+    {
+      if(container.css('display') != 'none') {
+        //Click to floating button
+        floatingBtn[0].click()
+      }
+    }
+});
+</script> -->
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/common.js"></script>
+<script src="/static/js/const.js"></script>
+<script src="/static/vendor/index.es5.umd.min.js"></script>
+</body>
+
+</html>

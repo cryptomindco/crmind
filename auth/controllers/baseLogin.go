@@ -51,7 +51,6 @@ func (this *BaseLoginController) AuthCheck() (*models.SessionUser, bool) {
 func (this *BaseLoginController) SimpleAuthCheck() (*models.SessionUser, bool) {
 	userData, check := this.LoginUser()
 	if !check || userData.Id <= 0 {
-		this.Redirect("/login", http.StatusFound)
 		return nil, false
 	}
 	return userData, true
@@ -106,31 +105,21 @@ func (this *BaseLoginController) ResponseLoginError(loginUser *models.SessionUse
 	if loginUser == nil {
 		logpack.Error(msg, funcName, err)
 	} else {
-		logpack.FError(msg, loginUser.User, funcName, err)
+		logpack.FError(msg, loginUser.User.Id, funcName, err)
 	}
-	this.Data["json"] = map[string]string{"error": "true", "error_msg": msg}
-	this.ServeJSON()
-}
-
-func (this *BaseLoginController) ResponseLoginErrorWithErrName(loginUser *models.SessionUser, errorName, msg, funcName string, err error) {
-	if loginUser == nil {
-		logpack.Error(msg, funcName, err)
-	} else {
-		logpack.FError(msg, loginUser.User, funcName, err)
+	this.Data["json"] = utils.ResponseData{
+		IsError: true,
+		Msg:     msg,
 	}
-	this.Data["json"] = map[string]string{"error": errorName, "error_msg": msg}
-	this.ServeJSON()
-}
-
-func (this *BaseLoginController) ResponseErrorWithErrName(errorName, msg, funcName string, err error) {
-	logpack.Error(msg, funcName, err)
-	this.Data["json"] = map[string]string{"error": errorName, "error_msg": msg}
 	this.ServeJSON()
 }
 
 func (this *BaseLoginController) ResponseError(msg string, funcName string, err error) {
 	logpack.Error(msg, funcName, err)
-	this.Data["json"] = map[string]string{"error": "true", "error_msg": msg}
+	this.Data["json"] = utils.ResponseData{
+		IsError: true,
+		Msg:     msg,
+	}
 	this.ServeJSON()
 }
 
@@ -138,9 +127,12 @@ func (this *BaseLoginController) ResponseSuccessfully(loginUser *models.SessionU
 	if loginUser == nil {
 		logpack.Info(msg, funcName)
 	} else {
-		logpack.FInfo(msg, loginUser.User, funcName)
+		logpack.FInfo(msg, loginUser.User.Id, funcName)
 	}
-	this.Data["json"] = map[string]string{"error": "", "result": ""}
+	this.Data["json"] = utils.ResponseData{
+		IsError: false,
+		Msg:     msg,
+	}
 	this.ServeJSON()
 }
 
@@ -148,19 +140,12 @@ func (this *BaseLoginController) ResponseSuccessfullyWithAnyData(loginUser *mode
 	if loginUser == nil {
 		logpack.Info(msg, funcName)
 	} else {
-		logpack.FInfo(msg, loginUser.User, funcName)
+		logpack.FInfo(msg, loginUser.User.Id, funcName)
 	}
-	this.Data["json"] = map[string]any{"error": "", "result": result}
-	this.ServeJSON()
-}
-
-func (this *BaseLoginController) ResponseSuccessfullyWithData(loginUser *models.SessionUser, msg, funcName, result string) {
-	if loginUser != nil {
-		logpack.FInfo(msg, loginUser.User, funcName)
-	} else {
-		logpack.Info(msg, funcName)
+	this.Data["json"] = utils.ResponseData{
+		IsError: false,
+		Data:    result,
 	}
-	this.Data["json"] = map[string]string{"error": "", "result": result}
 	this.ServeJSON()
 }
 
