@@ -22,7 +22,7 @@ func init() {
 	beego.Router("/passkey/cancelRegister", &controllers.AuthController{}, "post:CancelRegister")
 	beego.Router("/exit", &controllers.AuthController{}, "get:Quit")
 	beego.Router("/gen-random-username", &controllers.AuthController{}, "get:GenRandomUsername")
-	beego.Router("/", &controllers.AuthController{}, "get:GenRandomUsername")
+	beego.Router("/check-user", &controllers.AuthController{}, "get:CheckUser")
 
 	beego.Router("/login", &controllers.AuthController{})
 

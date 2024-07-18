@@ -45,11 +45,11 @@ export default class extends BaseController {
         return a.json(); // call the json method on the response to get JSON
       })
       .then(function (json) {
-        if (!json.error || json.error == "") {
+        if (!json.error) {
           window.location.href = "/";
         } else {
           $("#loginErr_msg").removeClass("d-none");
-          $("#loginErr_msg").text(json.error_msg);
+          $("#loginErr_msg").text(json.msg);
           $("#loadingArea").addClass("d-none");
           $("#loginButton").removeClass("d-none")
           $("#sectionTitle").text("Login with passkey")
@@ -66,9 +66,9 @@ export default class extends BaseController {
       data: {},
       type: "GET", //OR GET
       url: "/gen-random-username", //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
-          const result = JSON.parse(data["result"])
+      success: function (res) {
+        if (!res.error) {
+          const result = JSON.parse(res.data)
           _this.randomUsername = result.username
           _this.isConfirm = true;
           $("#loginButton").addClass("d-none")
@@ -83,7 +83,7 @@ export default class extends BaseController {
           $("#backBtn").removeClass('d-none')
           $("#loginErr_msg").addClass("d-none")
         }
-        if (data["error"] != "") {
+        if (res.error) {
           $("#loginErr_msg").removeClass("d-none")
           $("#loginErr_msg").text(data["error_msg"])
         }
@@ -111,11 +111,11 @@ export default class extends BaseController {
         },
         type: "GET", //OR GET
         url: '/check-user', //The same form's action URL
-        success: function (data) {
-          if (data["error"] == "") {
+        success: function (res) {
+          if (!res.error) {
             //check result
-            if(data["result"]) {
-              const result = JSON.parse(data["result"])
+            if(res.data) {
+              const result = JSON.parse(res.data)
               if (result.exist) {
                 $("#registererr_msg").removeClass("d-none")
                 $("#registererr_msg").text('That name is not available')
@@ -124,8 +124,7 @@ export default class extends BaseController {
               }
             }
             _this.handlerRegister(newUsername)
-          }
-          if (data["error"] != "") {
+          } else {
             $("#confirmButton").prop("disabled", true)
             $("#registererr_msg").removeClass("d-none")
             $("#registererr_msg").text(data["error_msg"])
@@ -155,9 +154,9 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: "/passkey/registerStart", //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
-          const resultData = data["result"]
+      success: function (res) {
+        if (!res.error) {
+          const resultData = res.data
           if (resultData) {
             options = resultData.options;
             sessionKey = resultData.sessionkey;
@@ -175,8 +174,7 @@ export default class extends BaseController {
             return;
           }
           _this.handlerFinishRegistration(options, sessionKey);
-        }
-        if (data["error"] != "") {
+        } else {
           _this.cancelRegisterUser(sessionKey);
           $("#loadingArea").addClass("d-none");
           $("#footerArea").removeClass("d-none")
@@ -231,7 +229,7 @@ export default class extends BaseController {
         return a.json(); // call the json method on the response to get JSON
       })
       .then(function (json) {
-        if (!json.error || json.error == "") {
+        if (!json.error) {
          //redirect to homepage
          window.location.href = "/"
         } else {
@@ -239,7 +237,7 @@ export default class extends BaseController {
           $("#sectionTitle").removeClass("d-none")
           $("#confirmButton").removeClass("d-none")
           $("#registererr_msg").removeClass("d-none");
-          $("#registererr_msg").text(json.error_msg);
+          $("#registererr_msg").text(json.msg);
           _this.cancelRegisterUser(sessionKey);
           _this.resetToStartPage()
         }
@@ -279,9 +277,9 @@ export default class extends BaseController {
       data: {},
       type: "POST", //OR GET
       url: "/assertion/options", //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
-          const resultData = data["result"];
+      success: function (res) {
+        if (!res.error) {
+          const resultData = res.data;
           if (!resultData || !resultData.options) {
             return;
           }
@@ -289,6 +287,8 @@ export default class extends BaseController {
           const opts = resultData.options;
           const sessionKey = resultData.sessionkey;
           _this.hanlderFinish(opts, sessionKey, false);
+        } else {
+          _this.resetToStartPage()
         }
       },
     });

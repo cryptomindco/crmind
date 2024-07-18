@@ -196,3 +196,25 @@ func HttpPost(httpUrl string, formData url.Values, respObj interface{}) error {
 	}
 	return nil
 }
+
+func HttpFullPost(httpUrl string, body io.ReadCloser, headers map[string]string, respObj interface{}) error {
+	req, err := http.NewRequest("POST", httpUrl, body)
+	if err != nil {
+		return err
+	}
+	for key := range headers {
+		req.Header.Set(key, headers[key])
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(respObj)
+	if err != nil {
+		return err
+	}
+	return nil
+}

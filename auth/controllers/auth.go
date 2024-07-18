@@ -6,6 +6,7 @@ import (
 	"auth/passkey"
 	"auth/utils"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -15,6 +16,19 @@ import (
 
 type AuthController struct {
 	BaseLoginController
+}
+
+func (this *AuthController) CheckUser() {
+	username := strings.TrimSpace(this.GetString("username"))
+	o := orm.NewOrm()
+	//Check username exist
+	userCount, err := o.QueryTable(userModel).Filter("username", username).Count()
+	result := struct {
+		Exist bool `json:"exist"`
+	}{
+		Exist: err == nil && userCount > 0,
+	}
+	this.ResponseSuccessfullyWithAnyData(nil, "Check username exist successfully", utils.GetFuncName(), result)
 }
 
 func (this *AuthController) BeginUpdatePasskey() {
@@ -45,8 +59,7 @@ func (this *AuthController) BeginUpdatePasskey() {
 // Logout handler
 func (this *AuthController) Quit() {
 	this.DestroySession()
-	this.Redirect("/login", 302)
-	this.StopRun()
+	this.ResponseSuccessfully(nil, "Logout successfully", utils.GetFuncName())
 }
 
 // Logout handler

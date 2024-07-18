@@ -20,4 +20,5 @@ func init() {
 	beego.Router("/is-logging", &controllers.AuthController{}, "get:IsLoggingOn")
 	beego.Router("/exit", &controllers.AuthController{}, "get:Quit")
 	beego.Router("/gen-random-username", &controllers.AuthController{}, "get:GenRandomUsername")
+	beego.Router("/check-user", &controllers.AuthController{}, "get:CheckUser")
 }
