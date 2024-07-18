@@ -5,7 +5,6 @@ import (
 	"crmind/services"
 	"crmind/utils"
 	"fmt"
-	"net/http"
 
 	beego "github.com/beego/beego/v2/adapter"
 	"github.com/beego/beego/v2/client/orm"
@@ -37,12 +36,17 @@ func (this *BaseController) ResponseError(msg string, funcName string, err error
 }
 
 func (this *BaseController) IsLoggingOn() (int64, error) {
-	resData, err := services.RequestNoParam(fmt.Sprintf("%s:%s", utils.GetAuthHost(), utils.GetAuthPort()), http.MethodGet)
-	if err != nil {
+	var response utils.ResponseData
+	if err := services.HttpGet(fmt.Sprintf("%s%s", this.AuthSite(), "/is-logging"), map[string]string{}, &response); err != nil {
 		return 0, err
 	}
-	if resData.IsError {
-		return 0, fmt.Errorf(resData.Msg)
+
+	if response.IsError {
+		return 0, fmt.Errorf(response.Msg)
 	}
-	return resData.Data.(int64), nil
+	return response.Data.(int64), nil
+}
+
+func (this *BaseController) AuthSite() string {
+	return fmt.Sprintf("%s:%s", utils.GetAuthHost(), utils.GetAuthPort())
 }
