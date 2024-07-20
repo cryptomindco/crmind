@@ -64,12 +64,12 @@ func (this *AuthController) Quit() {
 
 // Logout handler
 func (this *AuthController) IsLoggingOn() {
-	user, isLogin := this.SimpleAuthCheck()
+	user, isLogin := this.CheckLoggingIn()
 	if !isLogin {
 		this.ResponseError("User is not logged in", utils.GetFuncName(), nil)
 		return
 	}
-	this.ResponseSuccessfullyWithAnyData(user, fmt.Sprintf("LoginUser Id: %d", user.Id), utils.GetFuncName(), user.Id)
+	this.ResponseSuccessfullyWithAnyData(nil, fmt.Sprintf("LoginUser Id: %d", user.Id), utils.GetFuncName(), *user)
 }
 
 func (this *AuthController) GenRandomUsername() {
@@ -260,9 +260,17 @@ func (this *AuthController) FinishRegistration() {
 		return
 	}
 	tx.Commit()
-	//set user session
-	this.SetSession("LoginUser", passkey.InitSessionUser(insertUser))
-	this.ResponseSuccessfully(nil, "Finish registration successfully", utils.GetFuncName())
+	//Login after registration
+	tokenString, err := this.CreateAuthClaimSession(&insertUser)
+	if err != nil {
+		this.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+		return
+	}
+	loginResponse := map[string]any{
+		"token": tokenString,
+		"user":  insertUser,
+	}
+	this.ResponseSuccessfullyWithAnyData(nil, "Finish registration successfully", utils.GetFuncName(), loginResponse)
 }
 
 func (this *AuthController) AssertionOptions() {
@@ -349,8 +357,16 @@ func (this *AuthController) AssertionResult() {
 		return
 	}
 	tx.Commit()
-	this.SetSession("LoginUser", passkey.InitSessionUser(*loginUser))
-	this.ResponseSuccessfully(nil, "Finish login by passkey successfully", utils.GetFuncName())
+	tokenString, err := this.CreateAuthClaimSession(loginUser)
+	if err != nil {
+		this.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+		return
+	}
+	loginResponse := map[string]any{
+		"token": tokenString,
+		"user":  *loginUser,
+	}
+	this.ResponseSuccessfullyWithAnyData(nil, "Finish login by passkey successfully", utils.GetFuncName(), loginResponse)
 }
 
 func (this *AuthController) BeginConfirmPasskey() {

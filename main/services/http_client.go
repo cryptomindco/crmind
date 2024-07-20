@@ -218,3 +218,25 @@ func HttpFullPost(httpUrl string, body io.ReadCloser, headers map[string]string,
 	}
 	return nil
 }
+
+func HttpFullGet(httpUrl string, headers map[string]string, body io.ReadCloser, respObj interface{}) error {
+	req, err := http.NewRequest("GET", httpUrl, body)
+	if err != nil {
+		return err
+	}
+	for key := range headers {
+		req.Header.Set(key, headers[key])
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(respObj)
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -7,6 +7,7 @@ type UserStatus int
 
 const (
 	UserListSessionKey = "userList"
+	AliveSessionHours  = 24
 )
 
 const (

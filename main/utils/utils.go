@@ -44,6 +44,18 @@ func ObjectToJsonString(obj interface{}) string {
 	return string(b)
 }
 
+func CatchObject(from interface{}, to interface{}) error {
+	jsonBytes, err := json.Marshal(from)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(jsonBytes, &to)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetAuthHost() string {
 	if !IsEmpty(AuthHost) {
 		return AuthHost
@@ -66,6 +78,10 @@ func GetAssetsHost() string {
 	}
 	AssetsHost = beego.AppConfig.String("assethost")
 	return AssetsHost
+}
+
+func AuthSite() string {
+	return fmt.Sprintf("%s:%s", GetAuthHost(), GetAuthPort())
 }
 
 func GetAssetsPort() string {

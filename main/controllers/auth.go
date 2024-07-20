@@ -13,12 +13,7 @@ type AuthController struct {
 }
 
 func (this *AuthController) Get() {
-	_, err := this.IsLoggingOn()
-	if err != nil {
-		this.TplName = "login.html"
-		return
-	}
-	this.TplName = "index.html"
+	this.TplName = "login.html"
 }
 
 func (this *AuthController) CheckUser() {
@@ -63,9 +58,21 @@ func (this *AuthController) FinishRegistration() {
 		this.ResponseError("Register new user failed", utils.GetFuncName(), err)
 		return
 	}
-
-	this.Data["json"] = response
-	this.ServeJSON()
+	if response.IsError {
+		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+		return
+	}
+	data, isOk := response.Data.(map[string]any)
+	tokenString := ""
+	if isOk {
+		tokenString, _ = data["token"].(string)
+	} else {
+		this.ResponseError("Get login token failed", utils.GetFuncName(), fmt.Errorf("Get login token failed"))
+		return
+	}
+	//set token on session
+	this.SetSession(utils.Tokenkey, tokenString)
+	this.ResponseSuccessfully(0, "Registration successfully. Logging in...", utils.GetFuncName())
 }
 
 func (this *AuthController) AssertionOptions() {
@@ -91,8 +98,21 @@ func (this *AuthController) AssertionResult() {
 		return
 	}
 
-	this.Data["json"] = response
-	this.ServeJSON()
+	if response.IsError {
+		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+		return
+	}
+	data, isOk := response.Data.(map[string]any)
+	tokenString := ""
+	if isOk {
+		tokenString, _ = data["token"].(string)
+	} else {
+		this.ResponseError("Get login token failed", utils.GetFuncName(), fmt.Errorf("Get login token failed"))
+		return
+	}
+	//set token on session
+	this.SetSession(utils.Tokenkey, tokenString)
+	this.ResponseSuccessfully(0, "Login successfully", utils.GetFuncName())
 }
 
 func (this *AuthController) BeginUpdatePasskey() {

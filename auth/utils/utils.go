@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
+
+	beego "github.com/beego/beego/v2/adapter"
 )
 
 func IsEmpty(x interface{}) bool {
@@ -49,4 +51,8 @@ func ObjectToJsonString(obj interface{}) string {
 		return ""
 	}
 	return string(b)
+}
+
+func GetConfValue(key string) string {
+	return beego.AppConfig.String(key)
 }

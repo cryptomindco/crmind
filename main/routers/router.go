@@ -25,5 +25,8 @@ func init() {
 	beego.Router("/check-user", &controllers.AuthController{}, "get:CheckUser")
 
 	beego.Router("/login", &controllers.AuthController{})
-
+	//Configure URLs with and without login authentication
+	InitSetFilterUrl()
+	//Filter, intercept all requests
+	beego.InsertFilter("/*", beego.BeforeRouter, FilterCryptomind)
 }

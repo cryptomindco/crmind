@@ -115,7 +115,7 @@ export default class extends BaseController {
           if (!res.error) {
             //check result
             if(res.data) {
-              const result = JSON.parse(res.data)
+              const result = res.data
               if (result.exist) {
                 $("#registererr_msg").removeClass("d-none")
                 $("#registererr_msg").text('That name is not available')

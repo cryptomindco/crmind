@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type BaseLoginController struct {
@@ -46,6 +48,23 @@ func (this *BaseLoginController) AuthCheck() (*models.SessionUser, bool) {
 		this.Data["successFlag"] = false
 	}
 	return userData, true
+}
+
+func (this *BaseLoginController) CheckLoggingIn() (*models.AuthClaims, bool) {
+	var bearer = this.Ctx.Request.Header.Get("Authorization")
+	// Should be a bearer token
+	if len(bearer) > 6 && strings.ToUpper(bearer[0:7]) == "BEARER " {
+		var tokenStr = bearer[7:]
+		var claim models.AuthClaims
+		_, err := jwt.ParseWithClaims(tokenStr, &claim, func(token *jwt.Token) (interface{}, error) {
+			return []byte(utils.GetConfValue("hmacSecretKey")), nil
+		})
+		if err != nil || claim.Id <= 0 {
+			return nil, false
+		}
+		return &claim, true
+	}
+	return nil, false
 }
 
 func (this *BaseLoginController) SimpleAuthCheck() (*models.SessionUser, bool) {
@@ -192,4 +211,27 @@ func (this *BaseLoginController) GetUserListWithExcludeId(excludeId int64) []mod
 		return userList
 	}
 	return userList
+}
+
+func (this *BaseLoginController) CreateAuthClaimSession(loginUser *models.User) (string, error) {
+	aliveSessionHourStr := utils.GetConfValue("aliveSessionHours")
+	aliveSessionHours, err := strconv.ParseInt(aliveSessionHourStr, 0, 32)
+	if err != nil {
+		aliveSessionHours = utils.AliveSessionHours
+	}
+	authClaims := models.AuthClaims{
+		Id:           loginUser.Id,
+		Username:     loginUser.Username,
+		Expire:       time.Now().Add(time.Hour * time.Duration(aliveSessionHours)).Unix(),
+		Role:         loginUser.Role,
+		Token:        loginUser.Token,
+		Contacts:     loginUser.Contacts,
+		CredsArrJson: loginUser.CredsArrJson,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, authClaims)
+	tokenString, err := token.SignedString([]byte(utils.GetConfValue("hmacSecretKey")))
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
 }

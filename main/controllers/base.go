@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"crmind/logpack"
+	"crmind/models"
 	"crmind/services"
 	"crmind/utils"
 	"fmt"
+	"net/http"
 
 	beego "github.com/beego/beego/v2/adapter"
 	"github.com/beego/beego/v2/client/orm"
@@ -35,16 +37,57 @@ func (this *BaseController) ResponseError(msg string, funcName string, err error
 	this.ServeJSON()
 }
 
-func (this *BaseController) IsLoggingOn() (int64, error) {
+func (this *BaseController) ResponseSuccessfully(loginId int64, msg string, funcName string) {
+	if loginId <= 0 {
+		logpack.Info(msg, funcName)
+	} else {
+		logpack.FInfo(msg, loginId, funcName)
+	}
+	this.Data["json"] = utils.ResponseData{
+		IsError: false,
+		Msg:     msg,
+	}
+	this.ServeJSON()
+}
+
+func (this *BaseController) ResponseSuccessfullyWithAnyData(loginId int64, msg, funcName string, result any) {
+	if loginId <= 0 {
+		logpack.Info(msg, funcName)
+	} else {
+		logpack.FInfo(msg, loginId, funcName)
+	}
+	this.Data["json"] = utils.ResponseData{
+		IsError: false,
+		Msg:     msg,
+		Data:    result,
+	}
+	this.ServeJSON()
+}
+
+func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
 	var response utils.ResponseData
-	if err := services.HttpGet(fmt.Sprintf("%s%s", this.AuthSite(), "/is-logging"), map[string]string{}, &response); err != nil {
-		return 0, err
+	token := this.GetSession(utils.Tokenkey)
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AuthSite(), "/is-logging"),
+		Payload: map[string]string{},
+		Header:  map[string]string{"Authorization": fmt.Sprintf("%s%s", "Bearer ", token)},
+	}
+
+	if err := services.HttpRequest(req, &response); err != nil {
+		return nil, err
 	}
 
 	if response.IsError {
-		return 0, fmt.Errorf(response.Msg)
+		return nil, fmt.Errorf(response.Msg)
 	}
-	return response.Data.(int64), nil
+
+	var authClaim models.AuthClaims
+	err := utils.CatchObject(response.Data, &authClaim)
+	if err != nil {
+		return nil, fmt.Errorf("Get Authentication info failed")
+	}
+	return &authClaim, nil
 }
 
 func (this *BaseController) AuthSite() string {
