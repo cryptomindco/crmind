@@ -21,7 +21,9 @@ func init() {
 	beego.Router("/auth/syncChangeUsername", &controllers.AuthController{}, "post:SyncUsernameDB")
 
 	//data router
-	beego.Router("/get-users", &controllers.QueryController{}, "get:GetAdminUserList")
+	beego.Router("/admin/get-users", &controllers.QueryController{}, "get:GetAdminUserList")
+	beego.Router("/admin/user-info", &controllers.QueryController{}, "get:GetAdminUserInfo")
+	beego.Router("/admin/change-user-status", &controllers.QueryController{}, "post:ChangeUserStatus")
 
 	beego.Router("/is-logging", &controllers.AuthController{}, "get:IsLoggingOn")
 	beego.Router("/exit", &controllers.AuthController{}, "get:Quit")

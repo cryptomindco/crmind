@@ -30,6 +30,8 @@ func init() {
 
 	//Admin router
 	beego.Router("/admin", &controllers.AdminController{})
+	beego.Router("/admin/user", &controllers.AdminController{}, "get:UserDetail")
+	beego.Router("/admin/ChangeUserStatus", &controllers.AdminController{}, "post:ChangeUserStatus")
 
 	//Configure URLs with and without login authentication
 	InitSetFilterUrl()

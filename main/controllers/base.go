@@ -26,15 +26,12 @@ func (this *BaseController) ResponseRollbackError(tx orm.TxOrmer, msg string, fu
 	this.ResponseError(msg, funcName, err)
 }
 
-func (this *BaseController) ResponseErrorWithErrName(errorName, msg, funcName string, err error) {
-	logpack.Error(msg, funcName, err)
-	this.Data["json"] = map[string]string{"error": errorName, "error_msg": msg}
-	this.ServeJSON()
-}
-
 func (this *BaseController) ResponseError(msg string, funcName string, err error) {
 	logpack.Error(msg, funcName, err)
-	this.Data["json"] = map[string]string{"error": "true", "error_msg": msg}
+	this.Data["json"] = utils.ResponseData{
+		IsError: true,
+		Msg:     msg,
+	}
 	this.ServeJSON()
 }
 
@@ -73,6 +70,14 @@ func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
 	}
 	this.Data["LoginUser"] = authClaim
 	this.Data["IsSuperAdmin"] = this.IsSuperAdmin(*authClaim)
+	return authClaim, nil
+}
+
+func (this *BaseController) SimpleAdminAuthCheck() (*models.AuthClaims, error) {
+	authClaim, err := this.GetLoginUser()
+	if err != nil || authClaim.Role != int(utils.RoleSuperAdmin) {
+		return nil, fmt.Errorf("Check admin login failed")
+	}
 	return authClaim, nil
 }
 

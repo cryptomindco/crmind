@@ -341,15 +341,14 @@ export default class extends BaseController {
       },
       type: "POST",
       url: "/admin/ChangeUserStatus",
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           const activeStr = activeFlg ? "activated" : "deactivated"
           _this.showSuccessToast('User has been ' + activeStr);
           $("#usdBalance").prop("disabled", !activeFlg);
           $("#balanceUpdateBtn").prop("disabled", !activeFlg);
           return;
-        }
-        if (data["error"] != "") {
+        } else {
           _this.showErrorToast("An error has occurred. Please reload the page");
         }
       },

@@ -46,9 +46,9 @@ func (this *BaseLoginController) GetUsernameListExcludeId(loginUserId int64) []s
 	return result
 }
 
-func (this *BaseLoginController) ResponseLoginRollbackError(loginUser *models.SessionUser, tx orm.TxOrmer, msg string, funcName string, err error) {
+func (this *BaseLoginController) ResponseLoginRollbackError(loginId int64, tx orm.TxOrmer, msg string, funcName string, err error) {
 	tx.Rollback()
-	this.ResponseLoginError(loginUser, msg, funcName, err)
+	this.ResponseLoginError(loginId, msg, funcName, err)
 }
 
 func (this *BaseLoginController) ResponseRollbackError(tx orm.TxOrmer, msg string, funcName string, err error) {
@@ -56,11 +56,11 @@ func (this *BaseLoginController) ResponseRollbackError(tx orm.TxOrmer, msg strin
 	this.ResponseError(msg, funcName, err)
 }
 
-func (this *BaseLoginController) ResponseLoginError(loginUser *models.SessionUser, msg string, funcName string, err error) {
-	if loginUser == nil {
+func (this *BaseLoginController) ResponseLoginError(loginId int64, msg string, funcName string, err error) {
+	if loginId <= 0 {
 		logpack.Error(msg, funcName, err)
 	} else {
-		logpack.FError(msg, loginUser.User.Id, funcName, err)
+		logpack.FError(msg, loginId, funcName, err)
 	}
 	this.Data["json"] = utils.ResponseData{
 		IsError: true,
@@ -78,11 +78,11 @@ func (this *BaseLoginController) ResponseError(msg string, funcName string, err 
 	this.ServeJSON()
 }
 
-func (this *BaseLoginController) ResponseSuccessfully(loginUser *models.SessionUser, msg string, funcName string) {
-	if loginUser == nil {
+func (this *BaseLoginController) ResponseSuccessfully(loginId int64, msg string, funcName string) {
+	if loginId <= 0 {
 		logpack.Info(msg, funcName)
 	} else {
-		logpack.FInfo(msg, loginUser.User.Id, funcName)
+		logpack.FInfo(msg, loginId, funcName)
 	}
 	this.Data["json"] = utils.ResponseData{
 		IsError: false,
@@ -91,11 +91,11 @@ func (this *BaseLoginController) ResponseSuccessfully(loginUser *models.SessionU
 	this.ServeJSON()
 }
 
-func (this *BaseLoginController) ResponseSuccessfullyWithAnyData(loginUser *models.SessionUser, msg, funcName string, result any) {
-	if loginUser == nil {
+func (this *BaseLoginController) ResponseSuccessfullyWithAnyData(loginId int64, msg, funcName string, result any) {
+	if loginId <= 0 {
 		logpack.Info(msg, funcName)
 	} else {
-		logpack.FInfo(msg, loginUser.User.Id, funcName)
+		logpack.FInfo(msg, loginId, funcName)
 	}
 	this.Data["json"] = utils.ResponseData{
 		IsError: false,

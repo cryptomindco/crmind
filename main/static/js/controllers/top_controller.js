@@ -29,7 +29,7 @@ export default class extends BaseController {
         if (!json.error) {
           window.location.reload()
         } else {
-          _this.showErrorToast('Switch account failed: ' + json.error_msg)
+          _this.showErrorToast('Switch account failed: ' + json.msg)
           $("#loadingModal").on("shown.bs.modal", function () {}).modal('hide');
         }
       });

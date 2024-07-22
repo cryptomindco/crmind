@@ -28,7 +28,7 @@ func (this *AuthController) CheckUser() {
 	}{
 		Exist: err == nil && userCount > 0,
 	}
-	this.ResponseSuccessfullyWithAnyData(nil, "Check username exist successfully", utils.GetFuncName(), result)
+	this.ResponseSuccessfullyWithAnyData(0, "Check username exist successfully", utils.GetFuncName(), result)
 }
 
 func (this *AuthController) BeginUpdatePasskey() {
@@ -55,13 +55,13 @@ func (this *AuthController) BeginUpdatePasskey() {
 	response := make(map[string]any)
 	response["options"] = options
 	response["sessionkey"] = t
-	this.ResponseSuccessfullyWithAnyData(nil, "Begin registration successfully", utils.GetFuncName(), response)
+	this.ResponseSuccessfullyWithAnyData(0, "Begin registration successfully", utils.GetFuncName(), response)
 }
 
 // Logout handler
 func (this *AuthController) Quit() {
 	this.DestroySession()
-	this.ResponseSuccessfully(nil, "Logout successfully", utils.GetFuncName())
+	this.ResponseSuccessfully(0, "Logout successfully", utils.GetFuncName())
 }
 
 // Logout handler
@@ -71,7 +71,7 @@ func (this *AuthController) IsLoggingOn() {
 		this.ResponseError("User is not logged in", utils.GetFuncName(), nil)
 		return
 	}
-	this.ResponseSuccessfullyWithAnyData(nil, fmt.Sprintf("LoginUser Id: %d", user.Id), utils.GetFuncName(), *user)
+	this.ResponseSuccessfullyWithAnyData(0, fmt.Sprintf("LoginUser Id: %d", user.Id), utils.GetFuncName(), *user)
 }
 
 func (this *AuthController) GenRandomUsername() {
@@ -82,7 +82,7 @@ func (this *AuthController) GenRandomUsername() {
 	}
 	result := make(map[string]string)
 	result["username"] = username
-	this.ResponseSuccessfullyWithAnyData(nil, fmt.Sprintf("Get random username: %s", username), utils.GetFuncName(), utils.ObjectToJsonString(result))
+	this.ResponseSuccessfullyWithAnyData(0, fmt.Sprintf("Get random username: %s", username), utils.GetFuncName(), utils.ObjectToJsonString(result))
 }
 
 func (this *AuthController) BeginRegistration() {
@@ -126,7 +126,7 @@ func (this *AuthController) BeginRegistration() {
 	response := make(map[string]any)
 	response["options"] = options
 	response["sessionkey"] = t
-	this.ResponseSuccessfullyWithAnyData(nil, "Begin registration successfully", utils.GetFuncName(), response)
+	this.ResponseSuccessfullyWithAnyData(0, "Begin registration successfully", utils.GetFuncName(), response)
 }
 
 func (this *AuthController) CancelRegister() {
@@ -139,7 +139,7 @@ func (this *AuthController) CancelRegister() {
 	session := passkey.Datastore.GetSession(sessionKey) // FIXME: cover invalid session
 	//remove user by session
 	passkey.Datastore.RemoveUser(string(session.UserID))
-	this.ResponseSuccessfully(nil, "Remove session user successfully", utils.GetFuncName())
+	this.ResponseSuccessfully(0, "Remove session user successfully", utils.GetFuncName())
 }
 
 func (this *AuthController) FinishUpdatePasskey() {
@@ -209,7 +209,7 @@ func (this *AuthController) FinishUpdatePasskey() {
 		"token": tokenString,
 		"user":  *authClaim,
 	}
-	this.ResponseSuccessfullyWithAnyData(nil, "Update user passkey successfully", utils.GetFuncName(), loginResponse)
+	this.ResponseSuccessfullyWithAnyData(0, "Update user passkey successfully", utils.GetFuncName(), loginResponse)
 }
 
 func (this *AuthController) FinishRegistration() {
@@ -280,7 +280,7 @@ func (this *AuthController) FinishRegistration() {
 		"token": tokenString,
 		"user":  *authClaim,
 	}
-	this.ResponseSuccessfullyWithAnyData(nil, "Finish registration successfully", utils.GetFuncName(), loginResponse)
+	this.ResponseSuccessfullyWithAnyData(0, "Finish registration successfully", utils.GetFuncName(), loginResponse)
 }
 
 func (this *AuthController) AssertionOptions() {
@@ -295,7 +295,7 @@ func (this *AuthController) AssertionOptions() {
 	response["options"] = options
 	response["sessionkey"] = t
 	response["hasUser"] = passkey.Datastore.CheckHasUser()
-	this.ResponseSuccessfullyWithAnyData(nil, "Begin registration successfully", utils.GetFuncName(), response)
+	this.ResponseSuccessfullyWithAnyData(0, "Begin registration successfully", utils.GetFuncName(), response)
 }
 
 func (this *AuthController) AssertionResult() {
@@ -376,7 +376,7 @@ func (this *AuthController) AssertionResult() {
 		"token": tokenString,
 		"user":  *authClaim,
 	}
-	this.ResponseSuccessfullyWithAnyData(nil, "Finish login by passkey successfully", utils.GetFuncName(), loginResponse)
+	this.ResponseSuccessfullyWithAnyData(0, "Finish login by passkey successfully", utils.GetFuncName(), loginResponse)
 }
 
 func (this *AuthController) BeginConfirmPasskey() {
@@ -406,7 +406,7 @@ func (this *AuthController) BeginConfirmPasskey() {
 	response := make(map[string]any)
 	response["options"] = options
 	response["sessionkey"] = t
-	this.ResponseSuccessfullyWithAnyData(nil, "Begin registration successfully", utils.GetFuncName(), response)
+	this.ResponseSuccessfullyWithAnyData(0, "Begin registration successfully", utils.GetFuncName(), response)
 }
 
 func (this *AuthController) FinishConfirmPasskey() {
@@ -444,7 +444,7 @@ func (this *AuthController) FinishConfirmPasskey() {
 	passkey.Datastore.SaveUser(user)
 	// Delete the session data
 	passkey.Datastore.DeleteSession(t)
-	this.ResponseSuccessfully(nil, "Finish confirm passkey succefully", utils.GetFuncName())
+	this.ResponseSuccessfully(0, "Finish confirm passkey succefully", utils.GetFuncName())
 }
 
 func (this *AuthController) ChangeUsernameFinish() {
@@ -517,7 +517,7 @@ func (this *AuthController) ChangeUsernameFinish() {
 		"token": tokenString,
 		"user":  *authClaim,
 	}
-	this.ResponseSuccessfullyWithAnyData(nil, "Finish registration successfully", utils.GetFuncName(), loginResponse)
+	this.ResponseSuccessfullyWithAnyData(0, "Finish registration successfully", utils.GetFuncName(), loginResponse)
 }
 
 func (this *AuthController) SyncUsernameDB() {
@@ -546,5 +546,5 @@ func (this *AuthController) SyncUsernameDB() {
 		}
 		logpack.Info("Sync username on all table successfully", utils.GetFuncName())
 	}()
-	this.ResponseSuccessfully(nil, "Sync user table successfully", utils.GetFuncName())
+	this.ResponseSuccessfully(0, "Sync user table successfully", utils.GetFuncName())
 }
