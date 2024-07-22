@@ -7,16 +7,6 @@ export default class extends BaseController {
   }
 
   async initialize() {
-    // $.ajax({
-    //   data: {
-    //     username: "user03",
-    //   },
-    //   type: "POST", //OR GET
-    //   url: "/passkey/registerStart", //The same form's action URL
-    //   success: function (data) {
-    //     console.log(JSON.stringify(data))
-    //   },
-    // });
   }
 
   async hanlderFinish(opts, sessionKey, startConditionalUI) {
@@ -85,7 +75,7 @@ export default class extends BaseController {
         }
         if (res.error) {
           $("#loginErr_msg").removeClass("d-none")
-          $("#loginErr_msg").text(data["error_msg"])
+          $("#loginErr_msg").text(res.msg)
         }
       },
     });
@@ -127,7 +117,7 @@ export default class extends BaseController {
           } else {
             $("#confirmButton").prop("disabled", true)
             $("#registererr_msg").removeClass("d-none")
-            $("#registererr_msg").text(data["error_msg"])
+            $("#registererr_msg").text(res.msg)
             return
           }
         },
@@ -180,7 +170,7 @@ export default class extends BaseController {
           $("#footerArea").removeClass("d-none")
           $("#confirmButton").removeClass("d-none")
           $("#registererr_msg").removeClass("d-none");
-          $("#registererr_msg").text(data["error_msg"]);
+          $("#registererr_msg").text(res.msg);
           $("#sectionTitle").removeClass("d-none")
         }
       },

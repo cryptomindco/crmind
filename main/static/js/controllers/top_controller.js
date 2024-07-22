@@ -26,7 +26,7 @@ export default class extends BaseController {
         return a.json(); // call the json method on the response to get JSON
       })
       .then(function (json) {
-        if (!json.error || json.error == "") {
+        if (!json.error) {
           window.location.reload()
         } else {
           _this.showErrorToast('Switch account failed: ' + json.error_msg)
@@ -42,9 +42,9 @@ export default class extends BaseController {
       data: {},
       type: "POST", //OR GET
       url: "/assertion/options", //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
-          const resultData = data["result"];
+      success: function (res) {
+        if (!res.error) {
+          const resultData = res.data;
           if (!resultData || !resultData.options) {
             return;
           }

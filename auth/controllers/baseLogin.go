@@ -4,8 +4,6 @@ import (
 	"auth/logpack"
 	"auth/models"
 	"auth/utils"
-	"encoding/json"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -18,40 +16,12 @@ type BaseLoginController struct {
 	BaseController
 }
 
-func (this *BaseLoginController) AuthCheck() (*models.SessionUser, bool) {
-	userData, check := this.LoginUser()
-	if !check {
-		this.Redirect("/login", http.StatusFound)
-		return nil, false
-	}
-	this.Data["LoginUser"] = userData
-	this.Data["IsSuperAdmin"] = this.IsSuperAdmin(*userData)
-	successMsg := this.GetSession("successMessage")
-	userListJson := this.GetSession("UserListSessionKey")
-	usernameList := make([]string, 0)
-	//if userList is empty, get userList
-	if utils.IsEmpty(userListJson) {
-		usernameList = this.GetUsernameListExcludeId(userData.Id)
-	} else {
-		usernamesJsonBytes, err := json.Marshal(userListJson)
-		if err == nil {
-			json.Unmarshal(usernamesJsonBytes, &usernameList)
-		}
-	}
-	this.Data["UsernameList"] = usernameList
-
-	if !utils.IsEmpty(successMsg) {
-		this.Data["successFlag"] = true
-		this.SetSession("successMessage", "")
-		this.Data["successfullyMsg"] = successMsg
-	} else {
-		this.Data["successFlag"] = false
-	}
-	return userData, true
-}
-
 func (this *BaseLoginController) CheckLoggingIn() (*models.AuthClaims, bool) {
 	var bearer = this.Ctx.Request.Header.Get("Authorization")
+	return this.HanlderCheckLogin(bearer)
+}
+
+func (this *BaseLoginController) HanlderCheckLogin(bearer string) (*models.AuthClaims, bool) {
 	// Should be a bearer token
 	if len(bearer) > 6 && strings.ToUpper(bearer[0:7]) == "BEARER " {
 		var tokenStr = bearer[7:]
@@ -65,40 +35,6 @@ func (this *BaseLoginController) CheckLoggingIn() (*models.AuthClaims, bool) {
 		return &claim, true
 	}
 	return nil, false
-}
-
-func (this *BaseLoginController) SimpleAuthCheck() (*models.SessionUser, bool) {
-	userData, check := this.LoginUser()
-	if !check || userData.Id <= 0 {
-		return nil, false
-	}
-	return userData, true
-}
-
-func (this *BaseLoginController) SimpleSuperadminAuthCheck() (*models.SessionUser, bool) {
-	loginUser, check := this.SimpleAuthCheck()
-	if !check {
-		return nil, false
-	}
-	//if not superadmin
-	if loginUser.Role != int(utils.RoleSuperAdmin) {
-		return nil, false
-	}
-
-	return loginUser, true
-}
-
-func (this *BaseLoginController) SuperadminAuthCheck() (*models.SessionUser, bool) {
-	loginUser, check := this.AuthCheck()
-	if !check {
-		return nil, false
-	}
-	//if not superadmin
-	if loginUser.Role != int(utils.RoleSuperAdmin) {
-		return nil, false
-	}
-
-	return loginUser, true
 }
 
 func (this *BaseLoginController) GetUsernameListExcludeId(loginUserId int64) []string {
@@ -168,22 +104,6 @@ func (this *BaseLoginController) ResponseSuccessfullyWithAnyData(loginUser *mode
 	this.ServeJSON()
 }
 
-func (this *BaseLoginController) LoginUser() (*models.SessionUser, bool) {
-	userData, check := this.CheckLogin()
-	if !check {
-		return nil, false
-	}
-	userJson, _ := json.Marshal(userData)
-	var loginUser = models.SessionUser{}
-	json.Unmarshal(userJson, &loginUser)
-	return &loginUser, true
-}
-
-func (this *BaseLoginController) IsLogin() bool {
-	_, check := this.CheckLogin()
-	return check
-}
-
 func (this *BaseLoginController) GetIntArrayFromString(input string, separator string) []int64 {
 	result := make([]int64, 0)
 	if utils.IsEmpty(input) {
@@ -213,7 +133,7 @@ func (this *BaseLoginController) GetUserListWithExcludeId(excludeId int64) []mod
 	return userList
 }
 
-func (this *BaseLoginController) CreateAuthClaimSession(loginUser *models.User) (string, error) {
+func (this *BaseLoginController) CreateAuthClaimSession(loginUser *models.User) (string, *models.AuthClaims, error) {
 	aliveSessionHourStr := utils.GetConfValue("aliveSessionHours")
 	aliveSessionHours, err := strconv.ParseInt(aliveSessionHourStr, 0, 32)
 	if err != nil {
@@ -227,11 +147,13 @@ func (this *BaseLoginController) CreateAuthClaimSession(loginUser *models.User) 
 		Token:        loginUser.Token,
 		Contacts:     loginUser.Contacts,
 		CredsArrJson: loginUser.CredsArrJson,
+		Createdt:     loginUser.Createdt,
+		LastLogindt:  loginUser.LastLogindt,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, authClaims)
 	tokenString, err := token.SignedString([]byte(utils.GetConfValue("hmacSecretKey")))
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return tokenString, nil
+	return tokenString, &authClaims, nil
 }
