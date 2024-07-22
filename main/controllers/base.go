@@ -3,8 +3,8 @@ package controllers
 import (
 	"crmind/logpack"
 	"crmind/models"
-	"crmind/services"
 	"crmind/utils"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -65,31 +65,38 @@ func (this *BaseController) ResponseSuccessfullyWithAnyData(loginId int64, msg, 
 }
 
 func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
-	var response utils.ResponseData
-	token := this.GetSession(utils.Tokenkey)
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AuthSite(), "/is-logging"),
-		Payload: map[string]string{},
-		Header:  map[string]string{"Authorization": fmt.Sprintf("%s%s", "Bearer ", token)},
-	}
-
-	if err := services.HttpRequest(req, &response); err != nil {
+	authClaim, err := this.GetLoginUser()
+	if err != nil {
+		this.Redirect("/login", http.StatusFound)
 		return nil, err
 	}
+	this.Data["LoginUser"] = authClaim
+	this.Data["IsSuperAdmin"] = this.IsSuperAdmin(*authClaim)
+	return authClaim, nil
+}
 
-	if response.IsError {
-		return nil, fmt.Errorf(response.Msg)
-	}
-
+func (this *BaseController) GetLoginUser() (*models.AuthClaims, error) {
+	authClaimObj := this.GetSession(utils.LoginUserKey)
 	var authClaim models.AuthClaims
-	err := utils.CatchObject(response.Data, &authClaim)
+	if authClaimObj == nil {
+		return nil, fmt.Errorf("Login session not exist")
+	}
+	userJson, err := json.Marshal(authClaimObj)
 	if err != nil {
-		return nil, fmt.Errorf("Get Authentication info failed")
+		return nil, err
+	}
+	err = json.Unmarshal(userJson, &authClaim)
+	if err != nil {
+		return nil, err
 	}
 	return &authClaim, nil
 }
 
 func (this *BaseController) AuthSite() string {
 	return fmt.Sprintf("%s:%s", utils.GetAuthHost(), utils.GetAuthPort())
+}
+
+// Check user is superadmin
+func (this *BaseController) IsSuperAdmin(user models.AuthClaims) bool {
+	return user.Role == int(utils.RoleSuperAdmin)
 }

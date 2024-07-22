@@ -213,7 +213,7 @@ func (this *BaseLoginController) GetUserListWithExcludeId(excludeId int64) []mod
 	return userList
 }
 
-func (this *BaseLoginController) CreateAuthClaimSession(loginUser *models.User) (string, error) {
+func (this *BaseLoginController) CreateAuthClaimSession(loginUser *models.User) (string, *models.AuthClaims, error) {
 	aliveSessionHourStr := utils.GetConfValue("aliveSessionHours")
 	aliveSessionHours, err := strconv.ParseInt(aliveSessionHourStr, 0, 32)
 	if err != nil {
@@ -231,7 +231,7 @@ func (this *BaseLoginController) CreateAuthClaimSession(loginUser *models.User) 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, authClaims)
 	tokenString, err := token.SignedString([]byte(utils.GetConfValue("hmacSecretKey")))
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return tokenString, nil
+	return tokenString, &authClaims, nil
 }

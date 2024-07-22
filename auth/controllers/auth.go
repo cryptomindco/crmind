@@ -261,14 +261,14 @@ func (this *AuthController) FinishRegistration() {
 	}
 	tx.Commit()
 	//Login after registration
-	tokenString, err := this.CreateAuthClaimSession(&insertUser)
+	tokenString, authClaim, err := this.CreateAuthClaimSession(&insertUser)
 	if err != nil {
 		this.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
 		return
 	}
 	loginResponse := map[string]any{
 		"token": tokenString,
-		"user":  insertUser,
+		"user":  *authClaim,
 	}
 	this.ResponseSuccessfullyWithAnyData(nil, "Finish registration successfully", utils.GetFuncName(), loginResponse)
 }
@@ -357,14 +357,14 @@ func (this *AuthController) AssertionResult() {
 		return
 	}
 	tx.Commit()
-	tokenString, err := this.CreateAuthClaimSession(loginUser)
+	tokenString, authClaim, err := this.CreateAuthClaimSession(loginUser)
 	if err != nil {
 		this.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
 		return
 	}
 	loginResponse := map[string]any{
 		"token": tokenString,
-		"user":  *loginUser,
+		"user":  *authClaim,
 	}
 	this.ResponseSuccessfullyWithAnyData(nil, "Finish login by passkey successfully", utils.GetFuncName(), loginResponse)
 }

@@ -1,6 +1,7 @@
 package utils
 
 const Tokenkey = "Token"
+const LoginUserKey = "AuthClaims"
 
 var AuthHost, AuthPort, AssetsHost, AssetsPort string
 
@@ -14,3 +15,10 @@ type ResponseData struct {
 	Msg     string      `json:"msg"`
 	Data    interface{} `json:"data"`
 }
+
+type UserRole int
+
+const (
+	RoleSuperAdmin UserRole = iota
+	RoleRegular
+)

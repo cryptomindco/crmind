@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"crmind/models"
 	"crmind/services"
 	"crmind/utils"
 	"fmt"
@@ -64,14 +65,21 @@ func (this *AuthController) FinishRegistration() {
 	}
 	data, isOk := response.Data.(map[string]any)
 	tokenString := ""
+	var authClaim models.AuthClaims
 	if isOk {
 		tokenString, _ = data["token"].(string)
+		err := utils.CatchObject(data["user"], &authClaim)
+		if err != nil {
+			this.ResponseError("Parse login user failed", utils.GetFuncName(), err)
+			return
+		}
 	} else {
 		this.ResponseError("Get login token failed", utils.GetFuncName(), fmt.Errorf("Get login token failed"))
 		return
 	}
 	//set token on session
 	this.SetSession(utils.Tokenkey, tokenString)
+	this.SetSession(utils.LoginUserKey, authClaim)
 	this.ResponseSuccessfully(0, "Registration successfully. Logging in...", utils.GetFuncName())
 }
 
@@ -104,14 +112,21 @@ func (this *AuthController) AssertionResult() {
 	}
 	data, isOk := response.Data.(map[string]any)
 	tokenString := ""
+	var authClaim models.AuthClaims
 	if isOk {
 		tokenString, _ = data["token"].(string)
+		err := utils.CatchObject(data["user"], &authClaim)
+		if err != nil {
+			this.ResponseError("Parse login user failed", utils.GetFuncName(), err)
+			return
+		}
 	} else {
 		this.ResponseError("Get login token failed", utils.GetFuncName(), fmt.Errorf("Get login token failed"))
 		return
 	}
 	//set token on session
 	this.SetSession(utils.Tokenkey, tokenString)
+	this.SetSession(utils.LoginUserKey, authClaim)
 	this.ResponseSuccessfully(0, "Login successfully", utils.GetFuncName())
 }
 

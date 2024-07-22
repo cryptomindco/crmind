@@ -7,16 +7,6 @@ export default class extends BaseController {
   }
 
   async initialize() {
-    // $.ajax({
-    //   data: {
-    //     username: "user03",
-    //   },
-    //   type: "POST", //OR GET
-    //   url: "/passkey/registerStart", //The same form's action URL
-    //   success: function (data) {
-    //     console.log(JSON.stringify(data))
-    //   },
-    // });
   }
 
   async hanlderFinish(opts, sessionKey, startConditionalUI) {
