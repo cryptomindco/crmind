@@ -20,11 +20,14 @@ func init() {
 	beego.Router("/passkey/confirmStart", &controllers.AuthController{}, "post:BeginConfirmPasskey")
 	beego.Router("/passkey/confirmFinish", &controllers.AuthController{}, "post:FinishConfirmPasskey")
 	beego.Router("/passkey/cancelRegister", &controllers.AuthController{}, "post:CancelRegister")
+	beego.Router("/passkey/changeUsernameFinish", &controllers.AuthController{}, "post:ChangeUsernameFinish")
 	beego.Router("/exit", &controllers.AuthController{}, "get:Quit")
 	beego.Router("/gen-random-username", &controllers.AuthController{}, "get:GenRandomUsername")
 	beego.Router("/check-user", &controllers.AuthController{}, "get:CheckUser")
-
 	beego.Router("/login", &controllers.AuthController{})
+	//Profile router
+	beego.Router("/profile", &controllers.ProfileController{})
+
 	//Configure URLs with and without login authentication
 	InitSetFilterUrl()
 	//Filter, intercept all requests

@@ -91,3 +91,29 @@ func GetAssetsPort() string {
 	AssetsPort = beego.AppConfig.String("assetport")
 	return AssetsPort
 }
+
+func GetUrlCodeStatusFromValue(status int) (UrlCodeStatus, error) {
+	switch status {
+	case int(UrlCodeStatusCreated):
+		return UrlCodeStatusCreated, nil
+	case int(UrlCodeStatusConfirmed):
+		return UrlCodeStatusConfirmed, nil
+	case int(UrlCodeStatusCancelled):
+		return UrlCodeStatusCancelled, nil
+	default:
+		return -1, fmt.Errorf("Get Url Code error with status: %d", status)
+	}
+}
+
+func (urlCodeStatus UrlCodeStatus) CodeStatusColor() string {
+	switch urlCodeStatus {
+	case UrlCodeStatusCreated:
+		return "#dbc272"
+	case UrlCodeStatusConfirmed:
+		return "#008000"
+	case UrlCodeStatusCancelled:
+		return "#dc3545"
+	default:
+		return ""
+	}
+}

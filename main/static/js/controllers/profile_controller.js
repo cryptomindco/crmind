@@ -59,9 +59,9 @@ export default class extends BaseController {
       data: {},
       type: "POST", //OR GET
       url: "/passkey/updateStart", //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
-          const resultData = data["result"];
+      success: function (res) {
+        if (!res.error) {
+          const resultData = res.data;
           if (resultData) {
             options = resultData.options;
             sessionKey = resultData.sessionkey;
@@ -72,10 +72,9 @@ export default class extends BaseController {
             return;
           }
           _this.handlerFinishUpdatePasskey(options, sessionKey, isReset);
-        }
-        if (data["error"] != "") {
+        } else {
           $("#updateErr").removeClass("d-none");
-          $("#updateErr").text(data["error_msg"]);
+          $("#updateErr").text(res.msg);
         }
       },
     });
@@ -142,11 +141,11 @@ export default class extends BaseController {
       },
       type: "GET", //OR GET
       url: "/check-user", //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           //check result
-          if (data["result"]) {
-            const result = JSON.parse(data["result"]);
+          if (res.data) {
+            const result = res.data
             if (result.exist) {
               $("#newUsernameErr").removeClass("d-none");
               $("#newUsernameErr").text("Username already exists");
@@ -161,11 +160,9 @@ export default class extends BaseController {
           $("#usernameChangeConfirm")
             .on("shown.bs.modal", function () {})
             .modal("show")
-        }
-        if (data["error"] != "") {
+        } else {
           $("#newUsernameErr").removeClass("d-none");
-          $("#newUsernameErr").text(data["error_msg"]);
-          return;
+          $("#newUsernameErr").text(res.msg);
         }
       },
     });
@@ -187,11 +184,11 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: "/passkey/registerStart", //The same form's action URL
-      success: function (data) {
+      success: function (res) {
         let sessionKey;
         let options;
-        if (data["error"] == "") {
-          const resultData = data["result"];
+        if (!res.error) {
+          const resultData = res.data;
           if (resultData) {
             options = resultData.options;
             sessionKey = resultData.sessionkey;
@@ -206,11 +203,10 @@ export default class extends BaseController {
             return;
           }
           _this.handlerFinishChangeUsername(options, sessionKey);
-        }
-        if (data["error"] != "") {
+        } else {
           _this.cancelRegisterUser(sessionKey);
           $("#newUsernameErr").removeClass("d-none");
-          $("#newUsernameErr").text(data["error_msg"]);
+          $("#newUsernameErr").text(res.msg);
           $("#loadingArea").addClass('d-none')
         }
       },
@@ -243,11 +239,11 @@ export default class extends BaseController {
         return a.json(); // call the json method on the response to get JSON
       })
       .then(function (json) {
-        if (!json.error || json.error == "") {
+        if (!json.error) {
           window.location.reload()
         } else {
           $("#newUsernameErr").removeClass("d-none");
-          $("#newUsernameErr").text(json.error_msg);
+          $("#newUsernameErr").text(json.msg);
           $("#loadingArea").addClass('d-none')
           _this.cancelRegisterUser(sessionKey);
         }
@@ -272,11 +268,11 @@ export default class extends BaseController {
         return a.json(); // call the json method on the response to get JSON
       })
       .then(function (json) {
-        if (!json.error || json.error == "") {
+        if (!json.error) {
           _this.showSuccessToast("Passkey updated successfully");
         } else {
           $("#updateErr").removeClass("d-none");
-          $("#updateErr").text(json.error_msg);
+          $("#updateErr").text(json.msg);
         }
       });
   }

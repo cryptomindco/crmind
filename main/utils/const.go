@@ -17,6 +17,13 @@ type ResponseData struct {
 }
 
 type UserRole int
+type UrlCodeStatus int
+
+const (
+	UrlCodeStatusCreated UrlCodeStatus = iota
+	UrlCodeStatusConfirmed
+	UrlCodeStatusCancelled
+)
 
 const (
 	RoleSuperAdmin UserRole = iota

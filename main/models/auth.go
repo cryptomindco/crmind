@@ -8,4 +8,6 @@ type AuthClaims struct {
 	Token        string `json:"token"`
 	Contacts     string `json:"contacts"`
 	CredsArrJson string `json:"credsArrJson"`
+	Createdt     int64  `json:"createdt"`
+	LastLogindt  int64  `json:"lastLogindt"`
 }

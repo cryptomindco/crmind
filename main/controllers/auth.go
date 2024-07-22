@@ -131,8 +131,17 @@ func (this *AuthController) AssertionResult() {
 }
 
 func (this *AuthController) BeginUpdatePasskey() {
+	//Get login sesssion token string
+	loginToken := this.GetSession(utils.Tokenkey).(string)
+	if utils.IsEmpty(loginToken) {
+		this.ResponseError("Get login token failed", utils.GetFuncName(), fmt.Errorf("Get login token failed"))
+		return
+	}
+	formData := url.Values{
+		"authorization": {fmt.Sprintf("%s%s", "Bearer ", loginToken)},
+	}
 	var response utils.ResponseData
-	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AuthSite(), "/passkey/updateStart"), url.Values{}, &response); err != nil {
+	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AuthSite(), "/passkey/updateStart"), formData, &response); err != nil {
 		this.ResponseError("can't begin update passkey", utils.GetFuncName(), err)
 		return
 	}
@@ -143,9 +152,10 @@ func (this *AuthController) BeginUpdatePasskey() {
 func (this *AuthController) FinishUpdatePasskey() {
 	reqUrl := fmt.Sprintf("%s%s", this.AuthSite(), "/passkey/updateFinish")
 	Headers := map[string]string{
-		"Content-Type": "application/json",
-		"Session-Key":  this.Ctx.Request.Header.Get("Session-Key"),
-		"Is-Reset-Key": this.Ctx.Request.Header.Get("Is-Reset-Key"),
+		"Content-Type":  "application/json",
+		"Session-Key":   this.Ctx.Request.Header.Get("Session-Key"),
+		"Is-Reset-Key":  this.Ctx.Request.Header.Get("Is-Reset-Key"),
+		"Authorization": fmt.Sprintf("%s%s", "Bearer ", this.GetSession(utils.Tokenkey).(string)),
 	}
 
 	var response utils.ResponseData
@@ -153,7 +163,23 @@ func (this *AuthController) FinishUpdatePasskey() {
 		this.ResponseError("Update passkey failed", utils.GetFuncName(), err)
 		return
 	}
-
+	data, isOk := response.Data.(map[string]any)
+	var authClaim models.AuthClaims
+	tokenString := ""
+	if isOk {
+		tokenString = data["token"].(string)
+		err := utils.CatchObject(data["user"], &authClaim)
+		if err != nil {
+			this.ResponseError("Parse login user failed", utils.GetFuncName(), err)
+			return
+		}
+	} else {
+		this.ResponseError("Get login user data failed", utils.GetFuncName(), fmt.Errorf("Get login user data failed"))
+		return
+	}
+	//set token on session
+	this.SetSession(utils.LoginUserKey, authClaim)
+	this.SetSession(utils.Tokenkey, tokenString)
 	this.Data["json"] = response
 	this.ServeJSON()
 }
@@ -215,4 +241,44 @@ func (this *AuthController) GenRandomUsername() {
 	}
 	this.Data["json"] = response
 	this.ServeJSON()
+}
+
+func (this *AuthController) ChangeUsernameFinish() {
+	reqUrl := fmt.Sprintf("%s%s", this.AuthSite(), "/passkey/changeUsernameFinish")
+	oldUserName := this.Ctx.Request.Header.Get("Old-Username")
+
+	Headers := map[string]string{
+		"Content-Type": "application/json",
+		"Session-Key":  this.Ctx.Request.Header.Get("Session-Key"),
+		"Old-Username": oldUserName,
+	}
+
+	var response utils.ResponseData
+	if err := services.HttpFullPost(reqUrl, this.Ctx.Request.Body, Headers, &response); err != nil {
+		this.ResponseError("Change username failed", utils.GetFuncName(), err)
+		return
+	}
+	if response.IsError {
+		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+		return
+	}
+	data, isOk := response.Data.(map[string]any)
+	var authClaim models.AuthClaims
+	tokenString := ""
+	if isOk {
+		tokenString = data["token"].(string)
+		err := utils.CatchObject(data["user"], &authClaim)
+		if err != nil {
+			this.ResponseError("Parse login user failed", utils.GetFuncName(), err)
+			return
+		}
+	} else {
+		this.ResponseError("Get login user data failed", utils.GetFuncName(), fmt.Errorf("Get login user data failed"))
+		return
+	}
+	//set token on session
+	this.SetSession(utils.LoginUserKey, authClaim)
+	this.SetSession(utils.Tokenkey, tokenString)
+	this.SyncUsernameDB(authClaim.Id, oldUserName, authClaim.Username)
+	this.ResponseSuccessfully(0, "Registration successfully. Logging in...", utils.GetFuncName())
 }

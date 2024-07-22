@@ -32,14 +32,16 @@ func (this *AuthController) CheckUser() {
 }
 
 func (this *AuthController) BeginUpdatePasskey() {
-	loginUser, check := this.SimpleAuthCheck()
-	if !check {
+	//Get token
+	token := this.GetString("authorization")
+	authClaim, isLogin := this.HanlderCheckLogin(token)
+	if !isLogin {
 		this.ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
 		return
 	}
-	logpack.Info(fmt.Sprintf("begin update passkey of: %s", loginUser.Username), utils.GetFuncName())
+	logpack.Info(fmt.Sprintf("begin update passkey of: %s", authClaim.Username), utils.GetFuncName())
 	//check if user exist in inmem
-	user := passkey.Datastore.GetUser(loginUser.Username) // Find or create the new user
+	user := passkey.Datastore.GetUser(authClaim.Username) // Find or create the new user
 
 	options, session, err := passkey.WebAuthn.BeginRegistration(user)
 	if err != nil {
@@ -141,7 +143,7 @@ func (this *AuthController) CancelRegister() {
 }
 
 func (this *AuthController) FinishUpdatePasskey() {
-	loginUser, check := this.SimpleAuthCheck()
+	loginUser, check := this.CheckLoggingIn()
 	if !check {
 		this.ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
 		return
@@ -197,9 +199,17 @@ func (this *AuthController) FinishUpdatePasskey() {
 		return
 	}
 	tx.Commit()
-	this.SetSession("LoginUser", passkey.InitSessionUser(*updateUser))
-	this.SetSession("successMessage", "Update user passkey successfully")
-	this.ResponseSuccessfully(nil, "Update user passkey successfully", utils.GetFuncName())
+	//Login after registration
+	tokenString, authClaim, err := this.CreateAuthClaimSession(updateUser)
+	if err != nil {
+		this.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+		return
+	}
+	loginResponse := map[string]any{
+		"token": tokenString,
+		"user":  *authClaim,
+	}
+	this.ResponseSuccessfullyWithAnyData(nil, "Update user passkey successfully", utils.GetFuncName(), loginResponse)
 }
 
 func (this *AuthController) FinishRegistration() {
@@ -370,7 +380,7 @@ func (this *AuthController) AssertionResult() {
 }
 
 func (this *AuthController) BeginConfirmPasskey() {
-	loginUser, check := this.SimpleAuthCheck()
+	loginUser, check := this.CheckLoggingIn()
 	if !check {
 		this.ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
 		return
@@ -400,7 +410,7 @@ func (this *AuthController) BeginConfirmPasskey() {
 }
 
 func (this *AuthController) FinishConfirmPasskey() {
-	loginUser, check := this.SimpleAuthCheck()
+	loginUser, check := this.CheckLoggingIn()
 	if !check {
 		this.ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
 		return
@@ -435,4 +445,106 @@ func (this *AuthController) FinishConfirmPasskey() {
 	// Delete the session data
 	passkey.Datastore.DeleteSession(t)
 	this.ResponseSuccessfully(nil, "Finish confirm passkey succefully", utils.GetFuncName())
+}
+
+func (this *AuthController) ChangeUsernameFinish() {
+	// Get the session key from the header
+	t := this.Ctx.Request.Header.Get("Session-Key")
+	oldUsername := this.Ctx.Request.Header.Get("Old-Username")
+	if utils.IsEmpty(oldUsername) {
+		this.ResponseError("Get old username failed", utils.GetFuncName(), nil)
+		return
+	}
+	// Get the session data stored from the function above
+	session := passkey.Datastore.GetSession(t) // FIXME: cover invalid session
+
+	// In out example username == userID, but in real world it should be different
+	user := passkey.Datastore.GetUser(string(session.UserID)) // Get the user
+	userKey := user.WebAuthnName()
+	//check username exist on DB again
+	o := orm.NewOrm()
+	userExist, existErr := utils.CheckUserExist(userKey, o)
+	if existErr != nil {
+		this.ResponseError("Check exist user on DB failed", utils.GetFuncName(), existErr)
+		return
+	}
+	if userExist {
+		this.ResponseError("Username already exists. Unable to register", utils.GetFuncName(), nil)
+		return
+	}
+	credential, err := passkey.WebAuthn.FinishRegistration(user, session, this.Ctx.Request)
+	if err != nil {
+		this.ResponseError("can't finish registration", utils.GetFuncName(), err)
+		return
+	}
+	// If creation was successful, store the credential object
+	user.AddCredential(credential)
+	passkey.Datastore.SaveUser(user)
+	// Delete the session data
+	passkey.Datastore.DeleteSession(t)
+	passkey.Datastore.RemoveUser(oldUsername)
+	//register new user
+	tx, beginErr := o.Begin()
+	if beginErr != nil {
+		this.ResponseError("An error has occurred. Please try again!", utils.GetFuncName(), beginErr)
+		return
+	}
+
+	//get old user
+	oldUser, oldUErr := utils.GetUserByUsername(oldUsername, o)
+	if oldUErr != nil {
+		this.ResponseError("Get old user from DB failed", utils.GetFuncName(), oldUErr)
+		return
+	}
+
+	oldUser.Username = userKey
+	oldUser.CredsArrJson = user.GetUserCredsJson()
+	oldUser.Updatedt = time.Now().Unix()
+	_, updateErr := tx.Update(oldUser)
+	if updateErr != nil {
+		tx.Rollback()
+		this.ResponseError("Update username failed. Try again!", utils.GetFuncName(), updateErr)
+		return
+	}
+	tx.Commit()
+	//Login after registration
+	tokenString, authClaim, err := this.CreateAuthClaimSession(oldUser)
+	if err != nil {
+		this.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+		return
+	}
+	loginResponse := map[string]any{
+		"token": tokenString,
+		"user":  *authClaim,
+	}
+	this.ResponseSuccessfullyWithAnyData(nil, "Finish registration successfully", utils.GetFuncName(), loginResponse)
+}
+
+func (this *AuthController) SyncUsernameDB() {
+	var oldUsername = this.Ctx.Request.Header.Get("OldUsername")
+	var newUsername = this.Ctx.Request.Header.Get("NewUsername")
+	if utils.IsEmpty(oldUsername) || utils.IsEmpty(newUsername) {
+		this.ResponseError("Get username param failed. Can't sync data", utils.GetFuncName(), fmt.Errorf("Get username param failed. Can't sync data"))
+		return
+	}
+	//check logging in
+	authClaims, isLoggingin := this.CheckLoggingIn()
+	if !isLoggingin || authClaims.Username != newUsername {
+		this.ResponseError("Target user is not logging in", utils.GetFuncName(), fmt.Errorf("Target user is not logging in"))
+		return
+	}
+	go func() {
+		//update on asset table
+		o := orm.NewOrm()
+		//update contact on user table
+		oldContactString := fmt.Sprintf("\"userName\":\"%s\"", oldUsername)
+		newContactString := fmt.Sprintf("\"userName\":\"%s\"", newUsername)
+		_, err := o.Raw("UPDATE public.user SET contacts = REPLACE(contacts, ?, ?)", oldContactString, newContactString).Exec()
+		if err != nil {
+			this.ResponseError("Sync user data failed", utils.GetFuncName(), err)
+			return
+		}
+		logpack.Info("Sync username on all table successfully", utils.GetFuncName())
+	}()
+	this.ResponseSuccessfully(nil, "Sync user table successfully", utils.GetFuncName())
 }

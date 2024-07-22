@@ -3,6 +3,7 @@ package controllers
 import (
 	"crmind/logpack"
 	"crmind/models"
+	"crmind/services"
 	"crmind/utils"
 	"encoding/json"
 	"fmt"
@@ -99,4 +100,25 @@ func (this *BaseController) AuthSite() string {
 // Check user is superadmin
 func (this *BaseController) IsSuperAdmin(user models.AuthClaims) bool {
 	return user.Role == int(utils.RoleSuperAdmin)
+}
+
+func (this *BaseController) SyncUsernameDB(userId int64, oldUsername, newUsername string) {
+	this.SyncUsernameOnUserTable(userId, oldUsername, newUsername)
+}
+
+func (this *BaseController) SyncUsernameOnUserTable(userId int64, oldUsername, newUsername string) {
+	var response utils.ResponseData
+	if err := services.HttpFullPost(fmt.Sprintf("%s%s", this.AuthSite(), "/auth/syncChangeUsername"), this.Ctx.Request.Body, map[string]string{
+		"Authorization": fmt.Sprintf("%s%s", "Bearer ", this.GetSession(utils.Tokenkey).(string)),
+		"OldUsername":   oldUsername,
+		"NewUsername":   newUsername,
+	}, &response); err != nil {
+		logpack.FError("Sync user data failed", userId, utils.GetFuncName(), err)
+		return
+	}
+	if response.IsError {
+		logpack.FError(response.Msg, userId, utils.GetFuncName(), nil)
+		return
+	}
+	logpack.FInfo("Sync user data successfully", userId, utils.GetFuncName())
 }

@@ -75,7 +75,7 @@ export default class extends BaseController {
         }
         if (res.error) {
           $("#loginErr_msg").removeClass("d-none")
-          $("#loginErr_msg").text(data["error_msg"])
+          $("#loginErr_msg").text(res.msg)
         }
       },
     });
@@ -117,7 +117,7 @@ export default class extends BaseController {
           } else {
             $("#confirmButton").prop("disabled", true)
             $("#registererr_msg").removeClass("d-none")
-            $("#registererr_msg").text(data["error_msg"])
+            $("#registererr_msg").text(res.msg)
             return
           }
         },
@@ -170,7 +170,7 @@ export default class extends BaseController {
           $("#footerArea").removeClass("d-none")
           $("#confirmButton").removeClass("d-none")
           $("#registererr_msg").removeClass("d-none");
-          $("#registererr_msg").text(data["error_msg"]);
+          $("#registererr_msg").text(res.msg);
           $("#sectionTitle").removeClass("d-none")
         }
       },
