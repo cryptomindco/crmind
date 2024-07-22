@@ -28,6 +28,9 @@ func init() {
 	//Profile router
 	beego.Router("/profile", &controllers.ProfileController{})
 
+	//Admin router
+	beego.Router("/admin", &controllers.AdminController{})
+
 	//Configure URLs with and without login authentication
 	InitSetFilterUrl()
 	//Filter, intercept all requests

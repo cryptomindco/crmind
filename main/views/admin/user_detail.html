@@ -1,0 +1,22 @@
+{{template "common/head.html" .}} {{template "common/top.html" .}} {{$LoginData
+:= .LoginUser}}
+{{$UserStatus := .User.Status}}
+<div class="pb-2">
+  <h5 class="fw-600 d-inline">User Detail</h5>
+</div>
+<div class="content pt-2" data-controller="userdetail" data-userdetail-user-id="{{.User.Id}}"
+data-userdetail-success-flg="{{.successFlag}}"
+data-userdetail-successfully-msg="{{.successfullyMsg}}"
+>
+  <div class="row">
+    <p>Username: <strong>{{.User.Username}}</strong></p>
+  </div>
+  <p class="mt-3 mb-1 fw-600">User Status</p>
+  <div class="form-check form-switch">
+    <input class="form-check-input toggle-primary" type="checkbox" role="switch" id="userActiveSwitch"
+      data-action="change->userdetail#onActiveChange" {{if ne .User.Status 0}}checked{{end}} />
+    <label class="form-check-label" id="activeText" for="userActiveSwitch">{{if eq .User.Status 0}}Deactive
+      {{else}}Active{{end}}</label>
+  </div>
+</div>
+{{template "common/foot.html" .}}

@@ -122,3 +122,7 @@ func (this *BaseController) SyncUsernameOnUserTable(userId int64, oldUsername, n
 	}
 	logpack.FInfo("Sync user data successfully", userId, utils.GetFuncName())
 }
+
+func (this *BaseController) GetLoginToken() string {
+	return fmt.Sprintf("%s%s", "Bearer ", this.GetSession(utils.Tokenkey).(string))
+}

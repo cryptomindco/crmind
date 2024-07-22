@@ -1,0 +1,35 @@
+{{template "common/head.html" .}} {{template "common/top.html" .}}
+<div class="pb-2">
+  <h4 class="fw-600 d-inline">User Management</h4>
+</div>
+<div
+  class="content"
+>
+<div class="card-table-wrapper px-0">
+  <table class="table card-table table-striped mb-0">
+    <thead>
+      <tr>
+        <th scope="col">UserName</th>
+        <th scope="col">Status</th>
+        <th class="text-center" scope="col">Created At</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range $index,$elem := .UserList}}
+      <tr class="cursor-pointer" onclick="location.href='/admin/user?id={{$elem.Id}}'">
+        <td>{{$elem.Username}}</td>
+        <td>{{if eq $elem.Status 0}}Deactive{{else}}Active{{end}}</td>
+        <td class="text-center">{{dispDate $elem.Createdt}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+</div>
+<script>
+  $(function() {
+    $("#adminTopBtn").css("backgroundColor", "#0e8b5b")
+    $("#adminTopBtn").css("borderColor", "#0e8b5b")
+});
+</script>
+{{template "common/foot.html" .}}
