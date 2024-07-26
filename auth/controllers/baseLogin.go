@@ -37,11 +37,14 @@ func (this *BaseLoginController) HanlderCheckLogin(bearer string) (*models.AuthC
 	return nil, false
 }
 
-func (this *BaseLoginController) GetUsernameListExcludeId(loginUserId int64) []string {
+func (this *BaseLoginController) GetUsernameListExcludeId(loginUserId int64) []*models.UserInfo {
 	userList := this.GetUserListWithExcludeId(loginUserId)
-	result := make([]string, 0)
+	result := make([]*models.UserInfo, 0)
 	for _, user := range userList {
-		result = append(result, user.Username)
+		result = append(result, &models.UserInfo{
+			Id:       user.Id,
+			UserName: user.Username,
+		})
 	}
 	return result
 }

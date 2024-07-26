@@ -72,6 +72,22 @@ func GetAuthPort() string {
 	return AuthPort
 }
 
+func GetChatHost() string {
+	if !IsEmpty(ChatHost) {
+		return ChatHost
+	}
+	ChatHost = beego.AppConfig.String("chathost")
+	return ChatHost
+}
+
+func GetChatPort() string {
+	if !IsEmpty(ChatPort) {
+		return ChatPort
+	}
+	ChatPort = beego.AppConfig.String("chatport")
+	return ChatPort
+}
+
 func GetAssetsHost() string {
 	if !IsEmpty(AssetsHost) {
 		return AssetsHost
@@ -116,4 +132,12 @@ func (urlCodeStatus UrlCodeStatus) CodeStatusColor() string {
 	default:
 		return ""
 	}
+}
+
+func ConvertToJsonString(value any) (string, error) {
+	outputBytes, err := json.Marshal(value)
+	if err != nil {
+		return "", err
+	}
+	return string(outputBytes), nil
 }

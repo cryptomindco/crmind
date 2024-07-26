@@ -62,6 +62,16 @@ func (this *QueryController) GetAdminUserInfo() {
 	this.ResponseSuccessfullyWithAnyData(0, "Get user list successfully", utils.GetFuncName(), user)
 }
 
+func (this *QueryController) GetExcludeLoginUserNameList() {
+	authClaims, isLogin := this.CheckLoggingIn()
+	if !isLogin {
+		this.ResponseError("User is not login", utils.GetFuncName(), fmt.Errorf("User is not login"))
+		return
+	}
+	listName := this.GetUsernameListExcludeId(authClaims.Id)
+	this.ResponseSuccessfullyWithAnyData(authClaims.Id, "Get user name list successfully", utils.GetFuncName(), listName)
+}
+
 func (this *QueryController) ChangeUserStatus() {
 	token := this.GetString("authorization")
 	authClaims, isLogin := this.HanlderCheckLogin(token)

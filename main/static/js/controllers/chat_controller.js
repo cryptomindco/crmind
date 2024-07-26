@@ -4,6 +4,8 @@ export default class extends BaseController {
   static values = {
     chatList: Array,
     loginName: String,
+    loginId: Number,
+    loginToken: String,
     currentChatIndex: Number,
     createNewChatMsg: Object,
     createNewChatContent: Object,
@@ -26,14 +28,16 @@ export default class extends BaseController {
     }
     const chatListJson = this.data.get("chatList");
     this.loginName = this.data.get("loginName");
+    this.loginId = parseInt(this.data.get("loginId"))
     this.unreadCount = parseInt(this.data.get("unreadCount"));
+    this.loginToken = this.data.get("userToken")
     this.chatList = JSON.parse(chatListJson)
     this.currentChatIndex = 0
     this.canSend = false
     const _this = this
     // Create a socket
     const method = location.protocol.startsWith("https") ? 'wss' : 'ws'
-    this.socket = new WebSocket(method + '://' + window.location.host + '/ws/connect');
+    this.socket = new WebSocket(method + '://localhost:8003/ws/connect?token=' + this.loginToken);
     // Message received on the socket
     this.socket.onmessage = function (event) {
       var data = JSON.parse(event.data)
@@ -188,6 +192,7 @@ export default class extends BaseController {
 
   newChat(e) {
     const username = e.params.username
+    const userid = e.params.userid
     //check username on userlist
     let curIndex = -1
     const _this = this
@@ -220,17 +225,19 @@ export default class extends BaseController {
       return
     }
     //else, create new chat area
-    this.createNewChatMsg(username)
+    this.createNewChatMsg(username, userid)
     //update view on chat content and chat list
     this.initChatMsgList()
     this.initChatMsgContent()
     this.newChatFlg = true
   }
 
-  createNewChatMsg(targetUser) {
+  createNewChatMsg(targetUser, userid) {
     const newChatMsg = {
       fromName: this.loginName,
+      fromId: this.loginId,
       toName: targetUser,
+      toId: userid,
       pinMsg: "",
       createdt: (new Date()).getTime()/1000,
       hasContent: false,
@@ -291,8 +298,8 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: '/updateUnread', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           //if update seen completed. Remove badge and update badge of chat item
           _this.chatList[_this.currentChatIndex].unreadNum = 0
           _this.initChatMsgList()
@@ -310,10 +317,9 @@ export default class extends BaseController {
           }
           $("#floatingBtn").attr("data-after-type", "red badge top right")
           $("#floatingBtn").attr("data-after-text", _this.unreadCount)
-        }
-        if (data["error"] != "") {
+        } else {
           //if error, display successfully notification
-          _this.showSuccessToast(data["error_msg"]);
+          _this.showSuccessToast(res.msg);
         }
       },
     });
@@ -332,8 +338,8 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: '/deleteChat', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           $("#deleteerr_msg").addClass("d-none")
           //remove from list
           _this.chatList.splice(_this.currentChatIndex, 1)
@@ -341,10 +347,9 @@ export default class extends BaseController {
           _this.initChatMsgList()
           _this.initChatMsgContent()
           $("#deleteConfirmDialog").on("shown.bs.modal", function () {}).modal('hide');
-        }
-        if (data["error"] != "") {
+        } else {
           $("#deleteerr_msg").removeClass("d-none")
-          $("#deleteerr_msg").text(data["error_msg"])
+          $("#deleteerr_msg").text(res.msg)
         }
       },
     });
@@ -497,25 +502,31 @@ export default class extends BaseController {
     if (!chatMsg) {
       return
     }
+    let toName, toId
+    if (chatMsg.fromName == this.loginName) {
+      toName = chatMsg.toName
+      toId = chatMsg.toId
+    } else {
+      toName = chatMsg.fromName
+      toId = chatMsg.fromId
+    }
     const _this = this
     $.ajax({
       data: {
         chatId: chatMsg.id ? chatMsg.id : 0,
-        fromUser: chatMsg.fromName,
-        toName: chatMsg.toName,
+        fromName: this.loginName,
+        fromId: this.loginId,
+        toName: toName,
+        toId: toId,
         newMsg: $("#msgContent").val(),
       },
       type: "POST", //OR GET
       url: '/sendChatMessage', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           $("#chaterr_msg").addClass("d-none")
-          const result = data["result"]
+          const jsonResult = res.data
           _this.newChatFlg = false
-          const jsonResult = JSON.parse(result)
-          if(!jsonResult){
-            return
-          }
           const msgContent = jsonResult.newContent
           //get newChatMsgObject
           if(jsonResult.newMsg && jsonResult.newMsg.id > 0) {
@@ -550,10 +561,9 @@ export default class extends BaseController {
           $('#chatContentArea').scrollTop($('#chatContentArea')[0].scrollHeight)
           //Send to socket
           _this.postMessage(JSON.stringify(msgContent))
-        }
-        if (data["error"] != "") {
+        } else {
           $("#chaterr_msg").removeClass("d-none")
-          $("#chaterr_msg").text(data["error_msg"])
+          $("#chaterr_msg").text(res.msg)
         }
       },
     });

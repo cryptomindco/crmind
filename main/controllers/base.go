@@ -70,7 +70,76 @@ func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
 	}
 	this.Data["LoginUser"] = authClaim
 	this.Data["IsSuperAdmin"] = this.IsSuperAdmin(*authClaim)
+
+	//get user list json from session
+	userListJson := this.GetSession(utils.UserListSessionKey)
+	userInfoList := make([]models.UserInfo, 0)
+	//if userList is empty, get userList
+	if utils.IsEmpty(userListJson) {
+		userInfoList = this.GetUsernameListExcludeId()
+	} else {
+		usernamesJsonBytes, err := json.Marshal(userListJson)
+		if err == nil {
+			json.Unmarshal(usernamesJsonBytes, &userInfoList)
+		}
+	}
+	this.Data["UserInfoList"] = userInfoList
+	//user chat list initialization
+	chatMsgList, hasUnreadChatCount := this.GetChatMsgDisplayList(authClaim.Id)
+	//content chatMsgList data to json
+	chatMsgJsonStr, chatJsonErr := utils.ConvertToJsonString(chatMsgList)
+	if chatJsonErr != nil {
+		chatMsgJsonStr = "[]"
+	}
+	this.Data["ChatMsgList"] = chatMsgJsonStr
+	this.Data["LoginToken"] = this.GetLoginToken()
+	this.Data["ItemUnreadChatCount"] = hasUnreadChatCount
 	return authClaim, nil
+}
+
+func (this *BaseController) GetChatMsgDisplayList(userId int64) ([]*models.ChatDisplay, int) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.ChatSite(), "/get-chat-msg"),
+		Header: map[string]string{
+			"Authorization": this.GetLoginToken(),
+			"UserId":        fmt.Sprintf("%d", userId)},
+	}
+	type ResData struct {
+		ChatList    []*models.ChatDisplay `json:"chatList"`
+		UnreadCount int                   `json:"unreadCount"`
+	}
+	var result ResData
+	err := services.HttpRequest(req, &response)
+	if err == nil && !response.IsError {
+		jsonBytes, err := json.Marshal(response.Data)
+		if err == nil {
+			err = json.Unmarshal(jsonBytes, &result)
+			if err == nil {
+				return result.ChatList, result.UnreadCount
+			}
+		}
+	}
+	return nil, 0
+}
+
+func (this *BaseController) GetUsernameListExcludeId() []models.UserInfo {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AuthSite(), "/username-list"),
+		Header:  map[string]string{"Authorization": this.GetLoginToken()},
+	}
+	usernameList := make([]models.UserInfo, 0)
+	err := services.HttpRequest(req, &response)
+	if err == nil && !response.IsError {
+		jsonBytes, err := json.Marshal(response.Data)
+		if err == nil {
+			json.Unmarshal(jsonBytes, &usernameList)
+		}
+	}
+	return usernameList
 }
 
 func (this *BaseController) SimpleAdminAuthCheck() (*models.AuthClaims, error) {
@@ -100,6 +169,10 @@ func (this *BaseController) GetLoginUser() (*models.AuthClaims, error) {
 
 func (this *BaseController) AuthSite() string {
 	return fmt.Sprintf("%s:%s", utils.GetAuthHost(), utils.GetAuthPort())
+}
+
+func (this *BaseController) ChatSite() string {
+	return fmt.Sprintf("%s:%s", utils.GetChatHost(), utils.GetChatPort())
 }
 
 // Check user is superadmin

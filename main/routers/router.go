@@ -33,6 +33,10 @@ func init() {
 	beego.Router("/admin/user", &controllers.AdminController{}, "get:UserDetail")
 	beego.Router("/admin/ChangeUserStatus", &controllers.AdminController{}, "post:ChangeUserStatus")
 
+	//chat router
+	beego.Router("/updateUnread", &controllers.ChatController{}, "post:UpdateUnreadForChat")
+	beego.Router("/deleteChat", &controllers.ChatController{}, "post:DeleteChat")
+	beego.Router("/sendChatMessage", &controllers.ChatController{}, "post:SendChatMessage")
 	//Configure URLs with and without login authentication
 	InitSetFilterUrl()
 	//Filter, intercept all requests

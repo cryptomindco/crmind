@@ -26,3 +26,8 @@ type User struct {
 	LastLogindt  int64  `orm:"size(10);default(0)" json:"lastLogindt"`
 	CredsArrJson string `json:"credsArrJson"`
 }
+
+type UserInfo struct {
+	Id       int64  `json:"id"`
+	UserName string `json:"username"`
+}

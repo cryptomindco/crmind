@@ -1,9 +1,12 @@
 package utils
 
-const Tokenkey = "Token"
-const LoginUserKey = "AuthClaims"
+const (
+	Tokenkey           = "Token"
+	LoginUserKey       = "AuthClaims"
+	UserListSessionKey = "userList"
+)
 
-var AuthHost, AuthPort, AssetsHost, AssetsPort string
+var AuthHost, AuthPort, AssetsHost, AssetsPort, ChatHost, ChatPort string
 
 var LoginExcludeUrl = []string{"/404", "/exit", "/login", "/LoginSubmit", "/checkLogin", "/register", "/RegisterSubmit", "/walletSocket", "/withdrawl",
 	"/confirmWithdraw", "/passkey/registerStart", "/passkey/registerFinish", "/assertion/options",
