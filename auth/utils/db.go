@@ -226,3 +226,19 @@ func GetUserFromLabel(label string) (*models.User, bool) {
 	}
 	return user, true
 }
+
+func GetContactListFromUser(userId int64) ([]models.ContactItem, error) {
+	user, userErr := GetUserFromId(userId)
+	if userErr != nil {
+		return nil, userErr
+	}
+	result := make([]models.ContactItem, 0)
+	if IsEmpty(user.Contacts) {
+		return result, nil
+	}
+	err := json.Unmarshal([]byte(user.Contacts), &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}

@@ -1,0 +1,15 @@
+package models
+
+type Settings struct {
+	Id            int64  `orm:"column(id);auto;size(11)" json:"id"`
+	ActiveAssets  string `json:"activeAssets"`
+	UsdRate       string `json:"usdRate"`
+	AllRate       string `json:"allRate"`
+	YesterdayRate string `json:"yesterdayRate"`
+	LastMonthRate string `json:"lastMonthRate"`
+}
+
+type RateObject struct {
+	UsdRates map[string]float64 `json:"usdRates"`
+	AllRates map[string]float64 `json:"allRates"`
+}

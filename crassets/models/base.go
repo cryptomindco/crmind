@@ -1,6 +1,7 @@
 package models
 
 import (
+	"flag"
 	"os"
 
 	adapter "github.com/beego/beego/v2/adapter"
@@ -32,8 +33,15 @@ func init() {
 		logs.Error(err.Error())
 		os.Exit(1)
 	}
+	isTestnet := flag.Bool("testnet", false, "a bool")
+	flag.Parse()
+	TestnetFlg = *isTestnet
+	tablePrefix := ""
+	if TestnetFlg {
+		tablePrefix = "t_"
+	}
 	// register model
-	orm.RegisterModel()
+	orm.RegisterModelWithPrefix(tablePrefix, new(TxHistory), new(Asset), new(Addresses), new(TxCode))
 
 	// Run sync db
 	orm.RunSyncdb("default", false, true)

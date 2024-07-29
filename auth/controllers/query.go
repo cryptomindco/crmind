@@ -4,6 +4,7 @@ import (
 	"auth/models"
 	"auth/utils"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -114,4 +115,43 @@ func (this *QueryController) ChangeUserStatus() {
 	}
 	tx.Commit()
 	this.ResponseSuccessfully(authClaims.Id, "Update User successfully!", utils.GetFuncName())
+}
+
+func (this *QueryController) CheckContactUser() {
+	authClaims, isLogin := this.CheckLoggingIn()
+	if !isLogin {
+		this.ResponseError("User is not login", utils.GetFuncName(), fmt.Errorf("User is not login"))
+		return
+	}
+	username := strings.TrimSpace(this.GetString("username"))
+	if authClaims.Username == username {
+		this.ResponseLoginError(authClaims.Id, "The recipient cannot be you", utils.GetFuncName(), nil)
+		return
+	}
+	o := orm.NewOrm()
+	//Check username exist
+	userCount, err := o.QueryTable(userModel).Filter("username", username).Count()
+	if err == nil && userCount > 0 {
+		//check if user is setted on loginUser contacts
+		contactList, contactErr := utils.GetContactListFromUser(authClaims.Id)
+		if contactErr != nil {
+			this.ResponseLoginError(authClaims.Id, "Parse Contact list failed", utils.GetFuncName(), nil)
+			return
+		}
+		exist := utils.CheckUsernameExistOnContactList(username, contactList)
+		result := struct {
+			ContactExist bool `json:"contactExist"`
+		}{
+			ContactExist: exist,
+		}
+		resultStr, err := utils.ConvertToJsonString(result)
+		if err != nil {
+			this.ResponseLoginError(authClaims.Id, "Convert result json failed", utils.GetFuncName(), nil)
+			return
+		}
+		this.ResponseSuccessfullyWithAnyData(authClaims.Id, "Username exist", utils.GetFuncName(), resultStr)
+		return
+	}
+	//user not exist
+	this.ResponseLoginError(authClaims.Id, "Username does not exist", utils.GetFuncName(), nil)
 }
