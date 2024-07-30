@@ -166,8 +166,8 @@ func (this *TransferController) UpdateNewLabel() {
 		return
 	}
 	//get token of loginuser
-	token := utils.GetTokenFromUserId(loginUser.Id)
-	if utils.IsEmpty(token) {
+	token, flag := this.GetTokenFromUserId()
+	if !flag || utils.IsEmpty(token) {
 		this.ResponseLoginError(loginUser.Id, "Get user token failed", utils.GetFuncName(), nil)
 		return
 	}
@@ -217,10 +217,9 @@ func (this *TransferController) GetAddressListData() {
 		return
 	}
 	//user token
-	token, _, tokenErr := utils.CheckAndCreateUserToken(*loginUser)
-	if tokenErr != nil {
-		this.Data["json"] = nil
-		this.ServeJSON()
+	token, flag := this.CheckAndCreateUserToken()
+	if !flag {
+		this.ResponseError("Check or create user token failed", utils.GetFuncName(), fmt.Errorf("Check or create user token failed"))
 		return
 	}
 	addressDisplayList := make([]*models.AddressesDisplay, 0)
@@ -579,15 +578,16 @@ func (this *TransferController) TransferAmount() {
 		this.ResponseLoginError(loginUser.Id, "An error has occurred. Please try again!", utils.GetFuncName(), beginErr)
 		return
 	}
-	receiver := models.User{}
+	receiver := &models.UserInfo{}
 	if currency == assets.USDWalletAsset.String() || (currency != assets.USDWalletAsset.String() && sendBy == "username") {
 		if utils.IsEmpty(receiverUsername) {
 			this.ResponseLoginError(loginUser.Id, "Recipient information cannot be left blank. Please try again!", utils.GetFuncName(), nil)
 			return
 		}
-		receiverErr := o.QueryTable(userModel).Filter("username", receiverUsername).Filter("status", int(utils.StatusActive)).Limit(1).One(&receiver)
+		var receiverErr error
+		receiver, receiverErr = this.GetUserInfoByName(receiverUsername)
 		if receiverErr != nil {
-			this.ResponseLoginError(loginUser.Id, "The recipient does not exist in the database. Please try again!", utils.GetFuncName(), receiverErr)
+			this.ResponseLoginError(loginUser.Id, "Get user by username from DB failed. Please try again!", utils.GetFuncName(), receiverErr)
 			return
 		}
 		// check and get contact
@@ -598,7 +598,7 @@ func (this *TransferController) TransferAmount() {
 			return
 		}
 		if addToContact {
-			currentContacts, contactErr := utils.GetContactListFromUser(loginUser.Id)
+			currentContacts, contactErr := this.GetContactListFromUser()
 			if contactErr != nil {
 				this.ResponseLoginError(loginUser.Id, "Parse contact of loginUser failed", utils.GetFuncName(), contactErr)
 				return
@@ -616,17 +616,12 @@ func (this *TransferController) TransferAmount() {
 				})
 				jsonByte, err := json.Marshal(currentContacts)
 				if err == nil {
-					loginUser.Contacts = string(jsonByte)
-					loginUser.Updatedt = time.Now().Unix()
-					//update loginUser
-					tx.Update(loginUser)
-					// if loginUpdateErr == nil {
-					// 	addedToContact = true
-					// }
-
+					contactStr := string(jsonByte)
+					this.UpdateUserContacts(contactStr)
+					loginUser.Contacts = contactStr
 					//When add to contact, check and add chat
 					//check if exist chat conversion
-					chatExist, chatErr := utils.CheckExistChat(loginUser.Id, receiver.Id)
+					chatExist, chatErr := this.CheckExistChat(loginUser.Id, receiver.Id)
 					if chatErr == nil && !chatExist {
 						//Create new chat
 						newChatMsg := &models.ChatMsg{

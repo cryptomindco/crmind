@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -123,12 +124,148 @@ func (this *BaseController) AuthTokenCheck(token string) (*models.AuthClaims, er
 	return &authRes, nil
 }
 
+func (this *BaseController) CheckAndCreateUserToken() (string, bool) {
+	authToken := this.GetString("authorization")
+	checkUrl := fmt.Sprintf("%s%s", utils.AuthSite(), "/check-create-token")
+	req := &dohttp.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: checkUrl,
+		Payload: map[string]string{},
+		Header: map[string]string{
+			"Authorization": authToken,
+		},
+	}
+	var response utils.ResponseData
+	err := dohttp.HttpRequest(req, &response)
+	if err != nil || response.IsError {
+		return "", false
+	}
+	return response.Data.(string), true
+}
+
+func (this *BaseController) GetUserInfoByName(username string) (*models.UserInfo, error) {
+	authToken := this.GetString("authorization")
+	checkUrl := fmt.Sprintf("%s%s", utils.AuthSite(), "/user-by-name")
+	req := &dohttp.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: checkUrl,
+		Payload: map[string]string{
+			"username": username,
+		},
+		Header: map[string]string{
+			"Authorization": authToken,
+		},
+	}
+	var response utils.ResponseData
+	err := dohttp.HttpRequest(req, &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.IsError {
+		return nil, fmt.Errorf("Get user info by username failed")
+	}
+	var userInfo models.UserInfo
+	err = utils.CatchObject(response.Data, &userInfo)
+	if err != nil {
+		return nil, err
+	}
+	return &userInfo, nil
+}
+
+func (this *BaseController) UpdateUserContacts(contacts string) error {
+	authToken := this.GetString("authorization")
+	var response utils.ResponseData
+	formData := url.Values{
+		"contacts":      {contacts},
+		"authorization": {authToken},
+	}
+	if err := dohttp.HttpPost(fmt.Sprintf("%s%s", utils.AuthSite(), "/update-contacts"), formData, &response); err != nil {
+		return err
+	}
+	if response.IsError {
+		return fmt.Errorf(response.Msg)
+	}
+	return nil
+}
+
+func (this *BaseController) CheckExistChat(fromId, toId int64) (bool, error) {
+	authToken := this.GetString("authorization")
+	checkUrl := fmt.Sprintf("%s%s", utils.AuthSite(), "/chat-exist")
+	req := &dohttp.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: checkUrl,
+		Payload: map[string]string{
+			"fromId": fmt.Sprintf("%d", fromId),
+			"toId":   fmt.Sprintf("%d", toId),
+		},
+		Header: map[string]string{
+			"Authorization": authToken,
+		},
+	}
+	var response utils.ResponseData
+	err := dohttp.HttpRequest(req, &response)
+	if err != nil {
+		return false, err
+	}
+	if response.IsError {
+		return false, fmt.Errorf(response.Msg)
+	}
+	exist := response.Data.(bool)
+	return exist, nil
+}
+
+func (this *BaseController) GetContactListFromUser() ([]models.ContactItem, error) {
+	authToken := this.GetString("authorization")
+	checkUrl := fmt.Sprintf("%s%s", utils.AuthSite(), "/get-contact-list")
+	req := &dohttp.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: checkUrl,
+		Payload: map[string]string{},
+		Header: map[string]string{
+			"Authorization": authToken,
+		},
+	}
+	var response utils.ResponseData
+	err := dohttp.HttpRequest(req, &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.IsError {
+		return nil, fmt.Errorf("Get contact list failed")
+	}
+	var contactList []models.ContactItem
+	err = utils.CatchObject(response.Data, &contactList)
+	if err != nil {
+		return nil, err
+	}
+	return contactList, nil
+}
+
+func (this *BaseController) GetTokenFromUserId() (string, bool) {
+	authToken := this.GetString("authorization")
+	checkUrl := fmt.Sprintf("%s%s", utils.AuthSite(), "/get-token")
+	req := &dohttp.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: checkUrl,
+		Payload: map[string]string{},
+		Header: map[string]string{
+			"Authorization": authToken,
+		},
+	}
+	var response utils.ResponseData
+	err := dohttp.HttpRequest(req, &response)
+	if err != nil || response.IsError {
+		return "", false
+	}
+	return response.Data.(string), true
+}
+
 func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
 	authen := this.Ctx.Request.Header.Get("Authorization")
 	return this.AuthTokenCheck(authen)
 }
 
-func (this *BaseController) CreateNewAddressForAsset(user models.AuthClaims, assetObject assets.AssetType) (*models.Addresses, *models.Asset, error) {
+func (this *BaseController) CreateNewAddressForAsset(userId int64, username string, assetObject assets.AssetType) (*models.Addresses, *models.Asset, error) {
 	o := orm.NewOrm()
 	tx, beginErr := o.Begin()
 	if beginErr != nil {
@@ -143,10 +280,10 @@ func (this *BaseController) CreateNewAddressForAsset(user models.AuthClaims, ass
 	defer assetObj.MutexUnlock()
 	var assetLabel string
 	if assetObject == assets.DCRWalletAsset {
-		assetLabel = user.Username
+		assetLabel = username
 	} else {
 		//Check and get user token
-		token, _, err := utils.CheckAndCreateUserToken(user)
+		token, _, err := this.CheckAndCreateUserToken(user)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Check or create user token failed")
 		}
@@ -154,13 +291,13 @@ func (this *BaseController) CreateNewAddressForAsset(user models.AuthClaims, ass
 		assetLabel = fmt.Sprintf("%s%s", token, utils.CreateDefaultAddressLabelPostfix(assetObject.String()))
 	}
 	//Create new address with label. Label form is: btc_address_$username
-	newAddress, addrErr := assetObj.CreateNewAddressWithLabel(user.Username, assetLabel)
+	newAddress, addrErr := assetObj.CreateNewAddressWithLabel(username, assetLabel)
 	if addrErr != nil {
 		return nil, nil, fmt.Errorf("Creating an address with Label failed. Please try again!")
 	}
 
 	//Get asset from DB
-	userAsset, err := utils.GetUserAsset(user.Id, assetObject.String())
+	userAsset, err := utils.GetUserAsset(userId, assetObject.String())
 	if err != nil {
 		return nil, nil, fmt.Errorf("Get Asset from DB failed. Please try again!")
 	}
@@ -169,8 +306,8 @@ func (this *BaseController) CreateNewAddressForAsset(user models.AuthClaims, ass
 	if userAsset == nil {
 		asset := models.Asset{
 			DisplayName: assetObject.ToFullName(),
-			UserId:      user.Id,
-			UserName:    user.Username,
+			UserId:      userId,
+			UserName:    username,
 			Type:        assetObject.String(),
 			Sort:        assetObject.AssetSortInt(),
 			Status:      int(utils.AssetStatusActive),
@@ -265,7 +402,7 @@ func (this *BaseController) HandlerInternalWithdrawl(txCode *models.TxCode, user
 
 	//if receiver create asset
 	if receiverAssetCreate {
-		_, newReceiverAsset, newErr := this.CreateNewAddressForAsset(user, assetObj)
+		_, newReceiverAsset, newErr := this.CreateNewAddressForAsset(user.Id, user.Username, assetObj)
 		if newErr != nil {
 			this.ResponseError("Create new asset and address failed. Please check again!", utils.GetFuncName(), newErr)
 			return false

@@ -35,6 +35,107 @@ func (this *QueryController) GetAdminUserList() {
 	this.ResponseSuccessfullyWithAnyData(0, "Get user list successfully", utils.GetFuncName(), userList)
 }
 
+func (this *QueryController) UpdateContacts() {
+	authToken := this.GetString("authorization")
+	authClaims, isLogin := this.HanlderCheckLogin(authToken)
+	if !isLogin {
+		this.ResponseError("User is not login", utils.GetFuncName(), fmt.Errorf("User is not login"))
+		return
+	}
+	o := orm.NewOrm()
+	user := models.User{}
+	err := o.QueryTable(userModel).Filter("id", authClaims.Id).Limit(1).One(&user)
+	if err != nil {
+		this.ResponseError("Retrieve user data failed", utils.GetFuncName(), err)
+		return
+	}
+	contacts := this.GetString("contacts")
+	tx, beginErr := o.Begin()
+	if beginErr != nil {
+		this.ResponseError("An error has occurred. Please try again!", utils.GetFuncName(), beginErr)
+		return
+	}
+	user.Contacts = contacts
+	user.Updatedt = time.Now().Unix()
+	_, err = tx.Update(&user)
+	if err != nil {
+		this.ResponseRollbackError(tx, "Update contacts failed", utils.GetFuncName(), err)
+		return
+	}
+	this.ResponseSuccessfully(authClaims.Id, "Update user contacts successfully", utils.GetFuncName())
+}
+
+func (this *QueryController) GetContactList() {
+	authClaims, isLogin := this.CheckLoggingIn()
+	if !isLogin {
+		this.ResponseError("User is not login", utils.GetFuncName(), fmt.Errorf("User is not login"))
+		return
+	}
+	contactList, err := utils.GetContactListFromUser(authClaims.Id)
+	if err != nil {
+		this.ResponseError("Get contact list failed", utils.GetFuncName(), err)
+		return
+	}
+	this.ResponseSuccessfullyWithAnyData(authClaims.Id, "Get user info successfully", utils.GetFuncName(), contactList)
+}
+
+func (this *QueryController) GetUserInfoByUsername() {
+	authClaims, isLogin := this.CheckLoggingIn()
+	if !isLogin {
+		this.ResponseError("User is not login", utils.GetFuncName(), fmt.Errorf("User is not login"))
+		return
+	}
+	username := this.Ctx.Input.Query("username")
+	if utils.IsEmpty(username) {
+		this.ResponseError("Get username parame failed", utils.GetFuncName(), fmt.Errorf("Get username parame failed"))
+		return
+	}
+
+	user, err := utils.GetUserByUsername(username, orm.NewOrm())
+	if err != nil {
+		this.ResponseError("Get user by username failed", utils.GetFuncName(), err)
+		return
+	}
+	this.ResponseSuccessfullyWithAnyData(authClaims.Id, "Get user info successfully", utils.GetFuncName(), models.UserInfo{
+		Id:       user.Id,
+		Username: user.Username,
+		Token:    user.Token,
+		Contacts: user.Contacts,
+	})
+}
+
+func (this *QueryController) CheckAndCreateToken() {
+	authClaims, isLogin := this.CheckLoggingIn()
+	if !isLogin {
+		this.ResponseError("User is not login", utils.GetFuncName(), fmt.Errorf("User is not login"))
+		return
+	}
+
+	token, err := utils.CheckAndCreateUserToken(*authClaims)
+	if err != nil {
+		this.ResponseError("Check and create user token failed", utils.GetFuncName(), err)
+	}
+
+	this.ResponseSuccessfullyWithAnyData(authClaims.Id, "Check and create user token successfully", utils.GetFuncName(), token)
+}
+
+func (this *QueryController) GetToken() {
+	authClaims, isLogin := this.CheckLoggingIn()
+	if !isLogin {
+		this.ResponseError("User is not login", utils.GetFuncName(), fmt.Errorf("User is not login"))
+		return
+	}
+
+	o := orm.NewOrm()
+	user := models.User{}
+	err := o.QueryTable(userModel).Filter("id", authClaims.Id).Limit(1).One(&user)
+	if err != nil {
+		this.ResponseError("Retrieve user data failed", utils.GetFuncName(), err)
+		return
+	}
+	this.ResponseSuccessfullyWithAnyData(authClaims.Id, "Get user token successfully", utils.GetFuncName(), user.Token)
+}
+
 func (this *QueryController) GetAdminUserInfo() {
 	authClaims, isLogin := this.CheckLoggingIn()
 	if !isLogin {

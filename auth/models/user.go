@@ -31,8 +31,3 @@ type UserDisplay struct {
 	UsdBalance      float64 `json:"usdBalance"`
 	CreatedtDisplay string  `json:"createdtDisplay"`
 }
-
-type UserInfo struct {
-	Id       int64  `json:"id"`
-	UserName string `json:"username"`
-}

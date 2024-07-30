@@ -233,6 +233,35 @@ func (this *ChatController) GetChatContentList(chatId int64) ([]*models.ChatCont
 	return chatContentList, nil
 }
 
+func (this *ChatController) CheckChatExist() {
+	//check login
+	loginUser, err := this.AuthCheck()
+	if err != nil {
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
+		return
+	}
+	fromIdStr := this.Ctx.Input.Query("fromId")
+	toIdStr := this.Ctx.Input.Query("toId")
+
+	fromId, fromErr := strconv.ParseInt(fromIdStr, 0, 32)
+	toId, toErr := strconv.ParseInt(toIdStr, 0, 32)
+
+	if fromErr != nil || toErr != nil {
+		this.ResponseError("Get from and to params failed", utils.GetFuncName(), fmt.Errorf("Get from and to params failed"))
+		return
+	}
+	if loginUser.Id != fromId && loginUser.Id != toId {
+		this.ResponseError("No permission for this feature", utils.GetFuncName(), fmt.Errorf("No permission for this feature"))
+		return
+	}
+	exist, err := utils.CheckExistChat(fromId, toId)
+	if err != nil {
+		this.ResponseError("Check chat exist failed", utils.GetFuncName(), err)
+		return
+	}
+	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Check chat exist successfully", utils.GetFuncName(), exist)
+}
+
 func (this *ChatController) GetChatMsgDisplayList() {
 	userIdStr := this.Ctx.Request.Header.Get("UserId")
 	userId, intErr := strconv.ParseInt(userIdStr, 0, 32)

@@ -96,10 +96,9 @@ func GetUserOfToken(token string) *models.User {
 }
 
 // Check and create new token for user, if exist, ignore
-func CheckAndCreateUserToken(user models.User) (token string, updated bool, err error) {
+func CheckAndCreateUserToken(user models.AuthClaims) (token string, err error) {
 	if !IsEmpty(user.Token) {
 		token = user.Token
-		updated = false
 	}
 	//get user
 	currentUser, userErr := GetUserFromId(user.Id)
@@ -109,7 +108,6 @@ func CheckAndCreateUserToken(user models.User) (token string, updated bool, err 
 	}
 	if !IsEmpty(currentUser.Token) {
 		token = currentUser.Token
-		updated = false
 		return
 	}
 	//Create new token
@@ -134,7 +132,6 @@ func CheckAndCreateUserToken(user models.User) (token string, updated bool, err 
 		return
 	}
 	token = newToken
-	updated = true
 	tx.Commit()
 	return
 }

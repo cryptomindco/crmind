@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crassets/models"
 	"crassets/walletlib/assets"
 	"encoding/json"
 	"fmt"
@@ -181,4 +182,28 @@ func GetUnitAmount(amount float64, asset string) (int64, error) {
 	default:
 		return 0, fmt.Errorf("No Asset was found")
 	}
+}
+
+func CatchObject(from interface{}, to interface{}) error {
+	jsonBytes, err := json.Marshal(from)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(jsonBytes, &to)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func CheckUserExistOnContactList(userId int64, contactList []models.ContactItem) bool {
+	if len(contactList) == 0 {
+		return false
+	}
+	for _, contact := range contactList {
+		if contact.UserId == userId {
+			return true
+		}
+	}
+	return false
 }
