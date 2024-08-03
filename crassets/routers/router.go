@@ -13,7 +13,8 @@ func init() {
 	//Wallet routes
 	beego.Router("/createNewAddress", &controllers.WalletController{}, "post:CreateNewAddress")
 	beego.Router("/walletSocket", &controllers.WalletController{}, "post:WalletSocket")
-
+	//Admin routes
+	beego.Router("/syncTransactions", &controllers.AdminController{}, "post:SyncTransactions")
 	//Trading routes
 	beego.Router("/send-trading-request", &controllers.TradingController{}, "post:SendTradingRequest")
 	//transfer routes

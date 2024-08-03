@@ -1,6 +1,13 @@
 package controllers
 
-import "fmt"
+import (
+	"crmind/models"
+	"fmt"
+)
+
+var (
+	settingsModel = new(models.Settings)
+)
 
 type MainController struct {
 	BaseController

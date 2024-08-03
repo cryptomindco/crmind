@@ -26,8 +26,26 @@ func (this *BaseController) ResponseRollbackError(tx orm.TxOrmer, msg string, fu
 	this.ResponseError(msg, funcName, err)
 }
 
+func (this *BaseController) ResponseLoginRollbackError(loginId int64, tx orm.TxOrmer, msg string, funcName string, err error) {
+	tx.Rollback()
+	this.ResponseLoginError(loginId, msg, funcName, err)
+}
+
 func (this *BaseController) ResponseError(msg string, funcName string, err error) {
 	logpack.Error(msg, funcName, err)
+	this.Data["json"] = utils.ResponseData{
+		IsError: true,
+		Msg:     msg,
+	}
+	this.ServeJSON()
+}
+
+func (this *BaseController) ResponseLoginError(loginId int64, msg string, funcName string, err error) {
+	if loginId <= 0 {
+		logpack.Error(msg, funcName, err)
+	} else {
+		logpack.FError(msg, loginId, funcName, err)
+	}
 	this.Data["json"] = utils.ResponseData{
 		IsError: true,
 		Msg:     msg,
@@ -62,15 +80,24 @@ func (this *BaseController) ResponseSuccessfullyWithAnyData(loginId int64, msg, 
 	this.ServeJSON()
 }
 
+func (this *BaseController) AdminAuthCheck() (*models.AuthClaims, error) {
+	authClaim, err := this.AuthCheck()
+	if err != nil {
+		return nil, err
+	}
+	if authClaim.Role != int(utils.RoleSuperAdmin) {
+		return nil, fmt.Errorf("Login user is not superadmin")
+	}
+	return authClaim, nil
+}
+
 func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
-	fmt.Println("check hereeeee222")
 	authClaim, err := this.GetLoginUser()
 	if err != nil {
 		fmt.Println("check hereeeee")
 		this.Redirect("/login", http.StatusFound)
 		return nil, err
 	}
-	fmt.Println("333333333333333333")
 	this.Data["LoginUser"] = authClaim
 	this.Data["IsSuperAdmin"] = this.IsSuperAdmin(*authClaim)
 
@@ -178,6 +205,10 @@ func (this *BaseController) ChatSite() string {
 	return fmt.Sprintf("%s:%s", utils.GetChatHost(), utils.GetChatPort())
 }
 
+func (this *BaseController) AssetsSite() string {
+	return fmt.Sprintf("%s:%s", utils.GetAssetsHost(), utils.GetAssetsPort())
+}
+
 // Check user is superadmin
 func (this *BaseController) IsSuperAdmin(user models.AuthClaims) bool {
 	return user.Role == int(utils.RoleSuperAdmin)
@@ -206,4 +237,17 @@ func (this *BaseController) SyncUsernameOnUserTable(userId int64, oldUsername, n
 
 func (this *BaseController) GetLoginToken() string {
 	return fmt.Sprintf("%s%s", "Bearer ", this.GetSession(utils.Tokenkey).(string))
+}
+
+func (this *BaseController) CheckSettingsExist() (*models.Settings, error) {
+	settings := models.Settings{}
+	o := orm.NewOrm()
+	queryErr := o.QueryTable(settingsModel).Limit(1).One(&settings)
+	if queryErr != nil {
+		if queryErr == orm.ErrNoRows {
+			return nil, nil
+		}
+		return nil, queryErr
+	}
+	return &settings, nil
 }

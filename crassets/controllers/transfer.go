@@ -217,7 +217,7 @@ func (this *TransferController) GetAddressListData() {
 		return
 	}
 	//user token
-	token, _, err := utils.CheckAndCreateUserToken(loginUser.Id, loginUser.Username)
+	token, _, err := utils.CheckAndCreateUserToken(loginUser.Id, loginUser.Username, loginUser.Role)
 	if err != nil {
 		this.ResponseError("Check or create user token failed", utils.GetFuncName(), fmt.Errorf("Check or create user token failed"))
 		return

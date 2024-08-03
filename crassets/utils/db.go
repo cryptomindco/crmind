@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 )
@@ -141,15 +142,29 @@ func WriteRateToDB(usdRateMap map[string]float64, allRateMap map[string]float64)
 		return
 	}
 	rates, err := GetRates()
+	isCreate := false
 	if err != nil {
-		logpack.Warn("Get rates from DB failed", GetFuncName())
-		return
+		if err == orm.ErrNoRows {
+			//insert new rates
+			isCreate = true
+			rates = &models.Rates{}
+		} else {
+			logpack.Warn("Get rates from DB failed", GetFuncName())
+			return
+		}
 	}
 	rates.UsdRate = string(usdResultString)
 	rates.AllRate = string(allRateString)
+	rates.Updatedt = time.Now().Unix()
 	o := orm.NewOrm()
-	_, err = o.Update(rates)
-	logpack.Warn("Update rates on DB failed", GetFuncName())
+	if isCreate {
+		_, err = o.Insert(rates)
+	} else {
+		_, err = o.Update(rates)
+	}
+	if err != nil {
+		logpack.Error("Update rates table failed", GetFuncName(), err)
+	}
 }
 
 func GetAccountFromUserId(userId int64) (*models.Accounts, error) {

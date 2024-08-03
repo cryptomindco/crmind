@@ -33,7 +33,7 @@ func init() {
 		os.Exit(1)
 	}
 	// register model
-	orm.RegisterModel()
+	orm.RegisterModel(new(Settings))
 
 	// Run sync db
 	orm.RunSyncdb("default", false, true)

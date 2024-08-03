@@ -6,6 +6,7 @@ type Rates struct {
 	AllRate       string `json:"allRate"`
 	YesterdayRate string `json:"yesterdayRate"`
 	LastMonthRate string `json:"lastMonthRate"`
+	Updatedt      int64  `json:"updatedt"`
 }
 
 type RateObject struct {
