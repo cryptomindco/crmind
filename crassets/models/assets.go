@@ -6,6 +6,7 @@ type Asset struct {
 	DisplayName    string  `json:"displayName"`
 	UserId         int64   `json:"userId"`
 	UserName       string  `json:"userName"`
+	IsAdmin        bool    `json:"isAdmin"`
 	Type           string  `json:"type"`
 	Sort           int     `json:"sort"`
 	Balance        float64 `orm:"default(0)" json:"balance"`

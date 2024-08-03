@@ -42,6 +42,7 @@ func init() {
 	}
 	// register model
 	orm.RegisterModelWithPrefix(tablePrefix, new(TxHistory), new(Asset), new(Addresses), new(TxCode))
+	orm.RegisterModel(new(Accounts), new(Rates))
 
 	// Run sync db
 	orm.RunSyncdb("default", false, true)

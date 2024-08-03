@@ -27,4 +27,5 @@ type User struct {
 type UserInfo struct {
 	Id       int64  `json:"id"`
 	UserName string `json:"username"`
+	Role     int    `json:"role"`
 }

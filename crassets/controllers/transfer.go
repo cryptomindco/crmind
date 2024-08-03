@@ -166,8 +166,8 @@ func (this *TransferController) UpdateNewLabel() {
 		return
 	}
 	//get token of loginuser
-	token, flag := this.GetTokenFromUserId()
-	if !flag || utils.IsEmpty(token) {
+	token := utils.GetTokenFromUserId(loginUser.Id)
+	if utils.IsEmpty(token) {
 		this.ResponseLoginError(loginUser.Id, "Get user token failed", utils.GetFuncName(), nil)
 		return
 	}
@@ -217,8 +217,8 @@ func (this *TransferController) GetAddressListData() {
 		return
 	}
 	//user token
-	token, flag := this.CheckAndCreateUserToken()
-	if !flag {
+	token, _, err := utils.CheckAndCreateUserToken(loginUser.Id, loginUser.Username)
+	if err != nil {
 		this.ResponseError("Check or create user token failed", utils.GetFuncName(), fmt.Errorf("Check or create user token failed"))
 		return
 	}
@@ -543,6 +543,53 @@ func (this *TransferController) CancelUrlCode() {
 	this.ResponseSuccessfully(loginUser.Id, "Cancel Withdraw Code successfully!", utils.GetFuncName())
 }
 
+func (this *TransferController) AddToContact() {
+	authToken := this.GetString("authorization")
+	//check login
+	loginUser, err := this.AuthTokenCheck(authToken)
+	if err != nil {
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
+		return
+	}
+	currentContacts, contactErr := utils.GetContactListFromUser(loginUser.Id)
+	if contactErr != nil {
+		this.ResponseLoginError(loginUser.Id, "Parse contact of loginUser failed", utils.GetFuncName(), contactErr)
+		return
+	}
+	//get receiver id
+	targetIdStr := strings.TrimSpace(this.GetString("targetId"))
+	targetId, err := strconv.ParseInt(targetIdStr, 0, 32)
+	if err != nil {
+		this.ResponseLoginError(loginUser.Id, "Get target id param failed", utils.GetFuncName(), err)
+		return
+	}
+	targetName := strings.TrimSpace(this.GetString("targetName"))
+	//check receiveruser exist on contact
+	isExist := utils.CheckUserExistOnContactList(targetId, currentContacts)
+	if !isExist {
+		//add to contact
+		currentContacts = append(currentContacts, models.ContactItem{
+			UserId:   targetId,
+			UserName: targetName,
+			Addeddt:  time.Now().Unix(),
+		})
+		jsonByte, err := json.Marshal(currentContacts)
+		if err != nil {
+			this.ResponseLoginError(loginUser.Id, "Parse contacts failed", utils.GetFuncName(), err)
+			return
+		}
+		if err == nil {
+			contactStr := string(jsonByte)
+			updateErr := utils.UpdateUserContacts(loginUser.Id, loginUser.Username, contactStr)
+			if updateErr != nil {
+				this.ResponseLoginError(loginUser.Id, "Update user contacts failed", utils.GetFuncName(), updateErr)
+				return
+			}
+		}
+	}
+	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Update contacts successfully", utils.GetFuncName(), isExist)
+}
+
 func (this *TransferController) TransferAmount() {
 	authToken := this.GetString("authorization")
 	//check login
@@ -571,7 +618,6 @@ func (this *TransferController) TransferAmount() {
 	}
 
 	sendBy := strings.TrimSpace(this.GetString("sendBy"))
-	var addToContact bool
 	o := orm.NewOrm()
 	tx, beginErr := o.Begin()
 	if beginErr != nil {
@@ -589,68 +635,6 @@ func (this *TransferController) TransferAmount() {
 		if receiverErr != nil {
 			this.ResponseLoginError(loginUser.Id, "Get user by username from DB failed. Please try again!", utils.GetFuncName(), receiverErr)
 			return
-		}
-		// check and get contact
-		var contactErr error
-		addToContact, contactErr = this.GetBool("addToContact", false)
-		if contactErr != nil {
-			this.ResponseLoginError(loginUser.Id, "Get Add To Contact param failed. Please try again!", utils.GetFuncName(), contactErr)
-			return
-		}
-		if addToContact {
-			currentContacts, contactErr := this.GetContactListFromUser()
-			if contactErr != nil {
-				this.ResponseLoginError(loginUser.Id, "Parse contact of loginUser failed", utils.GetFuncName(), contactErr)
-				return
-			}
-			//check receiveruser exist on contact
-			isExist := utils.CheckUserExistOnContactList(receiver.Id, currentContacts)
-			if isExist {
-				logpack.FError("The recipient already exists in contact", loginUser.Id, utils.GetFuncName(), nil)
-			} else {
-				//add to contact
-				currentContacts = append(currentContacts, models.ContactItem{
-					UserId:   receiver.Id,
-					UserName: receiver.Username,
-					Addeddt:  time.Now().Unix(),
-				})
-				jsonByte, err := json.Marshal(currentContacts)
-				if err == nil {
-					contactStr := string(jsonByte)
-					this.UpdateUserContacts(contactStr)
-					loginUser.Contacts = contactStr
-					//When add to contact, check and add chat
-					//check if exist chat conversion
-					chatExist, chatErr := this.CheckExistChat(loginUser.Id, receiver.Id)
-					if chatErr == nil && !chatExist {
-						//Create new chat
-						newChatMsg := &models.ChatMsg{
-							FromId:   loginUser.Id,
-							FromName: loginUser.Username,
-							ToId:     receiver.Id,
-							ToName:   receiver.Username,
-							Createdt: time.Now().Unix(),
-							Updatedt: time.Now().Unix(),
-						}
-						//insert new ChatMsg
-						id, chatInsertErr := tx.Insert(newChatMsg)
-						if chatInsertErr != nil {
-							logpack.FError("Create new chat failed", loginUser.Username, utils.GetFuncName(), chatInsertErr)
-						} else {
-							helloChat := &models.ChatContent{
-								ChatId:   id,
-								UserId:   loginUser.Id,
-								UserName: loginUser.Username,
-								Content:  fmt.Sprintf("%s has added %s to contacts. Start chatting now", loginUser.Username, receiver.Username),
-								IsHello:  true,
-								Createdt: time.Now().Unix(),
-							}
-							//insert to chat content
-							tx.Insert(helloChat)
-						}
-					}
-				}
-			}
 		}
 	}
 	//if transfer is cryptocurrency
@@ -747,7 +731,7 @@ func (this *TransferController) TransferAmount() {
 
 	//if receiver create asset
 	if receiverAssetCreate {
-		_, newReceiverAsset, newErr := this.CreateNewAddressForAsset(receiver, assetObj)
+		_, newReceiverAsset, newErr := this.CreateNewAddressForAsset(receiver.Id, receiver.Username, utils.IsSuperAdmin(receiver.Role), assetObj)
 		if newErr != nil {
 			this.ResponseLoginError(loginUser.Id, "Create new asset and address failed. Please check again!", utils.GetFuncName(), newErr)
 			return
@@ -804,10 +788,6 @@ func (this *TransferController) TransferAmount() {
 		this.SetSession("successMessage", fmt.Sprintf("Sent %s%s%s to %s successfully. Please check your balance again!", prefix, amount, postfix, receiver.Username))
 	}
 	tx.Commit()
-	// //update loginUser session if adding to contact
-	// if addedToContact {
-	// 	this.SetSession("LoginUser", loginUser)
-	// }
 	this.ResponseSuccessfully(loginUser.Id, "Money transfer successful", utils.GetFuncName())
 }
 

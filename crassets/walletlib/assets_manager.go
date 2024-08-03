@@ -1,13 +1,10 @@
 package walletlib
 
 import (
-	"crassets/models"
 	"crassets/utils"
 	"crassets/walletlib/assets"
 	"fmt"
 	"strings"
-
-	"github.com/beego/beego/v2/client/orm"
 )
 
 func NewAssets(assetType assets.AssetType) (assets.Asset, error) {
@@ -40,50 +37,14 @@ func CreateAssetAndConnectRPC(assetType assets.AssetType) (assets.Asset, error) 
 	return asset, nil
 }
 
-func GetAllowAssetFromSettings() ([]string, error) {
-	settings := models.Settings{}
-	o := orm.NewOrm()
-	queryErr := o.QueryTable(new(models.Settings)).Limit(1).One(&settings)
-	if queryErr != nil {
-		if queryErr != orm.ErrNoRows {
-			return nil, queryErr
-		}
-		return []string{assets.USDWalletAsset.String()}, nil
-	}
-	if utils.IsEmpty(settings.ActiveAssets) {
-		return []string{assets.USDWalletAsset.String()}, nil
-	}
-	result := make([]string, 0)
-	assetArr := strings.Split(settings.ActiveAssets, ",")
-	for _, asset := range assetArr {
-		assetObj := assets.StringToAssetType(strings.TrimSpace(asset))
-		if assetObj != assets.NilAsset {
-			result = append(result, assetObj.String())
-		}
-	}
-	if len(result) == 0 {
-		result = append(result, assets.USDWalletAsset.String())
-	}
-	return result, nil
-}
-
 func GetAllowAssetObjectFromSettings() ([]assets.AssetType, error) {
-	settings := models.Settings{}
-	o := orm.NewOrm()
-	queryErr := o.QueryTable(new(models.Settings)).Limit(1).One(&settings)
-	if queryErr != nil {
-		if queryErr != orm.ErrNoRows {
-			return nil, queryErr
-		}
-		return []assets.AssetType{assets.USDWalletAsset}, nil
-	}
-	if utils.IsEmpty(settings.ActiveAssets) {
+	allowAssets, err := utils.GetAllowAssetNames()
+	if err != nil {
 		return []assets.AssetType{assets.USDWalletAsset}, nil
 	}
 	result := make([]assets.AssetType, 0)
-	assetArr := strings.Split(settings.ActiveAssets, ",")
-	for _, asset := range assetArr {
-		assetObj := assets.StringToAssetType(strings.TrimSpace(asset))
+	for _, assetName := range allowAssets {
+		assetObj := assets.StringToAssetType(strings.TrimSpace(assetName))
 		if assetObj != assets.NilAsset {
 			result = append(result, assetObj)
 		}

@@ -2,10 +2,8 @@ package utils
 
 import (
 	"auth/models"
-	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 )
@@ -31,14 +29,6 @@ func GetUserFromToken(token string) (*models.User, error) {
 	user := models.User{}
 	queryErr := o.QueryTable(new(models.User)).Filter("token", token).Filter("status", int(StatusActive)).Limit(1).One(&user)
 	return &user, queryErr
-}
-
-func GetTokenFromUserId(userId int64) string {
-	user, err := GetUserFromId(userId)
-	if err != nil {
-		return ""
-	}
-	return user.Token
 }
 
 func GetHasCredUserList() ([]models.User, error) {
@@ -95,47 +85,6 @@ func GetUserOfToken(token string) *models.User {
 	return nil
 }
 
-// Check and create new token for user, if exist, ignore
-func CheckAndCreateUserToken(user models.AuthClaims) (token string, err error) {
-	if !IsEmpty(user.Token) {
-		token = user.Token
-	}
-	//get user
-	currentUser, userErr := GetUserFromId(user.Id)
-	if userErr != nil {
-		err = userErr
-		return
-	}
-	if !IsEmpty(currentUser.Token) {
-		token = currentUser.Token
-		return
-	}
-	//Create new token
-	newToken, ok := CreateNewUserToken()
-	if !ok {
-		err = fmt.Errorf("%s", "Create new token failed")
-		return
-	}
-	currentUser.Token = newToken
-	//update new Token
-	o := orm.NewOrm()
-	tx, beginErr := o.Begin()
-	if beginErr != nil {
-		err = beginErr
-		return
-	}
-	currentUser.Updatedt = time.Now().Unix()
-	_, updateErr := tx.Update(currentUser)
-	if updateErr != nil {
-		tx.Rollback()
-		err = updateErr
-		return
-	}
-	token = newToken
-	tx.Commit()
-	return
-}
-
 func GetNewRandomUsername() (string, error) {
 	breakLoop := 0
 	//Try up to 10 times if username creations failed
@@ -173,28 +122,6 @@ func CreateNewUserToken() (string, bool) {
 	return "", false
 }
 
-func GetContactListOfUser(userId int64) []string {
-	result := make([]string, 0)
-	user, userErr := GetUserFromId(userId)
-	if userErr != nil {
-		return result
-	}
-
-	if IsEmpty(user.Contacts) {
-		return result
-	}
-
-	var contacts []models.ContactItem
-	err := json.Unmarshal([]byte(user.Contacts), &contacts)
-	if err != nil {
-		return result
-	}
-	for _, contact := range contacts {
-		result = append(result, contact.UserName)
-	}
-	return result
-}
-
 func GetSystemUser() (*models.User, error) {
 	o := orm.NewOrm()
 	user := models.User{}
@@ -222,20 +149,4 @@ func GetUserFromLabel(label string) (*models.User, bool) {
 		return nil, false
 	}
 	return user, true
-}
-
-func GetContactListFromUser(userId int64) ([]models.ContactItem, error) {
-	user, userErr := GetUserFromId(userId)
-	if userErr != nil {
-		return nil, userErr
-	}
-	result := make([]models.ContactItem, 0)
-	if IsEmpty(user.Contacts) {
-		return result, nil
-	}
-	err := json.Unmarshal([]byte(user.Contacts), &result)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }

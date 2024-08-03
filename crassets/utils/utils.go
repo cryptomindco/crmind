@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
+	"strings"
 	"time"
 
 	beego "github.com/beego/beego/v2/adapter"
@@ -206,4 +207,27 @@ func CheckUserExistOnContactList(userId int64, contactList []models.ContactItem)
 		}
 	}
 	return false
+}
+
+func IsSuperAdmin(role int) bool {
+	return role == int(RoleSuperAdmin)
+}
+
+func GetAllowAssetNames() ([]string, error) {
+	allowAssets := GetConfValue("allowassets")
+	if IsEmpty(allowAssets) {
+		return []string{assets.USDWalletAsset.String()}, nil
+	}
+	result := make([]string, 0)
+	assetArr := strings.Split(allowAssets, ",")
+	for _, asset := range assetArr {
+		assetObj := assets.StringToAssetType(strings.TrimSpace(asset))
+		if assetObj != assets.NilAsset {
+			result = append(result, assetObj.String())
+		}
+	}
+	if len(result) == 0 {
+		result = append(result, assets.USDWalletAsset.String())
+	}
+	return result, nil
 }

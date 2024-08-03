@@ -154,7 +154,7 @@ func (this *WalletController) CreateNewAddress() {
 		return
 	}
 	assetObject := assets.StringToAssetType(selectedType)
-	asset, _, createErr := this.CreateNewAddressForAsset(*loginUser, assetObject)
+	asset, _, createErr := this.CreateNewAddressForAsset(loginUser.Id, loginUser.Username, utils.IsSuperAdmin(loginUser.Role), assetObject)
 	if createErr != nil {
 		this.ResponseLoginError(loginUser.Id, createErr.Error(), utils.GetFuncName(), nil)
 		return

@@ -19,6 +19,7 @@ var (
 )
 
 var InitSetFilterUrl = func() {
+	fmt.Println("HEckksjdfk1111")
 	for _, excludeUrl := range utils.LoginExcludeUrl {
 		filterExcludeURLMap[excludeUrl] = 1
 	}
@@ -34,16 +35,22 @@ var InitSetFilterUrl = func() {
 }
 
 var FilterCryptomind = func(ctx *context.Context) {
+	fmt.Println("HEckksjdfk22222")
 	//Determine whether the URL is excluded
 	if _, ok := filterExcludeURLMap[ctx.Request.URL.Path]; ok {
 		return
 	}
+	fmt.Println("HEckksjdfk3333", ctx)
+	fmt.Println("Check input: ", ctx.Input.Session(utils.Tokenkey))
 	//check login token session
 	token, ok := ctx.Input.Session(utils.Tokenkey).(string)
+	fmt.Println("HEckksjdf8888888: ", ok)
 	if !ok {
+		fmt.Println("check hreeee1111223423434: ", loginUrl)
 		ctx.Redirect(302, loginUrl)
 		return
 	}
+	fmt.Println("HEckksjdf777777")
 	var response utils.ResponseData
 	okLogin := false
 	req := &services.ReqConfig{

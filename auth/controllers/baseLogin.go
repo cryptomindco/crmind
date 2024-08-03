@@ -44,6 +44,7 @@ func (this *BaseLoginController) GetUsernameListExcludeId(loginUserId int64) []*
 		result = append(result, &models.UserInfo{
 			Id:       user.Id,
 			Username: user.Username,
+			Role:     user.Role,
 		})
 	}
 	return result
@@ -143,13 +144,12 @@ func (this *BaseLoginController) CreateAuthClaimSession(loginUser *models.User) 
 		aliveSessionHours = utils.AliveSessionHours
 	}
 	authClaims := models.AuthClaims{
-		Id:       loginUser.Id,
-		Username: loginUser.Username,
-		Expire:   time.Now().Add(time.Hour * time.Duration(aliveSessionHours)).Unix(),
-		Role:     loginUser.Role,
-		Token:    loginUser.Token,
-		Contacts: loginUser.Contacts,
-		Createdt: loginUser.Createdt,
+		Id:          loginUser.Id,
+		Username:    loginUser.Username,
+		Expire:      time.Now().Add(time.Hour * time.Duration(aliveSessionHours)).Unix(),
+		Role:        loginUser.Role,
+		Createdt:    loginUser.Createdt,
+		LastLogindt: loginUser.LastLogindt,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, authClaims)
 	tokenString, err := token.SignedString([]byte(utils.GetConfValue("hmacSecretKey")))

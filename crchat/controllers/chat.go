@@ -111,6 +111,68 @@ func (this *ChatController) DeleteChat() {
 	this.ResponseSuccessfully(loginUser.Id, "Delete chat successfully!", utils.GetFuncName())
 }
 
+func (this *ChatController) CheckAndCreateChat() {
+	//check login
+	loginUser, err := this.AuthCheck()
+	if err != nil {
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
+		return
+	}
+	toIdStr := this.Ctx.Input.Query("toId")
+	toName := this.Ctx.Input.Query("toName")
+	toId, toErr := strconv.ParseInt(toIdStr, 0, 32)
+
+	if toErr != nil {
+		this.ResponseError("Get from and to params failed", utils.GetFuncName(), fmt.Errorf("Get from and to params failed"))
+		return
+	}
+	//check if exist chat conversion
+	chatExist, err := utils.CheckExistChat(loginUser.Id, toId)
+	if err != nil {
+		this.ResponseError("Check chat exist failed", utils.GetFuncName(), err)
+		return
+	}
+	if err == nil && !chatExist {
+		//Create new chat
+		newChatMsg := &models.ChatMsg{
+			FromId:   loginUser.Id,
+			FromName: loginUser.Username,
+			ToId:     toId,
+			ToName:   toName,
+			Createdt: time.Now().Unix(),
+			Updatedt: time.Now().Unix(),
+		}
+		o := orm.NewOrm()
+		tx, beginErr := o.Begin()
+		if beginErr != nil {
+			this.ResponseLoginError(loginUser.Id, "An error has occurred. Please try again!", utils.GetFuncName(), beginErr)
+			return
+		}
+		//insert new ChatMsg
+		id, chatInsertErr := tx.Insert(newChatMsg)
+		if chatInsertErr != nil {
+			this.ResponseLoginError(loginUser.Id, "Create new chat failed", utils.GetFuncName(), chatInsertErr)
+			return
+		} else {
+			helloChat := &models.ChatContent{
+				ChatId:   id,
+				UserId:   loginUser.Id,
+				UserName: loginUser.Username,
+				Content:  fmt.Sprintf("%s has added %s to contacts. Start chatting now", loginUser.Username, toName),
+				IsHello:  true,
+				Createdt: time.Now().Unix(),
+			}
+			//insert to chat content
+			_, err := tx.Insert(helloChat)
+			if err != nil {
+				this.ResponseLoginError(loginUser.Id, "Create hello chat content failed", utils.GetFuncName(), err)
+				return
+			}
+		}
+	}
+	this.ResponseSuccessfully(loginUser.Id, "Create hello chat successfully", utils.GetFuncName())
+}
+
 func (this *ChatController) SendChatMessage() {
 	authToken := this.GetString("authorization")
 	//check login

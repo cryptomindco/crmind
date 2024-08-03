@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crassets/dohttp"
 	"crassets/logpack"
 	"crassets/models"
 	"crassets/services"
@@ -9,6 +10,7 @@ import (
 	"crassets/walletlib/assets"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -33,7 +35,7 @@ func UpdateGlobalVariable() {
 	}
 
 	if utils.GlobalItem.AssetsAllow == nil {
-		allowAssets, err := walletlib.GetAllowAssetFromSettings()
+		allowAssets, err := utils.GetAllowAssetNames()
 		if err != nil {
 			utils.GlobalItem.AssetsAllow = make([]string, 0)
 		} else {
@@ -267,6 +269,31 @@ func GetAssetIndexByIdFromArray(assetList []*models.Asset, id int64) int {
 	return -1
 }
 
+func GetUserInfoByName(username string) (*models.UserInfo, error) {
+	checkUrl := fmt.Sprintf("%s%s", utils.AuthSite(), "/user-by-name")
+	req := &dohttp.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: checkUrl,
+		Payload: map[string]string{
+			"username": username,
+		},
+	}
+	var response utils.ResponseData
+	err := dohttp.HttpRequest(req, &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.IsError {
+		return nil, fmt.Errorf("Get user info by username failed")
+	}
+	var userInfo models.UserInfo
+	err = utils.CatchObject(response.Data, &userInfo)
+	if err != nil {
+		return nil, err
+	}
+	return &userInfo, nil
+}
+
 // check and sync daemon data with DB data
 func SyncDecredHandler(o orm.Ormer, tx orm.TxOrmer, assetMgr assets.Asset) {
 	//Get account list with balance
@@ -277,12 +304,12 @@ func SyncDecredHandler(o orm.Ormer, tx orm.TxOrmer, assetMgr assets.Asset) {
 	//sync account on DB
 	for account, balance := range balanceMap {
 		//because account is username. so, check user is exist with username
-		user, userErr := utils.GetUserByUsername(account, o)
+		user, userErr := GetUserInfoByName(account)
 		if userErr != nil {
 			continue
 		}
 		//then, check account exist on asset
-		asset, assetErr := utils.GetAssetByOwner(user, o, assets.DCRWalletAsset.String())
+		asset, assetErr := utils.GetAssetByOwner(user.Id, o, assets.DCRWalletAsset.String())
 		//if error, continue
 		if assetErr != nil && assetErr != orm.ErrNoRows {
 			continue
@@ -294,6 +321,7 @@ func SyncDecredHandler(o orm.Ormer, tx orm.TxOrmer, assetMgr assets.Asset) {
 				DisplayName:    assetObj.ToFullName(),
 				UserId:         user.Id,
 				UserName:       user.Username,
+				IsAdmin:        utils.IsSuperAdmin(user.Role),
 				Type:           assetObj.String(),
 				Sort:           assetObj.AssetSortInt(),
 				Balance:        balance,
@@ -467,7 +495,7 @@ func SystemSyncHandler(o orm.Ormer) {
 		logpack.Error("An error has occurred", utils.GetFuncName(), beginErr)
 	}
 	//Get allow asset list
-	assetList, err := walletlib.GetAllowAssetFromSettings()
+	assetList, err := utils.GetAllowAssetNames()
 	if err != nil {
 		logpack.Error("Sync by date error", utils.GetFuncName(), err)
 		return
@@ -498,7 +526,7 @@ func SystemSyncHandler(o orm.Ormer) {
 
 		for _, label := range labelList {
 			//check label is label of address in system
-			user, existLabel := utils.GetUserFromLabel(label)
+			account, existLabel := utils.GetUserFromLabel(label)
 			if !existLabel {
 				continue
 			}
@@ -523,7 +551,7 @@ func SystemSyncHandler(o orm.Ormer) {
 				}
 				//if address is nil, exist is false. if else, exist is true
 				addressExist := addressDB != nil
-				assetTemp := CheckAssetExistOnArray(assetUpdateArr, user.Id, asset)
+				assetTemp := CheckAssetExistOnArray(assetUpdateArr, account.UserId, asset)
 				//if addressExist
 				if addressExist {
 					if assetTemp == nil {
@@ -545,17 +573,18 @@ func SystemSyncHandler(o orm.Ormer) {
 					//check asset exist on DB
 					var assetCheckErr error
 					if assetTemp == nil {
-						assetTemp, assetCheckErr = utils.GetUserAsset(user.Id, asset)
+						assetTemp, assetCheckErr = utils.GetUserAsset(account.UserId, asset)
 						if assetCheckErr != nil {
-							logpack.Error(fmt.Sprintf("Get user asset failed. UserId: %d, Asset: %s", user.Id, asset), utils.GetFuncName(), assetCheckErr)
+							logpack.Error(fmt.Sprintf("Get user asset failed. UserId: %d, Asset: %s", account.UserId, asset), utils.GetFuncName(), assetCheckErr)
 							continue
 						}
 						if assetTemp == nil {
 							assetObject := assets.StringToAssetType(asset)
 							assetTemp = &models.Asset{
 								DisplayName: assetObject.ToFullName(),
-								UserId:      user.Id,
-								UserName:    user.Username,
+								UserId:      account.UserId,
+								UserName:    account.Username,
+								IsAdmin:     utils.IsSuperAdmin(account.Role),
 								Type:        asset,
 								Sort:        assetObject.AssetSortInt(),
 								Status:      int(utils.AssetStatusActive),
@@ -564,7 +593,7 @@ func SystemSyncHandler(o orm.Ormer) {
 							}
 							_, insertAssetErr := tx.Insert(assetTemp)
 							if insertAssetErr != nil {
-								logpack.Error(fmt.Sprintf("Insert asset failed. userid: %d, Asset: %s", user.Id, asset), utils.GetFuncName(), insertAssetErr)
+								logpack.Error(fmt.Sprintf("Insert asset failed. userid: %d, Asset: %s", account.UserId, asset), utils.GetFuncName(), insertAssetErr)
 								tx.Rollback()
 								return
 							}

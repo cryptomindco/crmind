@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"auth/models"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -56,18 +55,6 @@ func ObjectToJsonString(obj interface{}) string {
 
 func GetConfValue(key string) string {
 	return beego.AppConfig.String(key)
-}
-
-func CheckUsernameExistOnContactList(username string, contactList []models.ContactItem) bool {
-	if len(contactList) == 0 {
-		return false
-	}
-	for _, contact := range contactList {
-		if contact.UserName == username {
-			return true
-		}
-	}
-	return false
 }
 
 func ConvertToJsonString(value any) (string, error) {

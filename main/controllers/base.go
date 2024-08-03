@@ -63,11 +63,14 @@ func (this *BaseController) ResponseSuccessfullyWithAnyData(loginId int64, msg, 
 }
 
 func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
+	fmt.Println("check hereeeee222")
 	authClaim, err := this.GetLoginUser()
 	if err != nil {
+		fmt.Println("check hereeeee")
 		this.Redirect("/login", http.StatusFound)
 		return nil, err
 	}
+	fmt.Println("333333333333333333")
 	this.Data["LoginUser"] = authClaim
 	this.Data["IsSuperAdmin"] = this.IsSuperAdmin(*authClaim)
 

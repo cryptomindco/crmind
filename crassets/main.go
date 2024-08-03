@@ -68,13 +68,8 @@ func SyncCryptocurrencyPrice() {
 	//Every 7 seconds. Exchange rates of all types are updated once and sent to the session
 	go func() {
 		for threadLoop {
-			//Get settings
-			settings, settingErr := GetSettings()
-			if settingErr != nil {
-				continue
-			}
 			//Get allow asset on system settings
-			allowCurrencies, allowErr := GetAllowAssetNameFromSettings(settings)
+			allowCurrencies, allowErr := utils.GetAllowAssetNames()
 			if allowErr != nil {
 				continue
 			}
@@ -85,7 +80,7 @@ func SyncCryptocurrencyPrice() {
 			if allRateMapErr != nil {
 				continue
 			}
-			utils.WriteRateToDB(settings, usdRateMap, allResultMap)
+			utils.WriteRateToDB(usdRateMap, allResultMap)
 			time.Sleep(7 * time.Second)
 		}
 	}()
@@ -231,33 +226,4 @@ func DecredNotificationsHandler() {
 			log.Fatal(err)
 		}
 	}()
-}
-
-func GetSettings() (*models.Settings, error) {
-	settings := models.Settings{}
-	o := orm.NewOrm()
-	queryBuilder := fmt.Sprintf("SELECT * from settings")
-	settingsErr := o.Raw(queryBuilder).QueryRow(&settings)
-	if settingsErr != nil {
-		return nil, settingsErr
-	}
-	return &settings, nil
-}
-
-func GetAllowAssetNameFromSettings(settings *models.Settings) ([]string, error) {
-	if utils.IsEmpty(settings.ActiveAssets) {
-		return []string{assets.USDWalletAsset.String()}, nil
-	}
-	result := make([]string, 0)
-	assetArr := strings.Split(settings.ActiveAssets, ",")
-	for _, asset := range assetArr {
-		assetObj := assets.StringToAssetType(strings.TrimSpace(asset))
-		if assetObj != assets.NilAsset {
-			result = append(result, assetObj.String())
-		}
-	}
-	if len(result) == 0 {
-		result = append(result, assets.USDWalletAsset.String())
-	}
-	return result, nil
 }

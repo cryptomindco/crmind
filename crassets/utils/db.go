@@ -1,16 +1,53 @@
 package utils
 
 import (
+	"crassets/logpack"
 	"crassets/models"
 	"crassets/walletlib/assets"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/beego/beego/v2/client/orm"
 )
 
 func GetSuperadminSystemAddress(assetType string) (string, error) {
-	return "", nil
+	//Get superadmin asset
+	adminAsset, err := GetSuperAdminAsset(assetType)
+	if err != nil || adminAsset == nil {
+		return "", fmt.Errorf("get superAdmin asset failed")
+	}
+	address, err := GetLastestAddressOfAsset(adminAsset.Id)
+	if err != nil {
+		return "", err
+	}
+	return address.Address, nil
+}
+
+func GetLastestAddressOfAsset(assetId int64) (*models.Addresses, error) {
+	o := orm.NewOrm()
+	address := models.Addresses{}
+	queryErr := o.QueryTable(new(models.Addresses)).Filter("asset_id", assetId).Limit(1).One(&address)
+	if queryErr != nil {
+		if queryErr != orm.ErrNoRows {
+			return nil, queryErr
+		}
+		return nil, nil
+	}
+	return &address, queryErr
+}
+
+func GetSuperAdminAsset(assetType string) (*models.Asset, error) {
+	asset := models.Asset{}
+	o := orm.NewOrm()
+	queryErr := o.QueryTable(new(models.Asset)).Filter("is_admin", true).Filter("type", assetType).Limit(1).One(&asset)
+	if queryErr != nil {
+		if queryErr == orm.ErrNoRows {
+			return nil, nil
+		}
+		return nil, queryErr
+	}
+	return &asset, nil
 }
 
 func ReadRateFromDB() *models.RateObject {
@@ -32,9 +69,9 @@ func ReadRateFromDB() *models.RateObject {
 
 // return: usdRate, allRate, error
 func ReadRateJsonStrFromDB() (string, string, error) {
-	settings := models.Settings{}
+	settings := models.Rates{}
 	o := orm.NewOrm()
-	queryBuilder := fmt.Sprintf("SELECT * from settings")
+	queryBuilder := fmt.Sprintf("SELECT * from rates")
 	settingsErr := o.Raw(queryBuilder).QueryRow(&settings)
 	if settingsErr != nil {
 		return "", "", settingsErr
@@ -97,16 +134,108 @@ func GetTxHistoryByTxid(txid string) (*models.TxHistory, error) {
 	return &history, err
 }
 
-func WriteRateToDB(settings *models.Settings, usdRateMap map[string]float64, allRateMap map[string]float64) {
+func WriteRateToDB(usdRateMap map[string]float64, allRateMap map[string]float64) {
 	usdResultString, jsonErr := json.Marshal(usdRateMap)
 	allRateString, allJsonErr := json.Marshal(allRateMap)
 	if jsonErr != nil || allJsonErr != nil {
 		return
 	}
-	settings.UsdRate = string(usdResultString)
-	settings.AllRate = string(allRateString)
+	rates, err := GetRates()
+	if err != nil {
+		logpack.Warn("Get rates from DB failed", GetFuncName())
+		return
+	}
+	rates.UsdRate = string(usdResultString)
+	rates.AllRate = string(allRateString)
 	o := orm.NewOrm()
-	o.Update(settings)
+	_, err = o.Update(rates)
+	logpack.Warn("Update rates on DB failed", GetFuncName())
+}
+
+func GetAccountFromUserId(userId int64) (*models.Accounts, error) {
+	account := models.Accounts{}
+	o := orm.NewOrm()
+	queryErr := o.QueryTable(new(models.Accounts)).Filter("user_id", userId).Limit(1).One(&account)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	return &account, nil
+}
+
+// Create new user token, 6 characters
+func CreateNewUserToken() (string, bool) {
+	breakLoop := 0
+	//Try up to 10 times if token creation fails
+	for breakLoop < 10 {
+		newToken := RandSeq(6)
+		breakLoop++
+		//check token exist on user table
+		o := orm.NewOrm()
+		userCount, queryErr := o.QueryTable(new(models.Accounts)).Filter("token", newToken).Count()
+		if queryErr != nil {
+			continue
+		}
+		if userCount == 0 {
+			return newToken, true
+		}
+	}
+	return "", false
+}
+
+// Check and create new token for user, if exist, ignore
+func CheckAndCreateUserToken(userId int64, username string, role int) (token string, updated bool, err error) {
+	isCreate := false
+	//get user
+	currentAccount, userErr := GetAccountFromUserId(userId)
+	if userErr != nil {
+		if userErr == orm.ErrNoRows {
+			isCreate = true
+		} else {
+			err = userErr
+			return
+		}
+	}
+
+	if !isCreate && !IsEmpty(currentAccount.Token) {
+		token = currentAccount.Token
+		updated = false
+		return
+	}
+	//Create new token
+	newToken, ok := CreateNewUserToken()
+	if !ok {
+		err = fmt.Errorf("%s", "Create new token failed")
+		return
+	}
+	o := orm.NewOrm()
+	tx, beginErr := o.Begin()
+	if beginErr != nil {
+		err = beginErr
+		return
+	}
+	var updateErr error
+	if isCreate {
+		currentAccount = &models.Accounts{
+			UserId:   userId,
+			Username: username,
+			Token:    newToken,
+			Role:     role,
+		}
+		_, updateErr = tx.Insert(currentAccount)
+	} else {
+		currentAccount.Token = newToken
+		//update new Token
+		_, updateErr = tx.Update(currentAccount)
+	}
+	if updateErr != nil {
+		tx.Rollback()
+		err = updateErr
+		return
+	}
+	token = newToken
+	updated = true
+	tx.Commit()
+	return
 }
 
 func GetAssetFromAddress(address string, assetType string) (*models.Asset, error) {
@@ -125,14 +254,14 @@ func GetAssetFromAddress(address string, assetType string) (*models.Asset, error
 	return &assets, nil
 }
 
-func GetSystemUserAsset(assetType string) (*models.Asset, error) {
-	systemUser, userErr := GetSystemUser()
-	if userErr != nil {
-		return nil, userErr
-	}
-	o := orm.NewOrm()
-	return GetAssetByOwner(systemUser, o, assetType)
-}
+// func GetSystemUserAsset(assetType string) (*models.Asset, error) {
+// 	systemUser, userErr := GetSystemUser()
+// 	if userErr != nil {
+// 		return nil, userErr
+// 	}
+// 	o := orm.NewOrm()
+// 	return GetAssetByOwner(systemUser, o, assetType)
+// }
 
 func GetTxcode(code string) (*models.TxCode, bool) {
 	if IsEmpty(code) {
@@ -157,16 +286,16 @@ func GetTxcode(code string) (*models.TxCode, bool) {
 }
 
 func GetRateFromDBByAsset(assetType string) float64 {
-	settings := models.Settings{}
+	rates := models.Rates{}
 	o := orm.NewOrm()
-	queryBuilder := fmt.Sprintf("SELECT * from settings")
-	settingsErr := o.Raw(queryBuilder).QueryRow(&settings)
+	queryBuilder := fmt.Sprintf("SELECT * from rates")
+	settingsErr := o.Raw(queryBuilder).QueryRow(&rates)
 	if settingsErr != nil {
 		return 0
 	}
 	//get rate String
 	result := make(map[string]float64)
-	rateJsonStr := settings.UsdRate
+	rateJsonStr := rates.UsdRate
 	if IsEmpty(rateJsonStr) {
 		return 0
 	}
@@ -298,4 +427,108 @@ func CreateNewUrlCode() (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func GetRates() (*models.Rates, error) {
+	rates := models.Rates{}
+	o := orm.NewOrm()
+	queryBuilder := fmt.Sprintf("SELECT * from rates")
+	ratesErr := o.Raw(queryBuilder).QueryRow(&rates)
+	if ratesErr != nil {
+		return nil, ratesErr
+	}
+	return &rates, nil
+}
+
+func GetContactListFromUser(userId int64) ([]models.ContactItem, error) {
+	account, userErr := GetAccountFromUserId(userId)
+	if userErr != nil {
+		return nil, userErr
+	}
+	result := make([]models.ContactItem, 0)
+	if IsEmpty(account.Contacts) {
+		return result, nil
+	}
+	err := json.Unmarshal([]byte(account.Contacts), &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func UpdateUserContacts(userId int64, username, contacts string) error {
+	o := orm.NewOrm()
+	account := models.Accounts{}
+	isCreate := false
+	err := o.QueryTable(new(models.Accounts)).Filter("user_id", userId).Limit(1).One(&account)
+	if err != nil {
+		if err == orm.ErrNoRows {
+			isCreate = true
+		} else {
+			return err
+		}
+	}
+	tx, beginErr := o.Begin()
+	if beginErr != nil {
+		return beginErr
+	}
+	account.Contacts = contacts
+	if isCreate {
+		account.UserId = userId
+		account.Username = username
+		_, err = tx.Insert(&account)
+	} else {
+		_, err = tx.Update(&account)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetTokenFromUserId(userId int64) string {
+	account, err := GetAccountFromUserId(userId)
+	if err != nil {
+		return ""
+	}
+	return account.Token
+}
+
+func GetUserFromToken(token string) (*models.Accounts, error) {
+	o := orm.NewOrm()
+	account := models.Accounts{}
+	queryErr := o.QueryTable(new(models.Accounts)).Filter("token", token).Limit(1).One(&account)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	return &account, nil
+}
+
+// Check and get user from address label
+func GetUserFromLabel(label string) (*models.Accounts, bool) {
+	if IsEmpty(label) {
+		return nil, false
+	}
+
+	//split label
+	labelArr := strings.Split(label, "_")
+	if len(labelArr) <= 1 {
+		return nil, false
+	}
+
+	//token
+	token := labelArr[0]
+	//check token from user
+	account, userErr := GetUserFromToken(token)
+	if userErr != nil {
+		return nil, false
+	}
+	return account, true
+}
+
+func GetSystemUserAsset(assetType string) (*models.Asset, error) {
+	o := orm.NewOrm()
+	asset := models.Asset{}
+	queryErr := o.QueryTable(new(models.Asset)).Filter("is_admin", true).Filter("type", assetType).Filter("status", int(AssetStatusActive)).Limit(1).One(&asset)
+	return &asset, queryErr
 }

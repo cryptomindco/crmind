@@ -53,6 +53,6 @@ func (this *BaseController) GetLoginId() (int64, bool) {
 }
 
 // Check user is superadmin
-func (this *BaseController) IsSuperAdmin(loginUser models.SessionUser) bool {
+func (this *BaseController) IsSuperAdmin(loginUser models.User) bool {
 	return loginUser.Role == int(utils.RoleSuperAdmin)
 }
