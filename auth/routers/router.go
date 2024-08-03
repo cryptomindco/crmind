@@ -25,6 +25,7 @@ func init() {
 	beego.Router("/admin/user-info", &controllers.QueryController{}, "get:GetAdminUserInfo")
 	beego.Router("/admin/change-user-status", &controllers.QueryController{}, "post:ChangeUserStatus")
 	beego.Router("/username-list", &controllers.QueryController{}, "get:GetExcludeLoginUserNameList")
+	beego.Router("/user-by-name", &controllers.QueryController{}, "get:GetUserInfoByUsername")
 
 	beego.Router("/is-logging", &controllers.AuthController{}, "get:IsLoggingOn")
 	beego.Router("/exit", &controllers.AuthController{}, "get:Quit")

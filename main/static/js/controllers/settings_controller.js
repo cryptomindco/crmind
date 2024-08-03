@@ -18,14 +18,13 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: '/updateSettings', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           $("#updateSettings_msg").addClass("d-none")
           _this.showSuccessToast("Update settings successfully");
-        }
-        if (data["error"] != "") {
+        } else {
           $("#updateSettings_msg").removeClass("d-none")
-          $("#updateSettings_msg").text(data["error_msg"])
+          $("#updateSettings_msg").text(res.msg)
         }
       },
     });
@@ -37,13 +36,11 @@ export default class extends BaseController {
       data: {},
       type: "POST", //OR GET
       url: '/syncTransactions', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           _this.showSuccessToast("Synchronization is being performed in the background. Please wait a few minutes for the synchronization process to complete");
-        }
-
-        if (data["error"] != "") {
-          _this.showErrorToast(data["error_msg"]);
+        } else {
+          _this.showErrorToast(res.msg);
         }
       },
     });

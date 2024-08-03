@@ -32,6 +32,9 @@ func init() {
 	beego.Router("/admin", &controllers.AdminController{})
 	beego.Router("/admin/user", &controllers.AdminController{}, "get:UserDetail")
 	beego.Router("/admin/ChangeUserStatus", &controllers.AdminController{}, "post:ChangeUserStatus")
+	beego.Router("/settings", &controllers.AdminController{}, "get:GetSettings")
+	beego.Router("/updateSettings", &controllers.AdminController{}, "post:UpdateSettings")
+	beego.Router("/syncTransactions", &controllers.AdminController{}, "post:SyncTransactions")
 
 	//chat router
 	beego.Router("/updateUnread", &controllers.ChatController{}, "post:UpdateUnreadForChat")

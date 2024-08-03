@@ -14,4 +14,6 @@ func init() {
 	beego.Router("/deleteChat", &controllers.ChatController{}, "post:DeleteChat")
 	beego.Router("/sendChatMessage", &controllers.ChatController{}, "post:SendChatMessage")
 	beego.Router("/get-chat-msg", &controllers.ChatController{}, "get:GetChatMsgDisplayList")
+	beego.Router("/chat-exist", &controllers.ChatController{}, "get:CheckChatExist")
+	beego.Router("/check-create-chat", &controllers.ChatController{}, "post:CheckAndCreateChat")
 }

@@ -250,14 +250,11 @@ func (this *AuthController) FinishRegistration() {
 		this.ResponseError("An error has occurred. Please try again!", utils.GetFuncName(), beginErr)
 		return
 	}
-	//Create new token for user
-	token, _ := utils.CreateNewUserToken()
 	insertUser := models.User{
 		Username:     username,
 		Status:       int(utils.StatusActive),
 		Role:         int(utils.RoleRegular),
 		Createdt:     time.Now().Unix(),
-		Token:        token,
 		CredsArrJson: user.GetUserCredsJson(),
 	}
 	insertUser.Updatedt = insertUser.Createdt

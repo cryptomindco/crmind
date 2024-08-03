@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/beego/beego/v2/client/orm"
 )
 
 type AdminController struct {
@@ -102,4 +104,95 @@ func (this *AdminController) ChangeUserStatus() {
 	}
 	this.Data["json"] = response
 	this.ServeJSON()
+}
+
+func (this *AdminController) GetSettings() {
+	_, err := this.AdminAuthCheck()
+	if err != nil {
+		this.TplName = "err_403.html"
+		logpack.Error(err.Error(), utils.GetFuncName(), err)
+		return
+	}
+
+	allows, err := utils.GetAllowAssetFromSettings()
+	if err != nil {
+		logpack.Error(err.Error(), utils.GetFuncName(), nil)
+		this.TplName = "err_403.html"
+		return
+	}
+	this.Data["AllowAssets"] = allows
+	this.TplName = "admin/settings.html"
+}
+
+func (this *AdminController) UpdateSettings() {
+	loginUser, check := this.SimpleAdminAuthCheck()
+	if check != nil {
+		this.ResponseError("There is no permission to access this feature", utils.GetFuncName(), nil)
+		return
+	}
+
+	selectedAssetStr := this.GetString("selectedAsset")
+	//Get Settings
+	settings, settingErr := this.CheckSettingsExist()
+	//if get settings has DB error
+	if settingErr != nil {
+		this.ResponseLoginError(loginUser.Id, "Get Settings from DB error. Please try again!", utils.GetFuncName(), settingErr)
+		return
+	}
+	isCreate := settings == nil
+	o := orm.NewOrm()
+	tx, beginErr := o.Begin()
+	if beginErr != nil {
+		this.ResponseLoginError(loginUser.Id, "Start DB transaction failed. Please try again!", utils.GetFuncName(), beginErr)
+		return
+	}
+	if utils.IsEmpty(selectedAssetStr) {
+		selectedAssetStr = "usd"
+	}
+	//if creating new settings
+	if isCreate {
+		newSettings := models.Settings{
+			ActiveAssets: selectedAssetStr,
+		}
+		//insert to DB
+		_, insertErr := tx.Insert(&newSettings)
+		if insertErr != nil {
+			this.ResponseLoginRollbackError(loginUser.Id, tx, "Insert new settings failed. Please try again!", utils.GetFuncName(), insertErr)
+			return
+		}
+	} else {
+		settings.ActiveAssets = selectedAssetStr
+		//update DB
+		_, updateErr := tx.Update(settings)
+		if updateErr != nil {
+			this.ResponseLoginRollbackError(loginUser.Id, tx, "Update settings failed. Please try again!", utils.GetFuncName(), updateErr)
+			return
+		}
+	}
+	//comit change
+	tx.Commit()
+	this.ResponseSuccessfully(loginUser.Id, "Update settings successfully!", utils.GetFuncName())
+}
+
+func (this *AdminController) SyncTransactions() {
+	loginUser, err := this.SimpleAdminAuthCheck()
+	if err != nil {
+		this.ResponseError("There is no permission to access this feature", utils.GetFuncName(), nil)
+		return
+	}
+
+	//send sync request
+	formData := url.Values{
+		"authorization": {this.GetLoginToken()},
+	}
+	var response utils.ResponseData
+	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AssetsSite(), "/syncTransactions"), formData, &response); err != nil {
+		this.ResponseError("can't send new chat message", utils.GetFuncName(), err)
+		return
+	}
+	if response.IsError {
+		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+		return
+	}
+	this.ResponseSuccessfully(loginUser.Id, "Synchronized transaction successfully", utils.GetFuncName())
 }

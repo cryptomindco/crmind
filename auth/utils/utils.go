@@ -56,3 +56,11 @@ func ObjectToJsonString(obj interface{}) string {
 func GetConfValue(key string) string {
 	return beego.AppConfig.String(key)
 }
+
+func ConvertToJsonString(value any) (string, error) {
+	outputBytes, err := json.Marshal(value)
+	if err != nil {
+		return "", err
+	}
+	return string(outputBytes), nil
+}

@@ -34,6 +34,25 @@ func (this *QueryController) GetAdminUserList() {
 	this.ResponseSuccessfullyWithAnyData(0, "Get user list successfully", utils.GetFuncName(), userList)
 }
 
+func (this *QueryController) GetUserInfoByUsername() {
+	username := this.Ctx.Input.Query("username")
+	if utils.IsEmpty(username) {
+		this.ResponseError("Get username parame failed", utils.GetFuncName(), fmt.Errorf("Get username parame failed"))
+		return
+	}
+
+	user, err := utils.GetUserByUsername(username, orm.NewOrm())
+	if err != nil {
+		this.ResponseError("Get user by username failed", utils.GetFuncName(), err)
+		return
+	}
+	this.ResponseSuccessfullyWithAnyData(0, "Get user info successfully", utils.GetFuncName(), models.UserInfo{
+		Id:       user.Id,
+		Username: user.Username,
+		Role:     user.Role,
+	})
+}
+
 func (this *QueryController) GetAdminUserInfo() {
 	authClaims, isLogin := this.CheckLoggingIn()
 	if !isLogin {
