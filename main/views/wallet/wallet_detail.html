@@ -1,0 +1,402 @@
+{{template "common/head.html" .}}
+{{template "common/top.html" .}}
+{{$Asset := .Asset}}
+<div class="pb-2 d-flex justify-content-between">
+   <h4 class="fw-600 d-inline">{{.Asset.DisplayName}}</h4>
+   <a href="/" class="btn btn-outline-light ms-2 d-flex ai-center px-2"><i class="fa fa-arrow-left"></i>&nbsp;Back</a>
+</div>
+<div class="content pt-0"
+   data-controller="wallet"
+   data-wallet-asset-type="{{.Asset.Type}}"
+   data-wallet-asset-id="{{.Asset.Id}}"
+   data-wallet-balance="{{.Asset.Balance}}"
+   data-wallet-has-address="{{.HasAddress}}"
+   data-wallet-payment-firsttype="{{.FirstType}}"
+   data-wallet-payment-firstbalance="{{.FirstBalance}}"
+   >
+   <p class="fw-600 fs-18">Balance: <span class="fw-400 fs-20">{{if eq .Asset.Type "usd"}} ${{end}}<span class="{{if ne .Asset.Type "usd"}}{{.Asset.Type}}-{{end}}amount-number">{{.Asset.Balance}}</span> {{if ne .Asset.Type "usd"}}{{toUppercase .Asset.Type}}{{end}}</span>  {{if ne .Asset.Type "usd"}}<span class="fw-400 exchange-rate-display fs-17">(~$</span><span class="exchange-rate-display fw-400" id="exchangeRate"></span><span class="exchange-rate-display">)</span>{{end}}</p>
+   <div class="tab-wrap">
+      <!-- active tab on page load gets checked attribute -->
+      <input type="radio" id="info-tab" data-action="click->wallet#tabChange" name="tabGroup" class="tab" checked>
+      <label for="info-tab">Summary</label>
+      {{if ne .Asset.Type "usd"}}
+      <input type="radio" id="deposit-tab" data-action="click->wallet#tabChange" name="tabGroup" class="tab">
+      <label for="deposit-tab">Deposit</label>
+      {{end}}
+      <input type="radio" id="withdrawal-tab" data-action="click->wallet#tabChange" name="tabGroup" class="tab">
+      <label for="withdrawal-tab">{{if eq .Asset.Type "usd"}}Send Money{{else}}Withdrawl{{end}}</label>
+      {{if ne .Asset.Type "usd"}}
+      <input type="radio" id="trading-tab" data-action="click->wallet#tabChange" name="tabGroup" class="tab">
+      <label for="trading-tab">Trading</label>
+      {{end}}
+      {{if .HasCodeList}}
+      <input type="radio" id="urlcode-tab" data-action="click->wallet#tabChange" name="tabGroup" class="tab">
+      <label for="urlcode-tab">URL Codes</label>
+      {{end}}
+      {{if .HasAddress}}
+      <input type="radio" id="address-tab" data-action="click->wallet#tabChange" name="tabGroup" class="tab">
+      <label for="address-tab">Addresses</label>
+      {{end}}
+      <div class="tab__content">
+         <div class="row">
+            <p class="mt-2">*This data is calculated based on your Transactions History</p>
+            <div class="col-12 col-sm-6 col-xxl-4 mt-2">
+               <div class="d-flex justify-content-between">
+                  <p class="fw-600">Internal received</p>
+                  <span class="fw-400">{{if eq .Asset.Type "usd"}} ${{end}}<span class="{{if ne .Asset.Type "usd"}}{{.Asset.Type}}-{{end}}amount-number">{{.Asset.LocalReceived}}</span> {{if ne .Asset.Type "usd"}}{{toUppercase .Asset.Type}}{{end}}</span>
+               </div>
+               <div class="d-flex justify-content-between">
+                  <p class="fw-600">Internal sent</p>
+                  <span class="fw-400">{{if eq .Asset.Type "usd"}} ${{end}}<span class="{{if ne .Asset.Type "usd"}}{{.Asset.Type}}-{{end}}amount-number">{{.Asset.LocalSent}}</span> {{if ne .Asset.Type "usd"}}{{toUppercase .Asset.Type}}{{end}}</span>
+               </div>
+               {{if ne .Asset.Type "usd"}}
+               <div class="d-flex justify-content-between">
+                  <p class="fw-600">External received</p>
+                  <span class="fw-400">{{if eq .Asset.Type "usd"}} ${{end}}<span class="{{if ne .Asset.Type "usd"}}{{.Asset.Type}}-{{end}}amount-number">{{.Asset.ChainReceived}}</span> {{if ne .Asset.Type "usd"}}{{toUppercase .Asset.Type}}{{end}}</span>
+               </div>
+               <div class="d-flex justify-content-between">
+                  <p class="fw-600">External sent</p>
+                  <span class="fw-400">{{if eq .Asset.Type "usd"}} ${{end}}<span class="{{if ne .Asset.Type "usd"}}{{.Asset.Type}}-{{end}}amount-number">{{.Asset.ChainSent}}</span> {{if ne .Asset.Type "usd"}}{{toUppercase .Asset.Type}}{{end}}</span>
+               </div>
+               <div class="d-flex justify-content-between">
+                  <p class="fw-600">Fees paid</p>
+                  <span class="fw-400">{{if eq .Asset.Type "usd"}} ${{end}}<span class="{{if ne .Asset.Type "usd"}}{{.Asset.Type}}-{{end}}amount-number">{{.Asset.TotalFee}}</span> {{if ne .Asset.Type "usd"}}{{toUppercase .Asset.Type}}{{end}}</span>
+               </div>
+               {{end}}
+            </div>
+         </div>
+      </div>
+      {{if ne .Asset.Type "usd"}}
+      <div class="tab__content">
+         <div class="stepper d-flex flex-column mt-2 ml-2">
+            <div class="d-flex mb-1">
+               <div class="d-flex flex-column pr-4 align-items-center">
+                  <div class="rounded-circle py-2 px-3 bg-main text-white mb-1">1</div>
+                  <div class="line h-100"></div>
+               </div>
+               <div class="ms-3 h-150px">
+                  <h5 class="text-dark">Select Address</h5>
+                  <select class="form-select" data-action="change->wallet#addressSelectChange" id="addressSelector" aria-label="Address selector">
+                     {{range $index,$elem := .AddressList}}
+                     <option value="{{$elem}}">{{$elem}}</option>
+                     {{end}}
+                  </select>
+                  <span class="error d-none" id="createAddr_msg">Create New Address Failed. Please try again</span>
+                  <a data-action="click->wallet#createAddress" class="btn btn-linkedin btn-flat px-2 mt-3">Generate new address</a>
+               </div>
+            </div>
+            <div class="d-flex mb-1">
+               <div class="d-flex flex-column pr-4 align-items-center">
+                  <div class="rounded-circle py-2 px-3 bg-main text-white mb-1">2</div>
+                  <div class="line h-100 d-none"></div>
+               </div>
+               <div class="ms-3">
+                  <h5 class="text-dark">Deposit Address</h5>
+                  <div id="qrAddressArea" class="d-none">
+                     <div class="border-all-light address-display-area pe-2">
+                        <img class="p-2" width="150" height="150" id="qrImageDisp"
+                           src="#" />
+                        <div>
+                           <p class="ms-2">Address</p>
+                           <div class="d-flex px-2">
+                              <p class="fw-600" id="addressdisp"></p>
+                              <span class="material-symbols-outlined ms-2 cursor-pointer" id="copyButton"
+                                 data-action="click->wallet#copyAddress">
+                              content_copy
+                              </span>
+                              <span class="c-green fs-13 d-none" id="copiedSpan">Copied</span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      {{end}}
+      <div class="tab__content">
+         <div class="ps-2">
+            <form class="transferForm mt-2" id="transferForm" action="" method="post"
+               data-wallet-target="transferForm">
+               <div id="sendbySelector">
+                  <p class="mb-2 form-title fs-15 fw-600">Send By</p>
+                  <div class="form-check form-check-inline">
+                     <input class="form-check-input" type="radio" name="sendby" id="usernameInput" value="username"
+                        checked>
+                     <label class="form-check-label" for="usernameInput">Username</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                     <input class="form-check-input" type="radio" name="sendby" id="address" value="address">
+                     <label class="form-check-label" for="address">Address</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                     <input class="form-check-input" type="radio" name="sendby" id="urlcode" value="urlcode">
+                     <label class="form-check-label" for="urlcode">URL Code</label>
+                  </div>
+               </div>
+               <div class="form-group has-feedback mt-2" id="receiveAddressInput">
+                  <p class="mb-2 form-title fs-15 fw-600">Receiving address</p>
+                  <div class="row">
+                     <div class="col-12 col-sm-10 col-md-8 col-xl-6">
+                        <input id="toAddress" autocomplete="off" type="text" class="form-control d-inline" data-action="input->wallet#receivingAddressChange">
+                     </div>
+                  </div>
+                  <span class="error d-none" id="addresserror_msg">Address not be vacant. Please try again!</span>
+               </div>
+               <div class="form-group has-feedback mt-2" id="receiverUserNameSelector">
+                  <p class="mb-2 form-title fs-15 fw-600">Receiver</p>
+                  <div class="row">
+                     <div class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-4">
+                        <div class="d-flex ai-center">
+                           <input name="send" id="receiver" autocomplete="off" type="text"
+                              class="form-control d-inline w-180px"
+                              data-action="input->wallet#usernameChange">
+                           <div id="addToContactArea" class="d-none d-flex add-contact-checkbox ms-2">
+                              <input class="form-check-input cursor-pointer" type="checkbox" id="addToContactCheckbox" data-action="input->wallet#addToContactValueChange">
+                              <label class="form-check-label cursor-pointer ms-2" for="addToContactCheckbox">Add to contact</label>
+                           </div>
+                        </div>
+                        <span class="error d-none" id="usernameErrMsg"></span>
+                     </div>
+                     <ul id="contactList" class="search-suggest-list receiver-search col-6 col-md-4 col-lg-2">
+                        {{range $index,$elem := .ContactList}}
+                        <li><a data-action="click->wallet#selectContact" class="cursor-pointer" data-wallet-username-param="{{$elem}}">{{$elem}}</a></li>
+                        {{end}}
+                     </ul>
+                  </div>
+               </div>
+               <div class="form-group has-feedback mt-3">
+                  <p class="mb-2 form-title fs-15 fw-600" id="amountSendLabel">Amount to send</p>
+                  <div>
+                     <div class="row">
+                        <div class="col-12 col-sm-10 col-md-6 col-xl-4">
+                           <div class="row">
+                              <div class="col-8">
+                                 <input name="send" step="0.01" id="amountSend" autocomplete="off" type="number"
+                                    class="form-control d-inline" value="0"
+                                    data-action="input->wallet#amountInputChange">
+                              </div>
+                              <div class="col-4 d-flex ai-center ps-0"><span id="amountSymbol" class="d-inline">USD</span>
+                                 <a data-action="click->wallet#confirmCryptoAmount" id="btcConfirmBtn" class="btn btn-info ms-2 px-1 py-0 fs-12i d-none">Confirm</a>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     <span class="ms-2 text-primary fs-13 d-none" id="sendAmountExchangeArea">~$<span
+                        id="sendAmountExchange">0</span></span>
+                  </div>
+                  <span class="error d-none" id="amounterr_msg">The transfer amount cannot be greater than the balance</span>
+                  <span class="info d-none" id="existAddressSystem"></span>
+               </div>
+               <div class="mt-3">
+                  <div id="feeArea" class="d-none mb-2">
+                     <p class="mb-2 form-title fs-15 fw-600">Fee (Est): <span id="btcFee" class="fw-400 {{.Asset.Type}}-amount-number">0</span><span class="fw-400"> {{toUppercase .Asset.Type}}</span>
+                        <span class="ms-2 text-primary fs-13">(~$<span
+                           id="feeExchange">0</span>)</span>
+                     </p>
+                     <p class="form-title fs-15 fw-600 mb-1">Total Cost (Est): <span id="btcCost" class="fw-400 {{.Asset.Type}}-amount-number">0</span><span class="fw-400"> {{toUppercase .Asset.Type}}</span>
+                        <span class="ms-2 text-primary fs-13">(~$<span
+                           id="costExchange">0</span>)</span>
+                     </p>
+                     <span class="info d-none" id="urlcodeFeeNotify"></span>
+                  </div>
+                  <p class="mb-2 form-title fs-15 fw-600">Balance after transfer:
+                     <span class="fw-bold fs-16" id="balanceAfter">$<span class="amount-number">0</span></span>
+                     <span class="ms-2 text-primary fs-16 d-none" id="balanceAffterRateArea">(~$<span
+                        id="balanceAfterExchange"></span>)</span>
+                  </p>
+                  <span class="error d-none" id="confirmAmountErr_msg">Total Cost cannot be greater than the balance</span>
+               </div>
+               <div class="mt-3">
+                  <p class="mb-2 form-title fs-15 fw-600">Note</p>
+                  <div class="row">
+                     <div class="col-12 col-sm-10 col-md-8 col-xl-6">
+                        <textarea class="form-control" id="noteText" rows="2"></textarea>
+                     </div>
+                  </div>
+               </div>
+               <div class="mt-2">
+                  <span class="error d-none" id="resulterr_msg"></span>
+               </div>
+               <div class="row mt-3">
+                  <div class="col-4">
+                     <button type="submit" id="transferButton" class="btn btn-primary btn-flat"
+                        disabled>Transfer</button>
+                  </div>
+               </div>
+            </form>
+         </div>
+      </div>
+      {{if ne .Asset.Type "usd"}}
+      <div class="tab__content">
+         <div class="ps-2">
+            <p class="fs-20 fw-600 mt-2">Request</p>
+            <hr class="col-12 col-md-6 mb-3 line-separator"/>
+            <div id="tradingTypeSelector">
+               <p class="mb-2 form-title fs-15 fw-600">Trading Type</p>
+               <div class="form-check form-check-inline">
+                  <input class="form-check-input cursor-pointer" type="radio" name="tradingType" id="buySelect" value="buy"
+                     checked>
+                  <label class="form-check-label cursor-pointer" for="buySelect">Buy</label>
+               </div>
+               <div class="form-check form-check-inline">
+                  <input class="form-check-input cursor-pointer" type="radio" name="tradingType" id="sellSelect" value="sell">
+                  <label class="form-check-label cursor-pointer" for="sellSelect">Sell</label>
+               </div>
+            </div>
+            <div class="form-group has-feedback mt-3">
+               <p class="mb-2 form-title fs-15 fw-600">Amount</p>
+                  <div class="row">
+                     <div class="col-12 col-sm-10 col-md-6 col-xl-4">
+                        <div class="row">
+                           <div class="col-8">
+                              <input name="send" step="0.01" id="amountTrading" autocomplete="off" type="number"
+                                 class="form-control d-inline" value="0"
+                                 data-action="input->wallet#amountTradingChange">
+                           </div>
+                           <div class="col-4 d-flex ai-center ps-0"><span id="tradingAmountSymbol" class="d-inline">{{toUppercase $Asset.Type}}</span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  <span class="ms-2 text-primary fs-13 d-none" id="tradingExchangeArea">~$<span
+                     id="tradingAmountExchange">0</span></span>
+                <span class="error d-none" id="tradingAmountErr_msg">The transfer amount cannot be greater than the balance</span>
+            </div>
+            <p class="mt-3 mb-0 form-title fs-15 fw-600">Balance after trading:
+               <span class="fw-bold fs-16"><span id="tradingAfterBalance" class="{{$Asset.Type}}-amount-number">{{$Asset.Balance}}</span> {{toUppercase $Asset.Type}}</span>
+            </p>
+            <p class="fs-20 fw-600 mt-4" id="paymentMethodTitle">Payment Method</p>
+            <hr class="col-12 col-md-6 line-separator mb-3"/>
+            <div id="paymentTypeSelector">
+               <p class="mb-2 form-title fs-15 fw-600" id="assetSelectTitle">Asset to payment</p>
+               {{range $index,$elem := .AssetList}}
+               {{if ne $elem.Type $Asset.Type}}
+               <div class="form-check form-check-inline">
+                  <input class="form-check-input cursor-pointer" type="radio" 
+                  data-wallet-balance-param="{{$elem.Balance}}" 
+                  data-action="input->wallet#paymentTypeChange" 
+                  name="paymentType" id="{{$elem.Type}}Select" 
+                  value="{{$elem.Type}}" {{if eq $index 0}}checked{{end}}>
+                  <label class="form-check-label cursor-pointer" for="{{$elem.Type}}Select">{{assetName $elem.Type}}</label>
+               </div>
+               {{end}}
+               {{end}}
+               <br>
+               <span class="error d-none" id="paymentBalanceErr_msg"></span>
+            </div>
+            <div class="mt-2">
+               <p>Balance: <span id="paymentAssetBalance"></span> <span id="balanceCurrency"></span></p>
+               <p><span id="haveToPayLabel">Have to pay</span>: <span id="paymentNeedAmount"></span> <span id="needCurrency"></span></p>
+               <p>After Balance: <span id="paymentAfterBalance"></span> <span id="paymentAfterCurrency"></span></p>   
+               <p>Exchange Rate: <span id="paymentExchangeRate"></span> <span id="exchangeSymbol"></span></p>
+            </div>
+            <span class="error d-none" id="tradingSendingErr_msg"></span>
+            <div class="row mt-3">
+               <div class="col-4">
+                  <button id="tradingRequestButton" data-action="click->wallet#tradingSendRequest" class="btn btn-primary btn-flat"
+                     disabled>Send Request</button>
+               </div>
+            </div>
+         </div>
+      </div>
+      {{end}}
+      {{if .HasCodeList}}
+      <div class="tab__content">
+         <div class="row">
+            <p class="mt-2">*Important note: Code holders can withdraw the installed amount. Please protect your code carefully</p>
+            <p class="fs-15">Confirm URL: <span class="c-primary cursor-pointer" id="urlSample" data-action="click->wallet#copyURL"></span>
+               <span class="material-symbols-outlined fs-17i ms-1 cursor-pointer" id="urlCopy" data-action="click->wallet#copyURL">content_copy</span>
+               <span class="c-green fs-15 d-none" id="urlCopiedSpan">Copied</span>
+            </p>
+            <p class="fs-20 fw-600 mb-1 mt-2">Code List</p>
+            <div class="col-12 d-flex ai-center">
+               <span>Status Filter:</span>
+               <select id="statusFilter" data-action="change->wallet#filterCodeStatus" class="form-select w-auto ms-1">
+                  <option value="all">All</option>
+                  <option value="unconfirmed">Unredeemed</option>
+                  <option value="confirmed">Redeemed</option>
+                  <option value="cancelled">Cancelled</option>
+               </select>
+            </div>
+            <div class="col-12 card-table-wrapper px-0 col-lg-9 mt-2 overflow-auto">
+               <table class="table card-table mb-0" >
+                  <thead>
+                     <tr>
+                        <th class="fw-600">Code</th>
+                        <th class="fw-600">Amount</th>
+                        <th class="text-center" scope="col">Status</th>
+                        <th class="text-center" scope="col">Create Date</th>
+                        <th class="text-center" scope="col">Action</th>
+                     </tr>
+                  </thead>
+                  <tbody id="codeListTable">
+                  </tbody>
+               </table>
+            </div>
+         </div>
+      </div>
+      {{end}}
+      {{if .HasAddress}}
+      <div class="tab__content">
+         <div class="row">
+            <p class="mt-2 mb-0">Total Addresses : <span class="fs-18 fw-600">{{.TotalAddressesCount}}</span></p>
+            <p class="mt-2 mb-0">Active Addresses : <span class="fs-18 fw-600">{{.ActiveAddressCount}}</span></p>
+            <p class="mt-2">Archived Addresses : <span class="fs-18 fw-600">{{.ArchivedAddressCount}}</span></p>
+            <p class="fs-20 fw-600 mb-1 mt-2">Address List</p>
+            <div class="col-12 d-flex ai-center">
+               <span>Status Filter:</span>
+               <select id="addressFilter" data-action="change->wallet#filterAddresses" class="form-select w-auto ms-1">
+                  <option value="all">All</option>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+               </select>
+            </div>
+            <div class="col-12 card-table-wrapper px-0 mt-2 overflow-auto">
+               <table class="table card-table mb-0">
+                  <thead>
+                     <tr>
+                        <th>Address</th>
+                        {{if ne .Asset.Type "dcr"}}
+                        <th class="text-center">Label</th>
+                        {{end}}
+                        <th class="text-center">Received</th>
+                        <th class="text-center">Total transactions</th>
+                        <th class="text-center">Status</th>    
+                        <th class="text-center">Action</th>
+                     </tr>
+                  </thead>
+                  <tbody data-wallet-target="addressListTable">
+                  </tbody>
+               </table>
+            </div>
+         </div>
+      </div>
+      {{end}}
+   </div>
+   <!-- Start cancel dialog -->
+   <div class="modal fade" id="urlcodeCancelDialog" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+      aria-labelledby="urlcodeCancelBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog">
+         <div class="modal-content">
+            <div class="modal-header">
+               <h5 class="modal-title" id="urlcodeCancelBackdropLabel">Confirm Cancel Withdraw Code</h5>
+               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+               <span id="confirmContent">Are you sure you want to cancel the withdrawal code?</span>
+               <br><span id="warningMsg" class="d-none c-warning fs-13">Warning! If you archive this address, transactions sent to this address will not be credited to the balance</span>
+            </div>
+            <span class="error d-none" id="cancelerr_msg"></span>
+            <div class="modal-footer">
+               <button type="button" data-action="click->wallet#confirmAction" class="btn btn-linkedin">Confirm</button>
+               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+</div>
+</div>
+<script src="/static/vendor/index.es5.umd.min.js"></script>
+{{template "common/foot.html" .}}

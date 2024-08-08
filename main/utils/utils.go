@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"crmind/models"
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"strings"
+	"time"
 
 	beego "github.com/beego/beego/v2/adapter"
 )
@@ -140,4 +143,58 @@ func ConvertToJsonString(value any) (string, error) {
 		return "", err
 	}
 	return string(outputBytes), nil
+}
+
+func StringToAssetType(assetType string) AssetType {
+	switch assetType {
+	case "usd":
+		return USDWalletAsset
+	case "btc":
+		return BTCWalletAsset
+	case "dcr":
+		return DCRWalletAsset
+	case "ltc":
+		return LTCWalletAsset
+	default:
+		return NilAsset
+	}
+}
+
+func GetAssetsNameFromStr(input string) []string {
+	if IsEmpty(input) {
+		return []string{"usd"}
+	}
+	assetArr := strings.Split(input, ",")
+	return assetArr
+}
+
+func CreateNewAsset(assetType string, userId int64, username string) *models.Asset {
+	return &models.Asset{
+		Sort:          AssetSortInt(assetType),
+		DisplayName:   GetAssetFullName(assetType),
+		UserId:        userId,
+		UserName:      username,
+		Type:          assetType,
+		Balance:       0,
+		LocalReceived: 0,
+		LocalSent:     0,
+		ChainReceived: 0,
+		ChainSent:     0,
+		TotalFee:      0,
+	}
+}
+
+func GetAllowAssets() string {
+	if IsEmpty(AllowAssets) {
+		allowAssetsStr, err := GetAssetStrFromSettings()
+		if err != nil {
+			return "usd"
+		}
+		return allowAssetsStr
+	}
+	return AllowAssets
+}
+
+func GetDateTimeDisplay(unixTime int64) string {
+	return time.Unix(unixTime, 0).Format("2006/01/02, 15:04:05")
 }

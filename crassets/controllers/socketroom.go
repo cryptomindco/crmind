@@ -61,9 +61,9 @@ func init() {
 	go func() {
 		for {
 			//Get rate info
-			rateObject := utils.ReadRateFromDB()
+			rateObject, err := utils.ReadRateFromDB()
 			rateJsonStr := ""
-			if rateObject == nil {
+			if err != nil {
 				rateJsonStr = "{}"
 			} else {
 				rateJsonStr = utils.ObjectToJsonString(rateObject)

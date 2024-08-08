@@ -171,6 +171,8 @@ func (this *AdminController) UpdateSettings() {
 	}
 	//comit change
 	tx.Commit()
+	//set to global allow assets
+	utils.AllowAssets = selectedAssetStr
 	this.ResponseSuccessfully(loginUser.Id, "Update settings successfully!", utils.GetFuncName())
 }
 

@@ -51,13 +51,13 @@ func GetSuperAdminAsset(assetType string) (*models.Asset, error) {
 	return &asset, nil
 }
 
-func ReadRateFromDB() *models.RateObject {
+func ReadRateFromDB() (*models.RateObject, error) {
 	//get rate String
 	usdResult := make(map[string]float64)
 	allResult := make(map[string]float64)
 	rateJsonStr, allRate, readErr := ReadRateJsonStrFromDB()
 	if readErr != nil || IsEmpty(rateJsonStr) {
-		return nil
+		return nil, fmt.Errorf("Get asset rates failed")
 	}
 	//Unamrshal json
 	json.Unmarshal([]byte(rateJsonStr), &usdResult)
@@ -65,7 +65,7 @@ func ReadRateFromDB() *models.RateObject {
 	return &models.RateObject{
 		UsdRates: usdResult,
 		AllRates: allResult,
-	}
+	}, nil
 }
 
 // return: usdRate, allRate, error
@@ -177,6 +177,19 @@ func GetAccountFromUserId(userId int64) (*models.Accounts, error) {
 	return &account, nil
 }
 
+func GetTotalUserBalance(asset string) float64 {
+	var totalBalance float64
+	o := orm.NewOrm()
+	queryBuilder := fmt.Sprintf("SELECT SUM(balance) FROM (SELECT * FROM public.%sasset WHERE type = '%s') ats "+
+		"INNER JOIN "+
+		"(SELECT * FROM public.user WHERE status = %d) us ON ats.user_id = us.id;", GetAssetRelatedTablePrefix(), asset, int(StatusActive))
+	queryErr := o.Raw(queryBuilder).QueryRow(&totalBalance)
+	if queryErr != nil {
+		return 0
+	}
+	return totalBalance
+}
+
 // Create new user token, 6 characters
 func CreateNewUserToken() (string, bool) {
 	breakLoop := 0
@@ -198,7 +211,7 @@ func CreateNewUserToken() (string, bool) {
 }
 
 // Check and create new token for user, if exist, ignore
-func CheckAndCreateUserToken(userId int64, username string, role int) (token string, updated bool, err error) {
+func CheckAndCreateAccountToken(userId int64, username string, role int) (token string, updated bool, err error) {
 	isCreate := false
 	//get user
 	currentAccount, userErr := GetAccountFromUserId(userId)
@@ -546,4 +559,50 @@ func GetSystemUserAsset(assetType string) (*models.Asset, error) {
 	asset := models.Asset{}
 	queryErr := o.QueryTable(new(models.Asset)).Filter("is_admin", true).Filter("type", assetType).Filter("status", int(AssetStatusActive)).Limit(1).One(&asset)
 	return &asset, queryErr
+}
+
+// Check user exist with username and status active
+func CountAddressesWithStatus(assetId int64, activeFlg bool) int64 {
+	o := orm.NewOrm()
+	count, _ := o.QueryTable(new(models.Addresses)).Filter("asset_id", assetId).Filter("archived", !activeFlg).Count()
+	return count
+}
+
+func CheckHasCodeList(assetType string, userId int64) bool {
+	o := orm.NewOrm()
+	count, err := o.QueryTable(new(models.TxCode)).Filter("asset", assetType).Filter("ownerId", userId).Count()
+	var exist = err == nil && count > 0
+	return exist
+}
+
+func GetAccountFromId(userId int64) (*models.Accounts, error) {
+	account := models.Accounts{}
+	o := orm.NewOrm()
+	queryErr := o.QueryTable(new(models.Accounts)).Filter("user_id", userId).Limit(1).One(&account)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	return &account, nil
+}
+
+func GetContactListOfUser(userId int64) []string {
+	result := make([]string, 0)
+	account, userErr := GetAccountFromId(userId)
+	if userErr != nil {
+		return result
+	}
+
+	if IsEmpty(account.Contacts) {
+		return result
+	}
+
+	var contacts []models.ContactItem
+	err := json.Unmarshal([]byte(account.Contacts), &contacts)
+	if err != nil {
+		return result
+	}
+	for _, contact := range contacts {
+		result = append(result, contact.UserName)
+	}
+	return result
 }

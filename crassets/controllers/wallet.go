@@ -154,12 +154,11 @@ func (this *WalletController) CreateNewAddress() {
 		return
 	}
 	assetObject := assets.StringToAssetType(selectedType)
-	asset, _, createErr := this.CreateNewAddressForAsset(loginUser.Id, loginUser.Username, utils.IsSuperAdmin(loginUser.Role), assetObject)
+	address, _, createErr := this.CreateNewAddressForAsset(loginUser.Id, loginUser.Username, utils.IsSuperAdmin(loginUser.Role), assetObject)
 	if createErr != nil {
 		this.ResponseLoginError(loginUser.Id, createErr.Error(), utils.GetFuncName(), nil)
 		return
 	}
 
-	this.Data["json"] = map[string]string{"error": "", "address": asset.Address}
-	this.ServeJSON()
+	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Create new address successfully", utils.GetFuncName(), address.Address)
 }

@@ -21,7 +21,8 @@ const (
 )
 
 type ResponseData struct {
-	IsError bool        `json:"error"`
-	Msg     string      `json:"msg"`
-	Data    interface{} `json:"data"`
+	IsError   bool        `json:"error"`
+	ErrorCode string      `json:"errorCode"`
+	Msg       string      `json:"msg"`
+	Data      interface{} `json:"data"`
 }

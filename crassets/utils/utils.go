@@ -215,11 +215,15 @@ func IsSuperAdmin(role int) bool {
 
 func GetAllowAssetNames() ([]string, error) {
 	allowAssets := GetConfValue("allowassets")
-	if IsEmpty(allowAssets) {
-		return []string{assets.USDWalletAsset.String()}, nil
+	return GetAssetsNameFromStr(allowAssets), nil
+}
+
+func GetAssetsNameFromStr(input string) []string {
+	if IsEmpty(input) {
+		return []string{assets.USDWalletAsset.String()}
 	}
 	result := make([]string, 0)
-	assetArr := strings.Split(allowAssets, ",")
+	assetArr := strings.Split(input, ",")
 	for _, asset := range assetArr {
 		assetObj := assets.StringToAssetType(strings.TrimSpace(asset))
 		if assetObj != assets.NilAsset {
@@ -229,5 +233,17 @@ func GetAllowAssetNames() ([]string, error) {
 	if len(result) == 0 {
 		result = append(result, assets.USDWalletAsset.String())
 	}
-	return result, nil
+	return result
+}
+
+func CheckUsernameExistOnContactList(username string, contactList []models.ContactItem) bool {
+	if len(contactList) == 0 {
+		return false
+	}
+	for _, contact := range contactList {
+		if contact.UserName == username {
+			return true
+		}
+	}
+	return false
 }

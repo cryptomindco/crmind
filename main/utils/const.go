@@ -1,9 +1,18 @@
 package utils
 
+import "crmind/models"
+
+type AssetType string
+
 const (
-	Tokenkey           = "Token"
-	LoginUserKey       = "AuthClaims"
-	UserListSessionKey = "userList"
+	Tokenkey                     = "Token"
+	LoginUserKey                 = "AuthClaims"
+	UserListSessionKey           = "userList"
+	NilAsset           AssetType = ""
+	BTCWalletAsset     AssetType = "btc"
+	DCRWalletAsset     AssetType = "dcr"
+	LTCWalletAsset     AssetType = "ltc"
+	USDWalletAsset     AssetType = "usd"
 )
 
 var AuthHost, AuthPort, AssetsHost, AssetsPort, ChatHost, ChatPort string
@@ -14,9 +23,15 @@ var LoginExcludeUrl = []string{"/404", "/exit", "/login", "/LoginSubmit", "/chec
 	"/check-user"}
 
 type ResponseData struct {
-	IsError bool        `json:"error"`
-	Msg     string      `json:"msg"`
-	Data    interface{} `json:"data"`
+	IsError   bool        `json:"error"`
+	ErrorCode string      `json:"errorCode"`
+	Msg       string      `json:"msg"`
+	Data      interface{} `json:"data"`
+}
+
+type TempoRes struct {
+	Exist bool          `json:"exist"`
+	Asset *models.Asset `json:"asset"`
 }
 
 type UserRole int
@@ -32,3 +47,62 @@ const (
 	RoleSuperAdmin UserRole = iota
 	RoleRegular
 )
+
+func GetAssetColor(assetType string) string {
+	switch assetType {
+	case string(BTCWalletAsset):
+		return "#ebf5ff"
+	case string(DCRWalletAsset):
+		return "#D4F3E1"
+	case string(LTCWalletAsset):
+		return "#FFD6F4"
+	case string(USDWalletAsset):
+		return "#fff2f2"
+	default:
+		return "#fff2f2"
+	}
+}
+
+func AssetSortInt(assetType string) int {
+	switch assetType {
+	case string(BTCWalletAsset):
+		return 2
+	case string(DCRWalletAsset):
+		return 3
+	case string(LTCWalletAsset):
+		return 4
+	case string(USDWalletAsset):
+		return 1
+	default:
+		return 1
+	}
+}
+
+// ToFull returns the full network name of the provided asset.
+func GetAssetFullName(assetType string) string {
+	switch assetType {
+	case string(BTCWalletAsset):
+		return "Bitcoin"
+	case string(DCRWalletAsset):
+		return "Decred"
+	case string(LTCWalletAsset):
+		return "Litecoin"
+	case string(USDWalletAsset):
+		return "US Dollar"
+	default:
+		return "Unknown"
+	}
+}
+
+func (urlCodeStatus UrlCodeStatus) ToString() string {
+	switch urlCodeStatus {
+	case UrlCodeStatusCreated:
+		return "Unredeemed"
+	case UrlCodeStatusConfirmed:
+		return "Redeemed"
+	case UrlCodeStatusCancelled:
+		return "Cancelled"
+	default:
+		return ""
+	}
+}

@@ -46,6 +46,8 @@ func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	beego.BConfig.AppName = "crmind"
 	beego.BConfig.Log.AccessLogs = true
+	//set allow assets
+	utils.AllowAssets, _ = utils.GetAssetStrFromSettings()
 	initServiceConfig()
 	beego.Run()
 }
@@ -79,6 +81,28 @@ func addFuncMap() {
 	beego.AddFuncMap("upperFirstLetter", upperFirstLetter)
 	beego.AddFuncMap("upperFirstCase", upperFirstCase)
 	beego.AddFuncMap("dispDate", dispDate)
+	beego.AddFuncMap("assetColor", assetColor)
+	beego.AddFuncMap("roundDecimalClassWithAsset", roundDecimalClassWithAsset)
+	beego.AddFuncMap("assetName", assetName)
+}
+
+func assetColor(assetType string) string {
+	return utils.GetAssetColor(assetType)
+}
+
+func roundDecimalClassWithAsset(assetType string) string {
+	switch assetType {
+	case string(utils.USDWalletAsset):
+		return "amount-number"
+	case string(utils.BTCWalletAsset):
+		return "btc-amount-number"
+	case string(utils.DCRWalletAsset):
+		return "dcr-amount-number"
+	case string(utils.LTCWalletAsset):
+		return "ltc-amount-number"
+	default:
+		return "amount-number"
+	}
 }
 
 func codeStatusColor(status int) string {
@@ -87,6 +111,10 @@ func codeStatusColor(status int) string {
 		return "#000"
 	}
 	return statusObj.CodeStatusColor()
+}
+
+func assetName(asset string) string {
+	return utils.GetAssetFullName(asset)
 }
 
 func upperFirstLetter(str string) string {

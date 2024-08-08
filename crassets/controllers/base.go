@@ -65,6 +65,20 @@ func (this *BaseController) ResponseLoginError(loginId int64, msg string, funcNa
 	this.ServeJSON()
 }
 
+func (this *BaseController) ResponseLoginErrorWithCode(loginId int64, errCode string, msg string, funcName string, err error) {
+	if loginId <= 0 {
+		logpack.Error(msg, funcName, err)
+	} else {
+		logpack.FError(msg, loginId, funcName, err)
+	}
+	this.Data["json"] = utils.ResponseData{
+		IsError:   true,
+		ErrorCode: errCode,
+		Msg:       msg,
+	}
+	this.ServeJSON()
+}
+
 func (this *BaseController) ResponseError(msg string, funcName string, err error) {
 	logpack.Error(msg, funcName, err)
 	this.Data["json"] = utils.ResponseData{
@@ -85,6 +99,14 @@ func (this *BaseController) ResponseSuccessfullyWithAnyData(loginId int64, msg, 
 	} else {
 		logpack.FInfo(msg, loginId, funcName)
 	}
+	this.Data["json"] = utils.ResponseData{
+		IsError: false,
+		Data:    result,
+	}
+	this.ServeJSON()
+}
+
+func (this *BaseController) ResponseSuccessfullyWithAnyDataNoLog(result any) {
 	this.Data["json"] = utils.ResponseData{
 		IsError: false,
 		Data:    result,
@@ -204,7 +226,7 @@ func (this *BaseController) CreateNewAddressForAsset(userId int64, username stri
 		} else {
 			role = int(utils.RoleRegular)
 		}
-		token, _, err := utils.CheckAndCreateUserToken(userId, username, role)
+		token, _, err := utils.CheckAndCreateAccountToken(userId, username, role)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Check or create user token failed")
 		}
@@ -384,12 +406,56 @@ func (this *BaseController) HandlerInternalWithdrawl(txCode *models.TxCode, user
 	return true
 }
 
-func (this *BaseController) GetAssetList(userId int64) ([]*models.Asset, error) {
-	assetList := make([]*models.Asset, 0)
+func (this *BaseController) GetAssetList(userId int64, allowAsset []string) ([]*models.Asset, error) {
+	var assetList []*models.Asset
 	o := orm.NewOrm()
-	_, queryErr := o.QueryTable(assetsModel).Filter("user_id", userId).Filter("status", int(utils.AssetStatusActive)).OrderBy("sort").All(&assetList)
-	if queryErr != nil {
-		return make([]*models.Asset, 0), queryErr
+	tempAllowAssets := make([]string, 0)
+	for _, asset := range allowAsset {
+		tempAllowAssets = append(tempAllowAssets, fmt.Sprintf("'%s'", asset))
+	}
+	builderSQL := fmt.Sprintf("SELECT * from %sasset WHERE user_id=%d AND status = %d AND type IN (%s) ORDER BY sort", utils.GetAssetRelatedTablePrefix(), userId, int(utils.AssetStatusActive), strings.Join(tempAllowAssets, ","))
+	fmt.Println("Check build SQL: ", builderSQL)
+	_, err := o.Raw(builderSQL).QueryRows(&assetList)
+	if err != nil {
+		return nil, err
 	}
 	return assetList, nil
+}
+
+func (this *BaseController) SyncAssetList(user *models.AuthClaims, summaryList []*models.Asset, allowAssetList []string) []*models.Asset {
+	result := make([]*models.Asset, 0)
+	for _, allowAsset := range allowAssetList {
+		exist := false
+		for _, summary := range summaryList {
+			if summary.Type == allowAsset {
+				result = append(result, summary)
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			summary := this.CreateNewAsset(allowAsset, user.Id, user.Username)
+			result = append(result, summary)
+		}
+	}
+	return result
+}
+
+func (this *BaseController) CreateNewAsset(assetType string, userId int64, username string) *models.Asset {
+	assetObject := assets.StringToAssetType(assetType)
+	fmt.Println("check assetType: ", assetType)
+	fmt.Println("Check asset anme: ", assetObject)
+	return &models.Asset{
+		Sort:          assetObject.AssetSortInt(),
+		DisplayName:   assetObject.ToFullName(),
+		UserId:        userId,
+		UserName:      username,
+		Type:          assetType,
+		Balance:       0,
+		LocalReceived: 0,
+		LocalSent:     0,
+		ChainReceived: 0,
+		ChainSent:     0,
+		TotalFee:      0,
+	}
 }

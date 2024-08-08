@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"crmind/models"
-	"fmt"
+	"crmind/utils"
 )
 
 var (
@@ -14,11 +14,26 @@ type MainController struct {
 }
 
 func (this *MainController) Get() {
-	fmt.Println("kdjfksadjfksdf")
-	_, err := this.AuthCheck()
+	loginUser, err := this.AuthCheck()
 	if err != nil {
 		this.TplName = "login.html"
 		return
 	}
+	assetList := make([]*models.AssetDisplay, 0)
+	if this.IsSuperAdmin(*loginUser) {
+		assetList, err = this.GetAdminAssetsBalance()
+		if err != nil {
+			this.TplName = "err_403.html"
+			return
+		}
+	}
+	this.Data["AssetList"] = assetList
+	assets, _ := this.GetUserAssetList()
+	this.Data["Assets"] = assets
+	//get currency name list of asset list
+	currencies := this.GetAssetNamesFromAssetList(assets)
+	typeListJson := utils.ObjectToJsonString(currencies)
+	this.Data["TypeJson"] = typeListJson
+
 	this.TplName = "index.html"
 }

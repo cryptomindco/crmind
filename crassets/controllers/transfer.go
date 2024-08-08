@@ -217,7 +217,7 @@ func (this *TransferController) GetAddressListData() {
 		return
 	}
 	//user token
-	token, _, err := utils.CheckAndCreateUserToken(loginUser.Id, loginUser.Username, loginUser.Role)
+	token, _, err := utils.CheckAndCreateAccountToken(loginUser.Id, loginUser.Username, loginUser.Role)
 	if err != nil {
 		this.ResponseError("Check or create user token failed", utils.GetFuncName(), fmt.Errorf("Check or create user token failed"))
 		return
@@ -338,17 +338,19 @@ func (this *TransferController) GetLastTxs() {
 }
 
 func (this *TransferController) FilterTxHistory() {
-	authToken := this.GetString("authorization")
+	authToken := this.Ctx.Input.Query("authorization")
 	//check login
 	loginUser, err := this.AuthTokenCheck(authToken)
 	if err != nil {
 		this.ResponseError(err.Error(), utils.GetFuncName(), err)
 		return
 	}
-	assetType := strings.TrimSpace(this.GetString("type"))
-	direction := strings.TrimSpace(this.GetString("direction"))
-	perpageStr := strings.TrimSpace(this.GetString("perpage"))
-	pageNumStr := strings.TrimSpace(this.GetString("pageNum"))
+	allowAssetStr := strings.TrimSpace(this.Ctx.Input.Query("allowassets"))
+	assetType := strings.TrimSpace(this.Ctx.Input.Query("type"))
+	direction := strings.TrimSpace(this.Ctx.Input.Query("direction"))
+	perpageStr := strings.TrimSpace(this.Ctx.Input.Query("perpage"))
+	pageNumStr := strings.TrimSpace(this.Ctx.Input.Query("pageNum"))
+	allowAssets := utils.GetAssetsNameFromStr(allowAssetStr)
 	perpage, parseErr := strconv.ParseInt(perpageStr, 0, 32)
 	pageNum, parsePageNumErr := strconv.ParseInt(pageNumStr, 0, 32)
 
@@ -368,12 +370,11 @@ func (this *TransferController) FilterTxHistory() {
 		direction = ""
 	}
 
-	txHistoryList, pageCount := this.InitTransactionHistoryList(loginUser, assetType, direction, perpage, pageNum)
+	txHistoryList, pageCount := this.InitTransactionHistoryList(loginUser, assetType, direction, perpage, pageNum, allowAssets)
 	resultMap := make(map[string]any)
 	resultMap["pageCount"] = pageCount
 	resultMap["list"] = txHistoryList
-	this.Data["json"] = resultMap
-	this.ServeJSON()
+	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Get Tx History List successfully", utils.GetFuncName(), resultMap)
 }
 
 func (this *TransferController) ConfirmAmount() {
@@ -422,7 +423,7 @@ func (this *TransferController) ConfirmAmount() {
 		}
 		//if exist user for address
 		if existAsset != nil {
-			this.ResponseLoginError(loginUser.Id, fmt.Sprintf("<span>Is the user's address: <span class=\"fw-600 fs-16\">%s</span>. You'll not be charged transaction fees</span>", existAsset.UserName), utils.GetFuncName(), nil)
+			this.ResponseLoginErrorWithCode(loginUser.Id, "exist", fmt.Sprintf("<span>Is the user's address: <span class=\"fw-600 fs-16\">%s</span>. You'll not be charged transaction fees</span>", existAsset.UserName), utils.GetFuncName(), nil)
 			return
 		}
 	}
@@ -472,75 +473,6 @@ func (this *TransferController) ConfirmAmount() {
 		return
 	}
 	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Confirm amount successfully", utils.GetFuncName(), fmt.Sprintf("%f", feeAndSize.Fee.CoinValue))
-}
-
-func (this *TransferController) ConfirmAddressAction() {
-	authToken := this.GetString("authorization")
-	//check login
-	loginUser, err := this.AuthTokenCheck(authToken)
-	if err != nil {
-		this.ResponseError(err.Error(), utils.GetFuncName(), err)
-		return
-	}
-	assetId, parseAssetErr := this.GetInt64("assetId")
-	addressId, parseAddrErr := this.GetInt64("addressId")
-	if parseAddrErr != nil || parseAssetErr != nil {
-		this.ResponseLoginError(loginUser.Id, "Check param error. Please try again!", utils.GetFuncName(), nil)
-		return
-	}
-	action := this.GetString("action")
-	//check valid assetId, addressId
-	if !utils.CheckMatchAddressWithUser(assetId, addressId, loginUser.Id, action == "reuse") {
-		this.ResponseLoginError(loginUser.Id, "The user login information and assets do not match", utils.GetFuncName(), nil)
-		return
-	}
-
-	//Get address object
-	address, addressErr := utils.GetAddressById(addressId)
-	if addressErr != nil {
-		this.ResponseLoginError(loginUser.Id, "Get address from DB failed", utils.GetFuncName(), addressErr)
-		return
-	}
-	address.Archived = action != "reuse"
-
-	o := orm.NewOrm()
-	tx, beginErr := o.Begin()
-	if beginErr != nil {
-		this.ResponseLoginError(loginUser.Id, "An error has occurred. Please try again!", utils.GetFuncName(), beginErr)
-		return
-	}
-	_, updateErr := tx.Update(address)
-	if updateErr != nil {
-		this.ResponseLoginRollbackError(loginUser.Id, tx, "Update Address failed", utils.GetFuncName(), updateErr)
-		return
-	}
-	tx.Commit()
-	//return successfully
-	this.ResponseSuccessfully(loginUser.Id, "Update address from DB successfully", utils.GetFuncName())
-}
-
-func (this *TransferController) CancelUrlCode() {
-	authToken := this.GetString("authorization")
-	//check login
-	loginUser, err := this.AuthTokenCheck(authToken)
-	if err != nil {
-		this.ResponseError(err.Error(), utils.GetFuncName(), err)
-		return
-	}
-
-	//get codeid
-	codeIdStr := strings.TrimSpace(this.GetString("codeId"))
-	codeId, err := strconv.ParseInt(codeIdStr, 0, 32)
-	if err != nil {
-		this.ResponseLoginError(loginUser.Id, "Parse codeId to cancel failed. Please try again!", utils.GetFuncName(), nil)
-		return
-	}
-	cancelErr := utils.CancelTxCodeById(loginUser.Id, codeId)
-	if cancelErr != nil {
-		this.ResponseLoginError(loginUser.Id, cancelErr.Error(), utils.GetFuncName(), nil)
-		return
-	}
-	this.ResponseSuccessfully(loginUser.Id, "Cancel Withdraw Code successfully!", utils.GetFuncName())
 }
 
 func (this *TransferController) AddToContact() {
@@ -980,7 +912,7 @@ func (this *TransferController) HandlerTransferOnchainCryptocurrency(o orm.Ormer
 	return &txHistory, nil
 }
 
-func (this *TransferController) InitTransactionHistoryList(loginUser *models.AuthClaims, assetType string, direction string, perpage int64, pageNum int64) ([]models.TxHistoryDisplay, int64) {
+func (this *TransferController) InitTransactionHistoryList(loginUser *models.AuthClaims, assetType string, direction string, perpage int64, pageNum int64, allowAssets []string) ([]models.TxHistoryDisplay, int64) {
 	historyDispList := make([]models.TxHistoryDisplay, 0)
 	o := orm.NewOrm()
 	var txHistoryList []*models.TxHistory
@@ -1035,7 +967,7 @@ func (this *TransferController) InitTransactionHistoryList(loginUser *models.Aut
 	}
 
 	//get assetlist of user
-	assetList, assetErr := this.GetAssetList(loginUser.Id)
+	assetList, assetErr := this.GetAssetList(loginUser.Id, allowAssets)
 	if assetErr != nil {
 		return historyDispList, pageCount
 	}
@@ -1072,4 +1004,39 @@ func (this *TransferController) InitTransactionHistoryList(loginUser *models.Aut
 		historyDispList = append(historyDispList, historyDisp)
 	}
 	return historyDispList, pageCount
+}
+
+func (this *TransferController) CheckContactUser() {
+	authToken := this.Ctx.Input.Query("authorization")
+	//check login
+	loginUser, err := this.AuthTokenCheck(authToken)
+	if err != nil {
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
+		return
+	}
+	username := this.Ctx.Input.Query("username")
+	if loginUser.Username == username {
+		this.ResponseLoginError(loginUser.Id, "The recipient cannot be you", utils.GetFuncName(), nil)
+		return
+	}
+	o := orm.NewOrm()
+	//Check username exist
+	userCount, err := o.QueryTable(accountsModel).Filter("username", username).Count()
+	if err == nil && userCount > 0 {
+		//check if user is setted on loginUser contacts
+		contactList, contactErr := utils.GetContactListFromUser(loginUser.Id)
+		if contactErr != nil {
+			this.ResponseLoginError(loginUser.Id, "Parse Contact list failed", utils.GetFuncName(), nil)
+			return
+		}
+		exist := utils.CheckUsernameExistOnContactList(username, contactList)
+		if err != nil {
+			this.ResponseLoginError(loginUser.Id, "Convert result json failed", utils.GetFuncName(), nil)
+			return
+		}
+		this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Username exist", utils.GetFuncName(), exist)
+		return
+	}
+	//user not exist
+	this.ResponseLoginError(loginUser.Id, "Username does not exist", utils.GetFuncName(), nil)
 }

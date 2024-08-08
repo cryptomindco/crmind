@@ -22,13 +22,13 @@ type Asset struct {
 }
 
 type AssetDisplay struct {
-	Type               string
-	TypeDisplay        string
-	Balance            float64
-	DaemonBalance      float64
-	SpendableFund      float64
-	TotalChainReceived float64
-	TotalChainSent     float64
+	Type               string  `json:"type"`
+	TypeDisplay        string  `json:"typeDisplay"`
+	Balance            float64 `json:"balance"`
+	DaemonBalance      float64 `json:"daemonBalance"`
+	SpendableFund      float64 `json:"spendableFund"`
+	TotalChainReceived float64 `json:"totalChainReceived"`
+	TotalChainSent     float64 `json:"totalChainSent"`
 }
 
 type Addresses struct {
