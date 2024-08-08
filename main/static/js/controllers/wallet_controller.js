@@ -655,14 +655,13 @@ export default class extends BaseController {
         rate: this.paymentRate },
       type: "POST", //OR GET
       url: "/send-trading-request", //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           window.location.href = "/";
           return;
-        }
-        if (data["error"] != "") {
+        } else {
           $("#tradingSendingErr_msg").removeClass("d-none")
-          $("#tradingSendingErr_msg").text(data["error_msg"])
+          $("#tradingSendingErr_msg").text(res.msg)
         }
       },
     });
@@ -687,8 +686,8 @@ export default class extends BaseController {
       data: data,
       type: "POST", //OR GET
       url: url, //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           if(_this.sendBy == "urlcode") {
             //return detail page with URL Code tab
             window.location.href = "/assets/detail?type=" + _this.assetType + "&tab=urlcode"
@@ -696,16 +695,15 @@ export default class extends BaseController {
           }
           window.location.href = "/";
           return;
-        }
-        if (data["error"] != "") {
+        } else {
           if(_this.assetType == "usd") {
             $("#resulterr_msg").removeClass("d-none");
-            $("#resulterr_msg").text(data["error_msg"]);
+            $("#resulterr_msg").text(res.msg);
           } else {
             $("#confirmErr").removeClass("d-none");
-            $("#confirmErr").text(data["error_msg"]);
+            $("#confirmErr").text(res.msg);
           }
-        }
+        } 
       },
     });
   }
@@ -839,16 +837,15 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: '/updateNewLabel', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           $("#" + id + "LabelInput").addClass("d-none")
           $("#" + id + "LabelText").removeClass("d-none")
           $("#" + id + "LabelText").text(mainLabel)
           return;
-        }
-        if (data["error"] != "") {
+        } else {
           $("#" + id + "LabelErr_msg").removeClass("d-none");
-          $("#" + id + "LabelErr_msg").text(data["error_msg"]);
+          $("#" + id + "LabelErr_msg").text(res.msg);
         }
       },
     });

@@ -88,7 +88,6 @@ export default class extends BaseController {
           return
         }
         const rateStr = res.data
-        console.log('rate: ' + rateStr)
         const rateObject = JSON.parse(rateStr);
         const rateMapJson = rateObject.usdRates;
         if (!rateMapJson) {

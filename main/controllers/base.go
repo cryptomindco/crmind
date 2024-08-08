@@ -188,7 +188,6 @@ func (this *BaseController) GetAdminAssetsBalance() ([]*models.AssetDisplay, err
 
 func (this *BaseController) GetAddressListByAssetId(assetId int64) ([]string, error) {
 	var response utils.ResponseData
-	fmt.Println("check 0001")
 	req := &services.ReqConfig{
 		Method:  http.MethodGet,
 		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-address-list"),
@@ -197,21 +196,17 @@ func (this *BaseController) GetAddressListByAssetId(assetId int64) ([]string, er
 			"assetid":       fmt.Sprintf("%d", assetId),
 		},
 	}
-	fmt.Println("check 0002")
 	if err := services.HttpRequest(req, &response); err != nil {
 		return nil, err
 	}
-	fmt.Println("check 0003")
 	if response.IsError {
 		return nil, fmt.Errorf(response.Msg)
 	}
-	fmt.Println("check 0004")
 	var addressList []string
 	err := utils.CatchObject(response.Data, &addressList)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("check 005")
 	return addressList, nil
 }
 
@@ -461,7 +456,7 @@ func (this *BaseController) CheckHasCodeList(assetType string) bool {
 		return false
 	}
 	check, ok := response.Data.(bool)
-	if ok {
+	if !ok {
 		return false
 	}
 	return check

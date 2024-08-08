@@ -13,6 +13,58 @@ type TransferController struct {
 	BaseController
 }
 
+func (this *TransferController) TransferAmount() {
+	_, err := this.GetLoginUser()
+	if err != nil {
+		this.ResponseError("Check login session failed. Please try again!", utils.GetFuncName(), err)
+		return
+	}
+	//get all param
+	var response utils.ResponseData
+	formData := url.Values{
+		"authorization": {this.GetLoginToken()},
+		"currency":      {this.GetString("currency")},
+		"amount":        {this.GetString("amount")},
+		"receiver":      {this.GetString("receiver")},
+		"rate":          {this.GetString("rate")},
+		"note":          {this.GetString("note")},
+		"address":       {this.GetString("address")},
+		"sendBy":        {this.GetString("sendBy")},
+		"addToContact":  {this.GetString("addToContact")},
+	}
+	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AssetsSite(), "/transfer-amount"), formData, &response); err != nil {
+		this.ResponseError("Transfer amount failed", utils.GetFuncName(), err)
+		return
+	}
+
+	this.Data["json"] = response
+	this.ServeJSON()
+}
+
+func (this *TransferController) UpdateNewLabel() {
+	_, err := this.GetLoginUser()
+	if err != nil {
+		this.ResponseError("Check login session failed. Please try again!", utils.GetFuncName(), err)
+		return
+	}
+	//get all param
+	var response utils.ResponseData
+	formData := url.Values{
+		"authorization": {this.GetLoginToken()},
+		"assetId":       {this.GetString("assetId")},
+		"addressId":     {this.GetString("addressId")},
+		"newMainLabel":  {this.GetString("newMainLabel")},
+		"assetType":     {this.GetString("assetType")},
+	}
+	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AssetsSite(), "/updateNewLabel"), formData, &response); err != nil {
+		this.ResponseError("Update new label failed", utils.GetFuncName(), err)
+		return
+	}
+
+	this.Data["json"] = response
+	this.ServeJSON()
+}
+
 func (this *TransferController) FilterTxHistory() {
 	_, err := this.GetLoginUser()
 	if err != nil {

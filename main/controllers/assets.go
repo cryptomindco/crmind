@@ -158,14 +158,12 @@ func (this *AssetsController) AssetsDetail() {
 		this.TplName = "err_403.html"
 		return
 	}
-	fmt.Println("Debug 0001")
 	var asset *models.Asset
 	if !tempRes.Exist {
 		asset = utils.CreateNewAsset(assetType, loginUser.Id, loginUser.Username)
 	} else {
 		asset = tempRes.Asset
 	}
-	fmt.Println("Debug 0002")
 	//Get address list
 	addressList := make([]string, 0)
 	if asset.Id > 0 {
@@ -176,7 +174,6 @@ func (this *AssetsController) AssetsDetail() {
 			return
 		}
 	}
-	fmt.Println("Debug 0003")
 	assetList, err := this.GetUserAssetList()
 	if err != nil {
 		logpack.FError("Get Asset List for user failed", loginUser.Id, utils.GetFuncName(), err)
@@ -192,7 +189,6 @@ func (this *AssetsController) AssetsDetail() {
 			break
 		}
 	}
-	fmt.Println("Debug 0004")
 	activeAddressCount := this.CountAddressesWithStatus(asset.Id, true)
 	archivedAddressCount := this.CountAddressesWithStatus(asset.Id, false)
 	//check have code list

@@ -650,5 +650,8 @@ func (asset *Asset) SetSystemAddress() {
 }
 
 func (asset *Asset) GetSystemAddress() string {
+	if utils.IsEmpty(asset.SystemAddress) {
+		asset.SetSystemAddress()
+	}
 	return asset.SystemAddress
 }

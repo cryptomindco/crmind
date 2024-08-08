@@ -414,7 +414,6 @@ func (this *BaseController) GetAssetList(userId int64, allowAsset []string) ([]*
 		tempAllowAssets = append(tempAllowAssets, fmt.Sprintf("'%s'", asset))
 	}
 	builderSQL := fmt.Sprintf("SELECT * from %sasset WHERE user_id=%d AND status = %d AND type IN (%s) ORDER BY sort", utils.GetAssetRelatedTablePrefix(), userId, int(utils.AssetStatusActive), strings.Join(tempAllowAssets, ","))
-	fmt.Println("Check build SQL: ", builderSQL)
 	_, err := o.Raw(builderSQL).QueryRows(&assetList)
 	if err != nil {
 		return nil, err
@@ -443,8 +442,6 @@ func (this *BaseController) SyncAssetList(user *models.AuthClaims, summaryList [
 
 func (this *BaseController) CreateNewAsset(assetType string, userId int64, username string) *models.Asset {
 	assetObject := assets.StringToAssetType(assetType)
-	fmt.Println("check assetType: ", assetType)
-	fmt.Println("Check asset anme: ", assetObject)
 	return &models.Asset{
 		Sort:          assetObject.AssetSortInt(),
 		DisplayName:   assetObject.ToFullName(),

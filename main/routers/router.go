@@ -44,6 +44,10 @@ func init() {
 	beego.Router("/transfer/GetHistoryList", &controllers.TransferController{}, "get:FilterTxHistory")
 	beego.Router("/check-contact-user", &controllers.TransferController{}, "get:CheckContactUser")
 	beego.Router("/confirmAmount", &controllers.TransferController{}, "post:ConfirmAmount")
+	beego.Router("/transfer-amount", &controllers.TransferController{}, "post:TransferAmount")
+	beego.Router("/updateNewLabel", &controllers.TransferController{}, "post:UpdateNewLabel")
+	//Trading router
+	beego.Router("/send-trading-request", &controllers.TradingController{}, "post:SendTradingRequest")
 
 	//Assets Router
 	beego.Router("/fetch-rate", &controllers.AssetsController{}, "get:FetchRate")
