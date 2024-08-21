@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package assets;
+
+option go_package= "./pkg/pb";
+
+service AssetsService{
+  rpc CreateNewAddress(RequestData) returns (ResponseData);
+  rpc SyncTransactions(RequestData) returns (ResponseData);
+  rpc SendTradingRequest(RequestData) returns (ResponseData);
+  rpc TransferAmount(RequestData) returns (ResponseData);
+  rpc FilterTxHistory(RequestData) returns (ResponseData);
+  rpc GetCodeListData(RequestData) returns (ResponseData);
+  rpc GetAddressListData(RequestData) returns (ResponseData);
+  rpc ConfirmAmount(RequestData) returns (ResponseData);
+  rpc ConfirmWithdrawal(RequestData) returns (ResponseData);
+  rpc UpdateNewLabel(RequestData) returns (ResponseData);
+  rpc GetLastTxs(RequestData) returns (ResponseData);
+  rpc CheckContactUser(RequestData) returns (ResponseData);
+  rpc GetBalanceSummary(RequestData) returns (ResponseData);
+  rpc GetAssetDBList(RequestData) returns (ResponseData);
+  rpc GetUserAssetDB(RequestData) returns (ResponseData);
+  rpc GetAddressList(RequestData) returns (ResponseData);
+  rpc CountAddress(RequestData) returns (ResponseData);
+  rpc CheckHasCodeList(RequestData) returns (ResponseData);
+  rpc GetContactList(RequestData) returns (ResponseData);
+  rpc FilterTxCode(RequestData) returns (ResponseData);
+  rpc GetTxHistory(RequestData) returns (ResponseData);
+  rpc FilterAddressList(RequestData) returns (ResponseData);
+  rpc CheckAndCreateAccountToken(RequestData) returns (ResponseData);
+  rpc FetchRate(RequestData) returns (ResponseData);
+  rpc CheckAssetMatchWithUser(RequestData) returns (ResponseData);
+  rpc CheckAddressMatchWithUser(RequestData) returns (ResponseData);
+  rpc GetAddress(RequestData) returns (ResponseData);
+  rpc ConfirmAddressAction(RequestData) returns (ResponseData);
+  rpc CancelUrlCode(RequestData) returns (ResponseData);
+}
+
+message RequestData{
+  HttpRequest request = 1;
+  string auth_token = 2;
+  int64 login_id = 3;
+  string login_name = 4;
+  int role = 5;
+  map[string]any data_map = 6;
+}
+
+message ResponseData{
+  int64 status = 1;
+  string error = 2;
+}
+
+message HttpRequest {
+  // The request method. Examples: `"GET"`, `"HEAD"`, `"PUT"`, `"POST"`.
+  string request_method = 1;
+
+  // The scheme (http, https), the host name, the path and the query
+  // portion of the URL that was requested.
+  // Example: `"http://example.com/some/info?color=red"`.
+  string request_url = 2;
+
+  // The size of the HTTP request message in bytes, including the request
+  // headers and the request body.
+  int64 request_size = 3;
+
+  // The response code indicating the status of response.
+  // Examples: 200, 404.
+  int32 status = 4;
+
+  // The size of the HTTP response message sent back to the client, in bytes,
+  // including the response headers and the response body.
+  int64 response_size = 5;
+
+  // The user agent sent by the client. Example:
+  // `"Mozilla/4.0 (compatible; MSIE 6.0; Windows 98; Q312461; .NET
+  // CLR 1.0.3705)"`.
+  string user_agent = 6;
+
+  // The IP address (IPv4 or IPv6) of the client that issued the HTTP
+  // request. This field can include port information. Examples:
+  // `"192.168.1.1"`, `"10.0.0.1:80"`, `"FE80::0202:B3FF:FE1E:8329"`.
+  string remote_ip = 7;
+
+  // The IP address (IPv4 or IPv6) of the origin server that the request was
+  // sent to. This field can include port information. Examples:
+  // `"192.168.1.1"`, `"10.0.0.1:80"`, `"FE80::0202:B3FF:FE1E:8329"`.
+  string server_ip = 13;
+
+  // The referer URL of the request, as defined in
+  // [HTTP/1.1 Header Field
+  // Definitions](https://datatracker.ietf.org/doc/html/rfc2616#section-14.36).
+  string referer = 8;
+
+  // The request processing latency on the server, from the time the request was
+  // received until the response was sent.
+  google.protobuf.Duration latency = 14;
+
+  // Whether or not a cache lookup was attempted.
+  bool cache_lookup = 11;
+
+  // Whether or not an entity was served from cache
+  // (with or without validation).
+  bool cache_hit = 9;
+
+  // Whether or not the response was validated with the origin server before
+  // being served from cache. This field is only meaningful if `cache_hit` is
+  // True.
+  bool cache_validated_with_origin_server = 10;
+
+  // The number of HTTP response bytes inserted into cache. Set only when a
+  // cache fill was attempted.
+  int64 cache_fill_bytes = 12;
+
+  // Protocol used for the request. Examples: "HTTP/1.1", "HTTP/2", "websocket"
+  string protocol = 15;
+}

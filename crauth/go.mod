@@ -1,15 +1,16 @@
-module crchat
+module crauth
 
 go 1.21
 
 toolchain go1.21.6
 
 require (
+	github.com/go-webauthn/webauthn v0.10.2
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/spf13/viper v1.15.0
 	google.golang.org/grpc v1.63.0
 	gorm.io/driver/postgres v1.5.0
-	github.com/gorilla/websocket v1.5.3
 	gorm.io/gorm v1.25.1
 )
 
