@@ -53,10 +53,9 @@ func main() {
 }
 
 func initServiceConfig() {
-	utils.AuthHost = beego.AppConfig.String("authhost")
-	utils.AuthPort = beego.AppConfig.String("authport")
-	utils.AssetsHost = beego.AppConfig.String("assethost")
-	utils.AssetsPort = beego.AppConfig.String("assetport")
+	utils.GetAuthHost()
+	utils.GetChatHost()
+	utils.GetAssetsHost()
 }
 
 // add func to func map of beego

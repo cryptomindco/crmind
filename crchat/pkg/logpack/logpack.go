@@ -1,6 +1,7 @@
 package logpack
 
 import (
+	"crchat/pkg/utils"
 	"fmt"
 	"log"
 )
@@ -29,29 +30,29 @@ func Fatal(msg string, funcName string) {
 	log.Println("FATAL:", funcName, "-", msg)
 }
 
-func FInfo(msg string, loginId int64, funcName string) {
-	log.Println("INFO:", funcName, GetLoginUserId(loginId), "-", msg)
+func FInfo(msg string, loginName string, funcName string) {
+	log.Println("INFO:", funcName, GetLoginUsername(loginName), "-", msg)
 }
 
-func FError(msg string, loginId int64, funcName string, err error) {
+func FError(msg string, loginName string, funcName string, err error) {
 	errStr := ""
 	if err != nil {
 		errStr = fmt.Sprintf("\n%s", err.Error())
 	}
-	log.Println("ERROR:", funcName, GetLoginUserId(loginId), "-", msg, errStr)
+	log.Println("ERROR:", funcName, GetLoginUsername(loginName), "-", msg, errStr)
 }
 
-func FWarn(msg string, loginId int64, funcName string) {
-	log.Println("WARNING:", funcName, GetLoginUserId(loginId), "-", msg)
+func FWarn(msg string, loginName string, funcName string) {
+	log.Println("WARNING:", funcName, GetLoginUsername(loginName), "-", msg)
 }
 
-func FFatal(msg string, loginId int64, funcName string) {
-	log.Println("FATAL:", funcName, GetLoginUserId(loginId), "-", msg)
+func FFatal(msg string, loginName string, funcName string) {
+	log.Println("FATAL:", funcName, GetLoginUsername(loginName), "-", msg)
 }
 
-func GetLoginUserId(loginId int64) string {
-	if loginId <= 0 {
+func GetLoginUsername(loginName string) string {
+	if utils.IsEmpty(loginName) {
 		return ""
 	}
-	return fmt.Sprintf(", LoginId: %d", loginId)
+	return fmt.Sprintf(", LoginName: %s", loginName)
 }

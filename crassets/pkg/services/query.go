@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"crassets/pkg/config"
 	"crassets/pkg/db"
 	"crassets/pkg/logpack"
@@ -19,79 +20,73 @@ import (
 type Server struct {
 	H    db.Handler // handler
 	Conf config.Config
-	pb.UnimplementedChatServiceServer
+	pb.UnimplementedAssetsServiceServer
 }
 
-func (s *Server) CreateNewAddress(reqData *pb.RequestData) *pb.ResponseData {
+func (s *Server) CreateNewAddress(ctx context.Context, reqData *pb.OneStringRequest) (*pb.ResponseData, error) {
 	//get selected type
-	assetTypeAny, assetTypeExist := reqData.DataMap["assetType"]
-	if !assetTypeExist {
-		return pb.ResponseError("Get Asset Type param failed. Please try again!", utils.GetFuncName(), nil)
+	selectedType := reqData.Data
+	if utils.IsEmpty(selectedType) {
+		return ResponseError("Get Asset Type param failed. Please try again!", utils.GetFuncName(), nil)
 	}
-	selectedType := assetTypeAny.(string)
 	assetObject := assets.StringToAssetType(selectedType)
-	address, _, createErr := s.CreateNewAddressForAsset(reqData.LoginId, reqData.LoginName, utils.IsSuperAdmin(reqData.Role), assetObject)
+	address, _, createErr := s.CreateNewAddressForAsset(reqData.Common.LoginName, utils.IsSuperAdmin(int(reqData.Common.Role)), assetObject)
 	if createErr != nil {
-		return pb.ResponseLoginError(reqData.LoginId, createErr.Error(), utils.GetFuncName(), nil)
+		return ResponseLoginError(reqData.Common.LoginName, createErr.Error(), utils.GetFuncName(), nil)
 	}
 
-	return pb.ResponseSuccessfullyWithAnyData(reqData.LoginId, "Create new address successfully", utils.GetFuncName(), address.Address)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Create new address successfully", utils.GetFuncName(), address.Address)
 }
 
-func (s *Server) SyncTransactions(reqData *pb.RequestData) *pb.ResponseData {
-	if reqData.Role != int(utils.RoleSuperAdmin) {
-		return pb.ResponseError("Check admin login failed", utils.GetFuncName(), nil)
+func (s *Server) SyncTransactions(ctx context.Context, reqData *pb.CommonRequest) (*pb.ResponseData, error) {
+	if reqData.Role != int64(utils.RoleSuperAdmin) {
+		return ResponseError("Check admin login failed", utils.GetFuncName(), nil)
 	}
 	//create task to sync transactions
 	go func() {
 		s.SystemSyncHandler()
 	}()
-	return pb.ResponseSuccessfully(reqData.LoginId, "Synchronized transaction successfully", utils.GetFuncName())
+	return ResponseSuccessfully(reqData.LoginName, "Synchronized transaction successfully", utils.GetFuncName())
 }
 
-func (s *Server) SendTradingRequest(reqData *pb.RequestData) *pb.ResponseData {
-	assetAny, assetExist := reqData.DataMap["asset"]
-	tradingTypeAny, tradingTypeExist := reqData.DataMap["tradingType"]
-	paymentTypeAny, paymentTypeExist := reqData.DataMap["paymentType"]
-	amountAny, amountExist := reqData.DataMap["amount"]
-	rateAny, rateExist := reqData.DataMap["rate"]
-
-	if !assetExist || !tradingTypeExist || !paymentTypeExist || !amountExist || !rateExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Param failed. Please try again!", utils.GetFuncName(), nil)
-	}
-	asset := assetAny.(string)
-	tradingType := tradingTypeAny.(string)
-	amount := amountAny.(float64)
-	paymentType := paymentTypeAny.(string)
-	rate := rateAny.(float64)
+func (s *Server) SendTradingRequest(ctx context.Context, reqData *pb.SendTradingDataRequest) (*pb.ResponseData, error) {
+	asset := reqData.Asset
+	tradingType := reqData.TradingType
+	amount := reqData.Amount
+	paymentType := reqData.PaymentType
+	rate := reqData.Rate
 	paymentAmount := amount * rate
 
+	if utils.IsEmpty(asset) || utils.IsEmpty(tradingType) || amount == 0 || utils.IsEmpty(paymentType) || rate == 0 {
+		return ResponseError("Get param failed. Please try again!", utils.GetFuncName(), nil)
+	}
+
 	if tradingType != utils.TradingTypeBuy && tradingType != utils.TradingTypeSell {
-		return pb.ResponseLoginError(reqData.LoginId, "Trading Type param failed. Please check again!", utils.GetFuncName(), nil)
+		return ResponseLoginError(reqData.Common.LoginName, "Trading Type param failed. Please check again!", utils.GetFuncName(), nil)
 	}
 
 	//get asset of system user
 	systemAsset, systemAssetErr := s.H.GetSystemUserAsset(asset)
 	if systemAssetErr != nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Get system user asset failed. Please check again!", utils.GetFuncName(), systemAssetErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Get system user asset failed. Please check again!", utils.GetFuncName(), systemAssetErr)
 	}
 
 	//Get asset of payment type for system user
 	systemPaymentAsset, paymentErr := s.H.GetSystemUserAsset(paymentType)
 	if paymentErr != nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Get system user payment asset failed. Please check again!", utils.GetFuncName(), paymentErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Get system user payment asset failed. Please check again!", utils.GetFuncName(), paymentErr)
 	}
 
 	//get asset of loginUser
-	loginAsset, loginAssetErr := s.H.GetUserAsset(reqData.LoginName, asset)
+	loginAsset, loginAssetErr := s.H.GetUserAsset(reqData.Common.LoginName, asset)
 	if loginAssetErr != nil || loginAsset == nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Get login user asset failed. Please check again!", utils.GetFuncName(), loginAssetErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Get login user asset failed. Please check again!", utils.GetFuncName(), loginAssetErr)
 	}
 
 	//Get asset of payment type for loginuser
-	loginPaymentAsset, loginPaymentAssetErr := s.H.GetUserAsset(reqData.LoginName, paymentType)
+	loginPaymentAsset, loginPaymentAssetErr := s.H.GetUserAsset(reqData.Common.LoginName, paymentType)
 	if loginPaymentAssetErr != nil || loginPaymentAsset == nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Get login user payment asset failed. Please check again!", utils.GetFuncName(), loginPaymentAssetErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Get login user payment asset failed. Please check again!", utils.GetFuncName(), loginPaymentAssetErr)
 	}
 	now := time.Now().Unix()
 
@@ -101,11 +96,11 @@ func (s *Server) SendTradingRequest(reqData *pb.RequestData) *pb.ResponseData {
 		//check balance of payment asset of login user
 		if paymentAmount > loginPaymentAsset.Balance {
 			//return error
-			return pb.ResponseLoginError(reqData.LoginId, fmt.Sprintf("%s balance is not enough to buy this amount", strings.ToUpper(paymentType)), utils.GetFuncName(), nil)
+			return ResponseLoginError(reqData.Common.LoginName, fmt.Sprintf("%s balance is not enough to buy this amount", strings.ToUpper(paymentType)), utils.GetFuncName(), nil)
 		}
 		//check balance of system user of asset
 		if amount > systemAsset.Balance {
-			return pb.ResponseLoginError(reqData.LoginId, fmt.Sprintf("%s balance of system user is not enough to sell this amount", strings.ToUpper(asset)), utils.GetFuncName(), nil)
+			return ResponseLoginError(reqData.Common.LoginName, fmt.Sprintf("%s balance of system user is not enough to sell this amount", strings.ToUpper(asset)), utils.GetFuncName(), nil)
 		}
 		//update amount of all asset for login user and system user
 		//login asset
@@ -127,11 +122,11 @@ func (s *Server) SendTradingRequest(reqData *pb.RequestData) *pb.ResponseData {
 		//check balance of payment asset of login user
 		if amount > loginAsset.Balance {
 			//return error
-			return pb.ResponseLoginError(reqData.LoginId, fmt.Sprintf("%s balance is not enough to sell this amount", strings.ToUpper(asset)), utils.GetFuncName(), nil)
+			return ResponseLoginError(reqData.Common.LoginName, fmt.Sprintf("%s balance is not enough to sell this amount", strings.ToUpper(asset)), utils.GetFuncName(), nil)
 		}
 		//check balance of system user of asset
 		if paymentAmount > systemPaymentAsset.Balance {
-			return pb.ResponseLoginError(reqData.LoginId, fmt.Sprintf("%s balance of system user is not enough to buy this amount", strings.ToUpper(paymentType)), utils.GetFuncName(), nil)
+			return ResponseLoginError(reqData.Common.LoginName, fmt.Sprintf("%s balance of system user is not enough to buy this amount", strings.ToUpper(paymentType)), utils.GetFuncName(), nil)
 		}
 		//update amount of all asset for login user and system user
 		//login asset
@@ -163,7 +158,7 @@ func (s *Server) SendTradingRequest(reqData *pb.RequestData) *pb.ResponseData {
 	systemAssetUpdateErr := tx.Save(systemAsset).Error
 	systemPaymentAssetUpdateErr := tx.Save(systemPaymentAsset).Error
 	if loginAssetUpdateErr != nil || loginPaymentAssetUpdateErr != nil || systemAssetUpdateErr != nil || systemPaymentAssetUpdateErr != nil {
-		return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Update data for assets failed", utils.GetFuncName(), nil)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Update data for assets failed", utils.GetFuncName(), nil)
 	}
 
 	//create description for trading
@@ -177,7 +172,7 @@ func (s *Server) SendTradingRequest(reqData *pb.RequestData) *pb.ResponseData {
 	//insert new txhistory
 	txHistory := &models.TxHistory{
 		TransType:   int(utils.TransTypeLocal),
-		Sender:      reqData.LoginName,
+		Sender:      reqData.Common.LoginName,
 		Currency:    asset,
 		Amount:      amount,
 		Rate:        rate,
@@ -191,25 +186,23 @@ func (s *Server) SendTradingRequest(reqData *pb.RequestData) *pb.ResponseData {
 
 	txHistoryInsertErr := tx.Create(txHistory).Error
 	if txHistoryInsertErr != nil {
-		return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Insert transaction history failed", utils.GetFuncName(), txHistoryInsertErr)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Insert transaction history failed", utils.GetFuncName(), txHistoryInsertErr)
 	}
 	tx.Commit()
 	//return successfully response
-	return pb.ResponseSuccessfully(reqData.LoginId, "Transaction completed", utils.GetFuncName())
+	return ResponseSuccessfully(reqData.Common.LoginName, "Transaction completed", utils.GetFuncName())
 }
 
-func (s *Server) ConfirmWithdrawal(reqData *pb.RequestData) *pb.ResponseData {
-	targetAny, targetExist := reqData.DataMap["target"]
-	codeAny, codeExist := reqData.DataMap["code"]
-	if !targetExist || !codeExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Param failed. Please try again!", utils.GetFuncName(), nil)
+func (s *Server) ConfirmWithdrawal(ctx context.Context, reqData *pb.ConfirmWithdrawalRequest) (*pb.ResponseData, error) {
+	target := reqData.Target
+	code := reqData.Code
+	if utils.IsEmpty(target) || utils.IsEmpty(code) {
+		return ResponseError("Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
-	target := targetAny.(string)
-	code := codeAny.(string)
 	//Check valid token and get user of token
 	txCode, exist := s.H.GetTxcode(code)
 	if !exist {
-		return pb.ResponseError("Retrieve TxCode data error", utils.GetFuncName(), nil)
+		return ResponseError("Retrieve TxCode data error", utils.GetFuncName(), nil)
 	}
 
 	//current rate
@@ -217,20 +210,20 @@ func (s *Server) ConfirmWithdrawal(reqData *pb.RequestData) *pb.ResponseData {
 	txCode.Note = fmt.Sprintf("%s: Withdraw with URL Code", txCode.Note)
 	//Get address
 	if utils.IsEmpty(target) {
-		return pb.ResponseError("Address cannot be left blank. Please check again!", utils.GetFuncName(), nil)
+		return ResponseError("Address cannot be left blank. Please check again!", utils.GetFuncName(), nil)
 	}
 	isSystemAddress := false
 	//check to address is of system address
 	addressObj, addrErr := s.H.GetAddress(target)
 	if addrErr != nil && addrErr != gorm.ErrRecordNotFound {
-		return pb.ResponseError("DB error. Please try again!", utils.GetFuncName(), addrErr)
+		return ResponseError("DB error. Please try again!", utils.GetFuncName(), addrErr)
 	}
 	var existAsset *models.Asset
 	if addressObj != nil {
 		var assetErr error
 		existAsset, assetErr = s.H.GetAssetById(addressObj.AssetId)
 		if assetErr != nil && assetErr != gorm.ErrRecordNotFound {
-			return pb.ResponseError("DB error. Please try again!", utils.GetFuncName(), assetErr)
+			return ResponseError("DB error. Please try again!", utils.GetFuncName(), assetErr)
 		}
 		//if exist user for address
 		if existAsset != nil {
@@ -248,15 +241,15 @@ func (s *Server) ConfirmWithdrawal(reqData *pb.RequestData) *pb.ResponseData {
 		s.UpdateAssetManagerByType(txCode.Asset)
 		assetObj, assetMgrExist := utils.GlobalItem.AssetMgrMap[txCode.Asset]
 		if !assetMgrExist {
-			return pb.ResponseError("Create RPC Client failed", utils.GetFuncName(), nil)
+			return ResponseError("Create RPC Client failed", utils.GetFuncName(), nil)
 		}
 		validAddress := assetObj.IsValidAddress(target)
 		if !validAddress {
-			return pb.ResponseError("Invalid address", utils.GetFuncName(), nil)
+			return ResponseError("Invalid address", utils.GetFuncName(), nil)
 		}
 		txHistory, btcHandlerErr := s.H.HandlerTransferOnchainCryptocurrency(sender.Username, txCode.Asset, target, txCode.Amount, rateSend, txCode.Note)
 		if btcHandlerErr != nil {
-			return pb.ResponseError(btcHandlerErr.Error(), utils.GetFuncName(), nil)
+			return ResponseError(btcHandlerErr.Error(), utils.GetFuncName(), nil)
 		}
 		//update txCode status
 		txCode.Status = int(utils.UrlCodeStatusConfirmed)
@@ -267,96 +260,90 @@ func (s *Server) ConfirmWithdrawal(reqData *pb.RequestData) *pb.ResponseData {
 		txUpdateErr := tx.Save(txCode).Error
 		if txUpdateErr != nil {
 			tx.Rollback()
-			return pb.ResponseError("Update Tx Code status failed!", utils.GetFuncName(), txUpdateErr)
+			return ResponseError("Update Tx Code status failed!", utils.GetFuncName(), txUpdateErr)
 		}
 		tx.Commit()
-		return pb.ResponseSuccessfully(0, "Confirm withdrawl successfully", utils.GetFuncName())
+		return ResponseSuccessfully("", "Confirm withdrawl successfully", utils.GetFuncName())
 	} else {
 		user := &models.UserInfo{
 			Username: existAsset.UserName,
 		}
 		completeInternal := s.H.HandlerInternalWithdrawl(txCode, *user, rateSend)
 		if !completeInternal {
-			return pb.ResponseError("Hanlder internal withdrawl failed", utils.GetFuncName(), nil)
+			return ResponseError("Hanlder internal withdrawl failed", utils.GetFuncName(), nil)
 		}
-		return pb.ResponseSuccessfully(0, "Withdrawl with internal account successfully", utils.GetFuncName())
+		return ResponseSuccessfully("", "Withdrawl with internal account successfully", utils.GetFuncName())
 	}
 }
 
-func (s *Server) UpdateNewLabel(reqData *pb.RequestData) *pb.ResponseData {
-	assetIdAny, assetIdExist := reqData.DataMap["assetId"]
-	addressIdAny, addressIdExist := reqData.DataMap["addressId"]
-	newLabelAny, newLabelExist := reqData.DataMap["newMainLabel"]
-	assetTypeAny, assetTypeExist := reqData.DataMap["assetType"]
+func (s *Server) UpdateNewLabel(ctx context.Context, reqData *pb.UpdateLabelRequest) (*pb.ResponseData, error) {
+	assetId := reqData.AssetId
+	addressId := reqData.AddressId
+	newMainLabel := reqData.NewMainLabel
+	assetType := reqData.AssetType
 
-	if !assetIdExist || !addressIdExist || !newLabelExist || !assetTypeExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Param failed. Please try again!", utils.GetFuncName(), nil)
+	if assetId < 1 || addressId < 1 || utils.IsEmpty(newMainLabel) || utils.IsEmpty(assetType) {
+		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
-	assetId := assetIdAny.(int64)
-	addressId := addressIdAny.(int64)
-	newMainLabel := newLabelAny.(string)
-	assetType := assetTypeAny.(string)
 
-	if !s.H.CheckMatchAddressWithUser(assetId, addressId, reqData.LoginName, false) {
-		return pb.ResponseLoginError(reqData.LoginId, "The user login information and assets do not match", utils.GetFuncName(), nil)
+	if !s.H.CheckMatchAddressWithUser(assetId, addressId, reqData.Common.LoginName, false) {
+		return ResponseLoginError(reqData.Common.LoginName, "The user login information and assets do not match", utils.GetFuncName(), nil)
 	}
 
 	s.UpdateAssetManagerByType(assetType)
 	assetObj, assetMgrExist := utils.GlobalItem.AssetMgrMap[assetType]
 	if !assetMgrExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Create RPC Client failed!", utils.GetFuncName(), nil)
+		return ResponseLoginError(reqData.Common.LoginName, "Create RPC Client failed!", utils.GetFuncName(), nil)
 	}
 
 	//get address
 	address, addressErr := s.H.GetAddressById(addressId)
 	if addressErr != nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Get address from DB failed", utils.GetFuncName(), addressErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Get address from DB failed", utils.GetFuncName(), addressErr)
 	}
 
-	tx := s.H.DB
 	//get token of loginuser
-	token := s.H.GetTokenFromUsername(reqData.LoginName)
+	token := s.H.GetTokenFromUsername(reqData.Common.LoginName)
 	if utils.IsEmpty(token) {
-		return pb.ResponseLoginError(reqData.LoginId, "Get user token failed", utils.GetFuncName(), nil)
+		return ResponseLoginError(reqData.Common.LoginName, "Get user token failed", utils.GetFuncName(), nil)
 	}
 	//set new label for address on DB
 	newLabel := fmt.Sprintf("%s_%s", token, newMainLabel)
 	address.Label = newLabel
+	tx := s.H.DB.Begin()
 	addressUpdateErr := tx.Save(address).Error
 	if addressUpdateErr != nil {
-		return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Update address label from DB failed", utils.GetFuncName(), addressUpdateErr)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Update address label from DB failed", utils.GetFuncName(), addressUpdateErr)
 	}
 	//update label on daemon
 	daemonUpdateErr := assetObj.UpdateLabel(address.Address, newLabel)
 	if daemonUpdateErr != nil {
-		return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Update address label on daemon failed", utils.GetFuncName(), daemonUpdateErr)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Update address label on daemon failed", utils.GetFuncName(), daemonUpdateErr)
 	}
 	tx.Commit()
-	return pb.ResponseSuccessfully(reqData.LoginId, "Update address label successfully", utils.GetFuncName())
+	return ResponseSuccessfully(reqData.Common.LoginName, "Update address label successfully", utils.GetFuncName())
 }
 
-func (s *Server) GetAddressListData(reqData *pb.RequestData) *pb.ResponseData {
-	assetIdAny, assetIdExist := reqData.DataMap["assetId"]
-	statusAny, statusExist := reqData.DataMap["status"]
-	if !assetIdExist || !statusExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Param failed. Please try again!", utils.GetFuncName(), nil)
+func (s *Server) GetAddressListDataWithStatus(ctx context.Context, reqData *pb.GetAddressListRequest) (*pb.ResponseData, error) {
+	assetId := reqData.AssetId
+	status := reqData.Status
+	if assetId < 1 {
+		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
-	assetId := assetIdAny.(int64)
-	status := statusAny.(string)
 	//check asset id match with loginUser
-	assetMatch := s.H.CheckAssetMatchWithUser(assetId, reqData.LoginName)
+	assetMatch := s.H.CheckAssetMatchWithUser(assetId, reqData.Common.LoginName)
 	if !assetMatch {
-		return pb.ResponseError("asset not match with login user", utils.GetFuncName(), fmt.Errorf("asset not match with login user"))
+		return ResponseError("asset not match with login user", utils.GetFuncName(), fmt.Errorf("asset not match with login user"))
 	}
 	//Get url code list
 	addressList, addressErr := s.H.FilterAddressList(assetId, status)
 	if addressErr != nil {
-		return pb.ResponseError(addressErr.Error(), utils.GetFuncName(), addressErr)
+		return ResponseError(addressErr.Error(), utils.GetFuncName(), addressErr)
 	}
 	//user token
-	token, _, err := s.H.CheckAndCreateAccountToken(reqData.LoginName, reqData.Role)
+	token, _, err := s.H.CheckAndCreateAccountToken(reqData.Common.LoginName, int(reqData.Common.Role))
 	if err != nil {
-		return pb.ResponseError("Check or create user token failed", utils.GetFuncName(), fmt.Errorf("Check or create user token failed"))
+		return ResponseError("Check or create user token failed", utils.GetFuncName(), fmt.Errorf("Check or create user token failed"))
 	}
 	addressDisplayList := make([]*models.AddressesDisplay, 0)
 	for _, address := range addressList {
@@ -377,26 +364,24 @@ func (s *Server) GetAddressListData(reqData *pb.RequestData) *pb.ResponseData {
 	resultMap := make(map[string]any)
 	resultMap["list"] = addressDisplayList
 	resultMap["userToken"] = token
-	return pb.ResponseSuccessfullyWithAnyData(reqData.LoginId, "Get Address List data successfully", utils.GetFuncName(), resultMap)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Get Address List data successfully", utils.GetFuncName(), resultMap)
 }
-func (s *Server) GetCodeListData(reqData *pb.RequestData) *pb.ResponseData {
-	assetAny, assetExist := reqData.DataMap["asset"]
-	codeStatusAny, codeStatusExist := reqData.DataMap["codeStatus"]
-	if !assetExist || !codeStatusExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Param failed. Please try again!", utils.GetFuncName(), nil)
+func (s *Server) GetCodeListData(ctx context.Context, reqData *pb.GetCodeListRequest) (*pb.ResponseData, error) {
+	assetType := reqData.Asset
+	status := reqData.CodeStatus
+	if utils.IsEmpty(assetType) {
+		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
-	assetType := assetAny.(string)
-	status := codeStatusAny.(string)
 	//Get url code list
-	urlCodeList, urlCodeErr := s.H.FilterUrlCodeList(assetType, status, reqData.LoginName)
+	urlCodeList, urlCodeErr := s.H.FilterUrlCodeList(assetType, status, reqData.Common.LoginName)
 	if urlCodeErr != nil {
-		return pb.ResponseError(urlCodeErr.Error(), utils.GetFuncName(), urlCodeErr)
+		return ResponseError(urlCodeErr.Error(), utils.GetFuncName(), urlCodeErr)
 	}
 	urlCodeDisplayList := make([]*models.TxCodeDisplay, 0)
 	for _, urlCode := range urlCodeList {
 		urlCodeStatus, statusErr := utils.GetUrlCodeStatusFromValue(urlCode.Status)
 		if statusErr != nil {
-			logpack.FError(statusErr.Error(), reqData.LoginId, utils.GetFuncName(), nil)
+			logpack.FError(statusErr.Error(), reqData.Common.LoginName, utils.GetFuncName(), nil)
 			continue
 		}
 		txCodeDisp := &models.TxCodeDisplay{
@@ -420,33 +405,24 @@ func (s *Server) GetCodeListData(reqData *pb.RequestData) *pb.ResponseData {
 
 	resultMap := make(map[string]any)
 	resultMap["list"] = urlCodeDisplayList
-	return pb.ResponseSuccessfullyWithAnyData(reqData.LoginId, "Get Code List data successfully", utils.GetFuncName(), resultMap)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Get Code List data successfully", utils.GetFuncName(), resultMap)
 }
 
-func (s *Server) FilterTxHistory(reqData *pb.RequestData) *pb.ResponseData {
-	allowassetsAny, allowassetsExist := reqData.DataMap["allowassets"]
-	typeAny, typeExist := reqData.DataMap["type"]
-	directionAny, directionExist := reqData.DataMap["direction"]
-	perpageAny, perpageExist := reqData.DataMap["perpage"]
-	pageNumAny, pageNumExist := reqData.DataMap["pageNum"]
-	var perpage int64
-	var pageNum int64
-	if !perpageExist {
+func (s *Server) FilterTxHistory(ctx context.Context, reqData *pb.FilterTxHistoryRequest) (*pb.ResponseData, error) {
+	perpage := reqData.PerPage
+	pageNum := reqData.PageNum
+	if perpage < 1 {
 		perpage = 15
-	} else {
-		perpage = perpageAny.(int64)
 	}
-	if !pageNumExist {
+	if pageNum < 1 {
 		pageNum = 1
-	} else {
-		pageNum = pageNumAny.(int64)
 	}
-	if !allowassetsExist || !typeExist || !directionExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Param failed. Please try again!", utils.GetFuncName(), nil)
+	allowAssetStr := reqData.AllowAssets
+	assetType := reqData.Type
+	direction := reqData.Direction
+	if utils.IsEmpty(allowAssetStr) {
+		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
-	allowAssetStr := allowassetsAny.(string)
-	assetType := typeAny.(string)
-	direction := directionAny.(string)
 	allowAssets := utils.GetAssetsNameFromStr(allowAssetStr)
 	if assetType == "all" {
 		assetType = ""
@@ -457,75 +433,70 @@ func (s *Server) FilterTxHistory(reqData *pb.RequestData) *pb.ResponseData {
 	}
 
 	txHistoryList, pageCount := s.H.InitTransactionHistoryList(&models.UserInfo{
-		Username: reqData.LoginName,
+		Username: reqData.Common.LoginName,
 	}, assetType, direction, perpage, pageNum, allowAssets)
 	resultMap := make(map[string]any)
 	resultMap["pageCount"] = pageCount
 	resultMap["list"] = txHistoryList
-	return pb.ResponseSuccessfullyWithAnyData(reqData.LoginId, "Get Tx History List successfully", utils.GetFuncName(), resultMap)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Get Tx History List successfully", utils.GetFuncName(), resultMap)
 }
 
-func (s *Server) ConfirmAmount(reqData *pb.RequestData) *pb.ResponseData {
-	assetAny, assetExist := reqData.DataMap["asset"]
-	toaddressAny, toaddressExist := reqData.DataMap["toaddress"]
-	sendByAny, sendByExist := reqData.DataMap["sendBy"]
-	amountAny, amountExist := reqData.DataMap["amount"]
-	if !assetExist || !toaddressExist || !sendByExist || !amountExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Param failed. Please try again!", utils.GetFuncName(), nil)
+func (s *Server) ConfirmAmount(ctx context.Context, reqData *pb.ConfirmAmountRequest) (*pb.ResponseData, error) {
+	asset := reqData.Asset
+	address := reqData.ToAddress
+	sendBy := reqData.SendBy
+	amountToSend := reqData.Amount
+	if utils.IsEmpty(asset) || amountToSend == 0 {
+		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
-
-	asset := assetAny.(string)
-	address := toaddressAny.(string)
-	sendBy := sendByAny.(string)
-	amountToSend := amountAny.(float64)
 	s.UpdateAssetManagerByType(asset)
 	assetObj, assetMgrExist := utils.GlobalItem.AssetMgrMap[asset]
 	if !assetMgrExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Create RPC Client failed!", utils.GetFuncName(), nil)
+		return ResponseLoginError(reqData.Common.LoginName, "Create RPC Client failed!", utils.GetFuncName(), nil)
 	}
 	if utils.IsEmpty(address) {
 		//if has no address from param. Get address of system admin to check
 		address = assetObj.GetSystemAddress()
 		if utils.IsEmpty(address) {
-			return pb.ResponseLoginError(reqData.LoginId, "Address param failed. Please try again!", utils.GetFuncName(), nil)
+			return ResponseLoginError(reqData.Common.LoginName, "Address param failed. Please try again!", utils.GetFuncName(), nil)
 		}
 	}
 
 	//check to address is of system address
 	addressObj, addrErr := s.H.GetAddress(address)
 	if addrErr != nil && addrErr != gorm.ErrRecordNotFound {
-		return pb.ResponseLoginError(reqData.LoginId, "DB error. Please try again!", utils.GetFuncName(), addrErr)
+		return ResponseLoginError(reqData.Common.LoginName, "DB error. Please try again!", utils.GetFuncName(), addrErr)
 	}
 
 	if addressObj != nil && sendBy != "urlcode" {
 		existAsset, assetErr := s.H.GetAssetById(addressObj.AssetId)
 		if assetErr != nil && assetErr != gorm.ErrRecordNotFound {
-			return pb.ResponseLoginError(reqData.LoginId, "DB error. Please try again!", utils.GetFuncName(), addrErr)
+			return ResponseLoginError(reqData.Common.LoginName, "DB error. Please try again!", utils.GetFuncName(), addrErr)
 		}
 		//if exist user for address
 		if existAsset != nil {
-			return pb.ResponseLoginErrorWithCode(reqData.LoginId, "exist", fmt.Sprintf("<span>Is the user's address: <span class=\"fw-600 fs-16\">%s</span>. You'll not be charged transaction fees</span>", existAsset.UserName), utils.GetFuncName(), nil)
+			return ResponseLoginErrorWithCode(reqData.Common.LoginName, "exist", fmt.Sprintf("<span>Is the user's address: <span class=\"fw-600 fs-16\">%s</span>. You'll not be charged transaction fees</span>", existAsset.UserName), utils.GetFuncName(), nil)
 		}
 	}
 	//check valid address
 	validAddress := utils.CheckValidAddress(asset, address)
 	if !validAddress {
-		return pb.ResponseLoginError(reqData.LoginId, "Invalid address. Please check again!", utils.GetFuncName(), nil)
+		return ResponseLoginError(reqData.Common.LoginName, "Invalid address. Please check again!", utils.GetFuncName(), nil)
 	}
 	//Get login user asset
-	loginAsset, loginAssetErr := s.H.GetUserAsset(reqData.LoginName, asset)
+	loginAsset, loginAssetErr := s.H.GetUserAsset(reqData.Common.LoginName, asset)
 	if loginAssetErr != nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Get Asset of loginUser failed. Please check again!", utils.GetFuncName(), loginAssetErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Get Asset of loginUser failed. Please check again!", utils.GetFuncName(), loginAssetErr)
 	}
 
 	fromAddressList, addrListErr := s.H.GetAddressListByAssetId(loginAsset.Id)
 	if addrListErr != nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Get address list of loginUser failed or address list empty. Please check again!", utils.GetFuncName(), addrListErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Get address list of loginUser failed or address list empty. Please check again!", utils.GetFuncName(), addrListErr)
 	}
 	//start estimate fee and size
 	unitAmount, unitAmountErr := utils.GetUnitAmount(amountToSend, asset)
 	if unitAmountErr != nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Get UnitAmount from amount failed!", utils.GetFuncName(), unitAmountErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Get UnitAmount from amount failed!", utils.GetFuncName(), unitAmountErr)
 	}
 	assetObj.MutexLock()
 	defer assetObj.MutexUnlock()
@@ -534,24 +505,23 @@ func (s *Server) ConfirmAmount(reqData *pb.RequestData) *pb.ResponseData {
 		ToAddress:     address,
 		Amount:        amountToSend,
 		UnitAmount:    unitAmount,
-		Account:       reqData.LoginName,
+		Account:       reqData.Common.LoginName,
 	})
 	if err != nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Get Estimate fee and size failed!", utils.GetFuncName(), err)
+		return ResponseLoginError(reqData.Common.LoginName, "Get Estimate fee and size failed!", utils.GetFuncName(), err)
 	}
-	return pb.ResponseSuccessfullyWithAnyData(reqData.LoginId, "Confirm amount successfully", utils.GetFuncName(), fmt.Sprintf("%f", feeAndSize.Fee.CoinValue))
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Confirm amount successfully", utils.GetFuncName(), fmt.Sprintf("%f", feeAndSize.Fee.CoinValue))
 }
 
-func (s *Server) AddToContact(reqData *pb.RequestData) *pb.ResponseData {
-	currentContacts, contactErr := s.H.GetContactListFromUser(reqData.LoginName)
+func (s *Server) AddToContact(ctx context.Context, reqData *pb.OneStringRequest) (*pb.ResponseData, error) {
+	currentContacts, contactErr := s.H.GetContactListFromUser(reqData.Common.LoginName)
 	if contactErr != nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Parse contact of loginUser failed", utils.GetFuncName(), contactErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Parse contact of loginUser failed", utils.GetFuncName(), contactErr)
 	}
-	targetNameAny, targetNameExist := reqData.DataMap["targetName"]
-	if !targetNameExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Param failed. Please try again!", utils.GetFuncName(), nil)
+	targetName := reqData.Data
+	if utils.IsEmpty(targetName) {
+		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
-	targetName := targetNameAny.(string)
 	//check receiveruser exist on contact
 	isExist := utils.CheckUserExistOnContactList(targetName, currentContacts)
 	if !isExist {
@@ -562,79 +532,64 @@ func (s *Server) AddToContact(reqData *pb.RequestData) *pb.ResponseData {
 		})
 		jsonByte, err := json.Marshal(currentContacts)
 		if err != nil {
-			return pb.ResponseLoginError(reqData.LoginId, "Parse contacts failed", utils.GetFuncName(), err)
+			return ResponseLoginError(reqData.Common.LoginName, "Parse contacts failed", utils.GetFuncName(), err)
 		}
 		if err == nil {
 			contactStr := string(jsonByte)
-			updateErr := s.H.UpdateUserContacts(reqData.LoginName, contactStr)
+			updateErr := s.H.UpdateUserContacts(reqData.Common.LoginName, contactStr)
 			if updateErr != nil {
-				return pb.ResponseLoginError(reqData.LoginId, "Update user contacts failed", utils.GetFuncName(), updateErr)
+				return ResponseLoginError(reqData.Common.LoginName, "Update user contacts failed", utils.GetFuncName(), updateErr)
 			}
 		}
 	}
-	return pb.ResponseSuccessfullyWithAnyData(reqData.LoginId, "Update contacts successfully", utils.GetFuncName(), isExist)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Update contacts successfully", utils.GetFuncName(), isExist)
 }
 
-func (s *Server) TransferAmount(reqData *pb.RequestData) *pb.ResponseData {
-	currencyAny, currencyExist := reqData.DataMap["currency"]
-	amountAny, amountExist := reqData.DataMap["amount"]
-	receiverAny, receiverExist := reqData.DataMap["receiver"]
-	receiverRoleAny, receiverRoleExist := reqData.DataMap["receiverRole"]
-	rateAny, rateExist := reqData.DataMap["rate"]
-	noteAny, noteExist := reqData.DataMap["note"]
-	sendByAny, sendByExist := reqData.DataMap["sendBy"]
-	addressAny, addressExist := reqData.DataMap["address"]
-
-	if !currencyExist || !amountExist || !receiverExist || !rateExist || !noteExist || !sendByExist || !addressExist {
-		return pb.ResponseLoginError(reqData.LoginId, "Param failed. Please try again!", utils.GetFuncName(), nil)
+func (s *Server) TransferAmount(ctx context.Context, reqData *pb.TransferAmountRequest) (*pb.ResponseData, error) {
+	currency := reqData.Currency
+	amountToSend := reqData.Amount
+	receiverUsername := reqData.Receiver
+	rateSend := reqData.Rate
+	note := reqData.Note
+	sendBy := reqData.SendBy
+	address := reqData.Address
+	receiverRole := reqData.ReceiverRole
+	if utils.IsEmpty(currency) || amountToSend == 0 || rateSend == 0 || utils.IsEmpty(sendBy) {
+		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
-
-	receiverRole := int(utils.RoleRegular)
-	if receiverRoleExist {
-		receiverRole = receiverRoleAny.(int)
-	}
-
-	currency := currencyAny.(string)
-	amountToSend := amountAny.(float64)
-	receiverUsername := receiverAny.(string)
-	rateSend := rateAny.(float64)
-	note := noteAny.(string)
-	sendBy := sendByAny.(string)
-	address := addressAny.(string)
-	tx := s.H.DB.Begin()
 	if currency == assets.USDWalletAsset.String() || (currency != assets.USDWalletAsset.String() && sendBy == "username") {
 		if utils.IsEmpty(receiverUsername) {
-			return pb.ResponseLoginError(reqData.LoginId, "Recipient information cannot be left blank. Please try again!", utils.GetFuncName(), nil)
+			return ResponseLoginError(reqData.Common.LoginName, "Recipient information cannot be left blank. Please try again!", utils.GetFuncName(), nil)
 		}
 	}
 	//if transfer is cryptocurrency
 	if utils.IsCryptoCurrency(currency) {
 		if sendBy == "urlcode" {
 			//if is urlcode, create new code and create data in DB
-			urlCodeErr := s.H.HanlderWithdrawWithUrlCode(reqData.LoginName, currency, amountToSend, note)
+			urlCodeErr := s.H.HanlderWithdrawWithUrlCode(reqData.Common.LoginName, currency, amountToSend, note)
 			if urlCodeErr != nil {
-				return pb.ResponseError(urlCodeErr.Error(), utils.GetFuncName(), urlCodeErr)
+				return ResponseError(urlCodeErr.Error(), utils.GetFuncName(), urlCodeErr)
 			} else {
-				return pb.ResponseSuccessfully(reqData.LoginId, "Create url code successfully", utils.GetFuncName())
+				return ResponseSuccessfully(reqData.Common.LoginName, "Create url code successfully", utils.GetFuncName())
 			}
 		}
 		//if sendBy address, check address
 		if sendBy == "address" {
 			if utils.IsEmpty(address) {
-				return pb.ResponseLoginError(reqData.LoginId, "Address param failed. Please try again!", utils.GetFuncName(), nil)
+				return ResponseLoginError(reqData.Common.LoginName, "Address param failed. Please try again!", utils.GetFuncName(), nil)
 			}
 			isSystemAddress := false
 			//check to address is of system address
 			addressObj, addrErr := s.H.GetAddress(address)
 			if addrErr != nil && addrErr != gorm.ErrRecordNotFound {
-				return pb.ResponseLoginError(reqData.LoginId, "DB error. Please try again!", utils.GetFuncName(), addrErr)
+				return ResponseLoginError(reqData.Common.LoginName, "DB error. Please try again!", utils.GetFuncName(), addrErr)
 			}
 			var existAsset *models.Asset
 			if addressObj != nil {
 				var assetErr error
 				existAsset, assetErr = s.H.GetAssetById(addressObj.AssetId)
 				if assetErr != nil && assetErr != gorm.ErrRecordNotFound {
-					return pb.ResponseLoginError(reqData.LoginId, "DB error. Please try again!", utils.GetFuncName(), assetErr)
+					return ResponseLoginError(reqData.Common.LoginName, "DB error. Please try again!", utils.GetFuncName(), assetErr)
 				}
 				//if exist user for address
 				if existAsset != nil {
@@ -642,11 +597,11 @@ func (s *Server) TransferAmount(reqData *pb.RequestData) *pb.ResponseData {
 				}
 			}
 			if !isSystemAddress {
-				_, btcHandlerErr := s.H.HandlerTransferOnchainCryptocurrency(reqData.LoginName, currency, address, amountToSend, rateSend, note)
+				_, btcHandlerErr := s.H.HandlerTransferOnchainCryptocurrency(reqData.Common.LoginName, currency, address, amountToSend, rateSend, note)
 				if btcHandlerErr != nil {
-					return pb.ResponseLoginError(reqData.LoginId, btcHandlerErr.Error(), utils.GetFuncName(), btcHandlerErr)
+					return ResponseLoginError(reqData.Common.LoginName, btcHandlerErr.Error(), utils.GetFuncName(), btcHandlerErr)
 				} else {
-					return pb.ResponseSuccessfully(reqData.LoginId, "Successfully performed transfer", utils.GetFuncName())
+					return ResponseSuccessfully(reqData.Common.LoginName, "Successfully performed transfer", utils.GetFuncName())
 				}
 			} else {
 				sendBy = "username"
@@ -657,13 +612,13 @@ func (s *Server) TransferAmount(reqData *pb.RequestData) *pb.ResponseData {
 
 	//get assets of sender
 	assetObj := assets.StringToAssetType(currency)
-	senderAsset, senderAssetErr := s.H.GetUserAsset(reqData.LoginName, currency)
+	senderAsset, senderAssetErr := s.H.GetUserAsset(reqData.Common.LoginName, currency)
 	if senderAssetErr != nil || senderAsset == nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Error getting Asset data from DB or sender asset does not exist. Please try again!", utils.GetFuncName(), nil)
+		return ResponseLoginError(reqData.Common.LoginName, "Error getting Asset data from DB or sender asset does not exist. Please try again!", utils.GetFuncName(), nil)
 	}
 	//if balance less than amount to send, return error
 	if senderAsset.Balance < amountToSend {
-		return pb.ResponseLoginError(reqData.LoginId, "Insufficient balance. Please check again or deposit more balance", utils.GetFuncName(), nil)
+		return ResponseLoginError(reqData.Common.LoginName, "Insufficient balance. Please check again or deposit more balance", utils.GetFuncName(), nil)
 	}
 	//Deduct money from balance and update local transfer total
 	senderAsset.Balance -= amountToSend
@@ -672,20 +627,22 @@ func (s *Server) TransferAmount(reqData *pb.RequestData) *pb.ResponseData {
 	//get assets of receiver
 	receiverAsset, receiverAssetErr := s.H.GetUserAsset(receiverUsername, currency)
 	if receiverAssetErr != nil {
-		return pb.ResponseLoginError(reqData.LoginId, "Retrieve recipient asset data failed. Please try again!", utils.GetFuncName(), receiverAssetErr)
+		return ResponseLoginError(reqData.Common.LoginName, "Retrieve recipient asset data failed. Please try again!", utils.GetFuncName(), receiverAssetErr)
 	}
 	//update sender asset
+	tx := s.H.DB.Begin()
 	senderAssetUpdateErr := tx.Save(senderAsset).Error
 	if senderAssetUpdateErr != nil {
-		return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Update Sender failed. Please try again!", utils.GetFuncName(), senderAssetUpdateErr)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Update Sender failed. Please try again!", utils.GetFuncName(), senderAssetUpdateErr)
 	}
 	receiverAssetCreate := receiverAsset == nil
 
 	//if receiver create asset
 	if receiverAssetCreate {
-		_, newReceiverAsset, newErr := s.H.CreateNewAddressForAsset(receiverUsername, utils.IsSuperAdmin(receiverRole), assetObj)
+		_, newReceiverAsset, newErr := s.H.CreateNewAddressForAsset(receiverUsername, utils.IsSuperAdmin(int(receiverRole)), assetObj)
 		if newErr != nil {
-			return pb.ResponseLoginError(reqData.LoginId, "Create new asset and address failed. Please check again!", utils.GetFuncName(), newErr)
+			tx.Rollback()
+			return ResponseLoginError(reqData.Common.LoginName, "Create new asset and address failed. Please check again!", utils.GetFuncName(), newErr)
 		}
 		newReceiverAsset.Balance = amountToSend
 		newReceiverAsset.LocalReceived = amountToSend
@@ -693,7 +650,7 @@ func (s *Server) TransferAmount(reqData *pb.RequestData) *pb.ResponseData {
 
 		receiverAssetUpdateErr := tx.Save(newReceiverAsset).Error
 		if receiverAssetUpdateErr != nil {
-			return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Update balance for asset failed. Please check again!", utils.GetFuncName(), receiverAssetUpdateErr)
+			return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Update balance for asset failed. Please check again!", utils.GetFuncName(), receiverAssetUpdateErr)
 		}
 	} else {
 		//update receiver asset
@@ -701,13 +658,13 @@ func (s *Server) TransferAmount(reqData *pb.RequestData) *pb.ResponseData {
 		receiverAsset.LocalReceived += amountToSend
 		receiverAssetUpdateErr := tx.Save(receiverAsset).Error
 		if receiverAssetUpdateErr != nil {
-			return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Update recipient assets failed. Please try again!", utils.GetFuncName(), receiverAssetUpdateErr)
+			return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Update recipient assets failed. Please try again!", utils.GetFuncName(), receiverAssetUpdateErr)
 		}
 	}
 
 	//insert to transaction history
 	txHistory := models.TxHistory{}
-	txHistory.Sender = reqData.LoginName
+	txHistory.Sender = reqData.Common.LoginName
 	txHistory.Receiver = receiverUsername
 	txHistory.Currency = currency
 	txHistory.Amount = amountToSend
@@ -719,8 +676,8 @@ func (s *Server) TransferAmount(reqData *pb.RequestData) *pb.ResponseData {
 
 	HistoryErr := tx.Create(&txHistory).Error
 	if HistoryErr != nil {
-		return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Recorded history is corrupted. Please check your balance again!", utils.GetFuncName(), HistoryErr)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Recorded history is corrupted. Please check your balance again!", utils.GetFuncName(), HistoryErr)
 	}
 	tx.Commit()
-	return pb.ResponseSuccessfully(reqData.LoginId, "Money transfer successful", utils.GetFuncName())
+	return ResponseSuccessfully(reqData.Common.LoginName, "Money transfer successful", utils.GetFuncName())
 }

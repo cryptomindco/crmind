@@ -105,7 +105,7 @@ func (gs *GlobalHandler) SyncTransactionConfirmed() {
 			if txErr != nil {
 				continue
 			}
-			tx := gs.Server.H.DB
+			tx := gs.Server.H.DB.Begin()
 			//browse txHistory and update confimed status
 			for _, txHistory := range txHistoryList {
 				if txHistory.Confirmed || utils.IsEmpty(txHistory.Txid) {

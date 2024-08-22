@@ -3,7 +3,9 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
+	"net/http"
 	"runtime"
 )
 
@@ -57,4 +59,15 @@ func ConvertToJsonString(value any) (string, error) {
 		return "", err
 	}
 	return string(outputBytes), nil
+}
+
+func ConvertBodyJsonToRequest(bodyJson string) (*http.Request, error) {
+	request := http.Request{}
+	var body io.ReadCloser
+	parseErr := json.Unmarshal([]byte(bodyJson), &body)
+	if parseErr != nil {
+		return nil, fmt.Errorf("parse Request body failed")
+	}
+	request.Body = body
+	return &request, nil
 }

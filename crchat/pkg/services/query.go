@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"crchat/pkg/db"
 	"crchat/pkg/models"
 	"crchat/pkg/pb"
@@ -16,19 +17,17 @@ type Server struct {
 	pb.UnimplementedChatServiceServer
 }
 
-func (s *Server) UpdateUnreadForChat(reqData *pb.RequestData) *pb.ResponseData {
-	chatIDAny, isExist := reqData.DataMap["chatId"]
-	userIDAny, userIdExist := reqData.DataMap["userId"]
-	if !isExist || !userIdExist {
-		return pb.ResponseError("Param not found", utils.GetFuncName(), nil)
+func (s *Server) UpdateUnreadForChat(ctx context.Context, reqData *pb.UpdateUnreadForChatRequest) (*pb.ResponseData, error) {
+	chatId := reqData.ChatId
+	userName := reqData.UserName
+	if chatId < 1 || utils.IsEmpty(userName) {
+		return ResponseLoginError(reqData.Common.LoginName, "Param not found", utils.GetFuncName(), nil)
 	}
-	chatId := chatIDAny.(int64)
-	userId := userIDAny.(int64)
 	//get all chat content with chat Id and exclude loginUser
 	chatContentList := make([]models.ChatContent, 0)
-	listErr := s.H.DB.Where("chat_id = ? AND user_id <> ?", chatId, userId).Find(&chatContentList).Error
+	listErr := s.H.DB.Where("chat_id = ? AND user_name <> ?", chatId, userName).Find(&chatContentList).Error
 	if listErr != nil {
-		return pb.ResponseError("Get chat content list to update unread count failed!", utils.GetFuncName(), nil)
+		return ResponseLoginError(reqData.Common.LoginName, "Get chat content list to update unread count failed!", utils.GetFuncName(), nil)
 	}
 	//create tx
 	tx := s.H.DB.Begin()
@@ -38,19 +37,18 @@ func (s *Server) UpdateUnreadForChat(reqData *pb.RequestData) *pb.ResponseData {
 		err := tx.Save(&chatContent).Error
 		if err != nil {
 			tx.Rollback()
-			return pb.ResponseError("Update seen for chat content failed", utils.GetFuncName(), err)
+			return ResponseLoginError(reqData.Common.LoginName, "Update seen for chat content failed", utils.GetFuncName(), err)
 		}
 	}
 	tx.Commit()
-	return pb.ResponseSuccessfully(0, "Update seen for chat contents successfully", utils.GetFuncName())
+	return ResponseSuccessfully(reqData.Common.LoginName, "Update seen for chat contents successfully", utils.GetFuncName())
 }
 
-func (s *Server) DeleteChat(reqData *pb.RequestData) *pb.ResponseData {
-	chatIDAny, isExist := reqData.DataMap["chatId"]
-	if !isExist {
-		return pb.ResponseError("Chat ID param not found", utils.GetFuncName(), nil)
+func (s *Server) DeleteChat(ctx context.Context, reqData *pb.DeleteChatRequest) (*pb.ResponseData, error) {
+	chatId := reqData.ChatId
+	if chatId < 1 {
+		return ResponseLoginError(reqData.Common.LoginName, "Chat ID param not found", utils.GetFuncName(), nil)
 	}
-	chatId := chatIDAny.(int64)
 	//create tx
 	tx := s.H.DB.Begin()
 	delQuery := fmt.Sprintf("DELETE FROM chat_content WHERE chat_id = %d", chatId)
@@ -58,7 +56,7 @@ func (s *Server) DeleteChat(reqData *pb.RequestData) *pb.ResponseData {
 	err := tx.Exec(delQuery).Error
 	if err != nil {
 		tx.Rollback()
-		return pb.ResponseError("Delete chat content failed. Please try again!", utils.GetFuncName(), err)
+		return ResponseLoginError(reqData.Common.LoginName, "Delete chat content failed. Please try again!", utils.GetFuncName(), err)
 	}
 
 	//delete chat msg
@@ -67,31 +65,26 @@ func (s *Server) DeleteChat(reqData *pb.RequestData) *pb.ResponseData {
 	err = tx.Exec(delQuery).Error
 	if err != nil {
 		tx.Rollback()
-		return pb.ResponseError("Delete chat msg failed. Please try again!", utils.GetFuncName(), err)
+		return ResponseLoginError(reqData.Common.LoginName, "Delete chat msg failed. Please try again!", utils.GetFuncName(), err)
 	}
 	tx.Commit()
-	return pb.ResponseSuccessfully(0, "Delete chat successfully!", utils.GetFuncName())
+	return ResponseSuccessfully(reqData.Common.LoginName, "Delete chat successfully!", utils.GetFuncName())
 }
 
-func (s *Server) CheckAndCreateChat(reqData *pb.RequestData) *pb.ResponseData {
-	toIDAny, toIdExist := reqData.DataMap["toId"]
-	toNameAny, toNameExist := reqData.DataMap["toName"]
-	if !toIdExist || !toNameExist || reqData.LoginId < 1 || utils.IsEmpty(reqData.LoginName) {
-		return pb.ResponseError("Param not found", utils.GetFuncName(), nil)
+func (s *Server) CheckAndCreateChat(ctx context.Context, reqData *pb.CheckAndCreateChatRequest) (*pb.ResponseData, error) {
+	toName := reqData.ToName
+	if utils.IsEmpty(toName) {
+		return ResponseLoginError(reqData.Common.LoginName, "Param not found", utils.GetFuncName(), nil)
 	}
-	toId := toIDAny.(int64)
-	toName := toNameAny.(string)
 	//check if exist chat conversion
-	chatExist, err := s.H.CheckExistChat(reqData.LoginId, toId)
+	chatExist, err := s.H.CheckExistChat(reqData.Common.LoginName, toName)
 	if err != nil {
-		return pb.ResponseError("Check chat exist failed", utils.GetFuncName(), err)
+		return ResponseLoginError(reqData.Common.LoginName, "Check chat exist failed", utils.GetFuncName(), err)
 	}
 	if err == nil && !chatExist {
 		//Create new chat
 		newChatMsg := &models.ChatMsg{
-			FromId:   reqData.LoginId,
-			FromName: reqData.LoginName,
-			ToId:     toId,
+			FromName: reqData.Common.LoginName,
 			ToName:   toName,
 			Createdt: time.Now().Unix(),
 			Updatedt: time.Now().Unix(),
@@ -100,56 +93,50 @@ func (s *Server) CheckAndCreateChat(reqData *pb.RequestData) *pb.ResponseData {
 		//insert new ChatMsg
 		chatInsertErr := tx.Create(newChatMsg).Error
 		if chatInsertErr != nil {
-			return pb.ResponseError("Create new chat failed", utils.GetFuncName(), chatInsertErr)
+			tx.Rollback()
+			return ResponseLoginError(reqData.Common.LoginName, "Create new chat failed", utils.GetFuncName(), chatInsertErr)
 		} else {
 			helloChat := &models.ChatContent{
 				ChatId:   newChatMsg.Id,
-				UserId:   reqData.LoginId,
-				UserName: reqData.LoginName,
-				Content:  fmt.Sprintf("%s has added %s to contacts. Start chatting now", reqData.LoginName, toName),
+				UserName: reqData.Common.LoginName,
+				Content:  fmt.Sprintf("%s has added %s to contacts. Start chatting now", reqData.Common.LoginName, toName),
 				IsHello:  true,
 				Createdt: time.Now().Unix(),
 			}
 			//insert to chat content
 			err := tx.Create(helloChat).Error
 			if err != nil {
-				return pb.ResponseError("Create hello chat content failed", utils.GetFuncName(), err)
+				tx.Rollback()
+				return ResponseLoginError(reqData.Common.LoginName, "Create hello chat content failed", utils.GetFuncName(), err)
 			}
 		}
+		tx.Commit()
 	}
-	return pb.ResponseSuccessfully(0, "Create hello chat successfully", utils.GetFuncName())
+	return ResponseSuccessfully(reqData.Common.LoginName, "Create hello chat successfully", utils.GetFuncName())
 }
 
-func (s *Server) SendChatMessage(reqData *pb.RequestData) *pb.ResponseData {
-	chatIdAny, chatIdExist := reqData.DataMap["chatId"]
-	fromNameAny, fromNameExist := reqData.DataMap["fromName"]
-	fromIdAny, fromIdExist := reqData.DataMap["fromId"]
-	toNameAny, toNameExist := reqData.DataMap["toName"]
-	toIdAny, toIdExist := reqData.DataMap["toId"]
-	newMsgAny, newMsgExist := reqData.DataMap["newMsg"]
-	if !chatIdExist || !fromNameExist || !fromIdExist || !toNameExist || !toIdExist || !newMsgExist || reqData.LoginId < 1 || utils.IsEmpty(reqData.LoginName) {
-		return pb.ResponseError("Param not found", utils.GetFuncName(), nil)
+func (s *Server) SendChatMessage(ctx context.Context, reqData *pb.SendChatMessageRequest) (*pb.ResponseData, error) {
+	chatId := reqData.ChatId
+	fromName := reqData.FromName
+	toName := reqData.ToName
+	newMsg := reqData.NewMsg
+	if chatId < 1 || utils.IsEmpty(fromName) || utils.IsEmpty(toName) || utils.IsEmpty(newMsg) {
+		return ResponseError("Param failed", utils.GetFuncName(), nil)
 	}
-	chatId := chatIdAny.(int64)
-	fromName := fromNameAny.(string)
-	fromId := fromIdAny.(int64)
-	toName := toNameAny.(string)
-	toId := toIdAny.(int64)
-	newMsg := newMsgAny.(string)
 
-	if reqData.LoginId != fromId && reqData.LoginId != toId {
-		return pb.ResponseLoginError(reqData.LoginId, "Don't have access to this feature", utils.GetFuncName(), nil)
+	if reqData.Common.LoginName != fromName && reqData.Common.LoginName != toName {
+		return ResponseLoginError(reqData.Common.LoginName, "Don't have access to this feature", utils.GetFuncName(), nil)
 	}
-	//create tx
-	tx := s.H.DB.Begin()
 	var chatMsgId int64
 	var newChatMsg *models.ChatMsg
 	var otherName string
-	if reqData.LoginName == fromName {
+	if reqData.Common.LoginName == fromName {
 		otherName = toName
-	} else if reqData.LoginName == toName {
+	} else if reqData.Common.LoginName == toName {
 		otherName = fromName
 	}
+	//create tx
+	tx := s.H.DB.Begin()
 	//if chat ID is empty, create new msg
 	if chatId <= 0 {
 		//check msg object Exist on DB
@@ -157,7 +144,8 @@ func (s *Server) SendChatMessage(reqData *pb.RequestData) *pb.ResponseData {
 		queryBuilder := fmt.Sprintf("SELECT * FROM chat_msg WHERE (from_name = '%s' AND to_name = '%s') OR (from_name= '%s' AND to_name = '%s')", fromName, toName, toName, fromName)
 		getChatMsgErr := s.H.DB.Raw(queryBuilder).Scan(&chatMsg).Error
 		if getChatMsgErr != nil && getChatMsgErr != gorm.ErrRecordNotFound {
-			return pb.ResponseLoginError(reqData.LoginId, "Check chat msg from DB failed", utils.GetFuncName(), getChatMsgErr)
+			tx.Rollback()
+			return ResponseLoginError(reqData.Common.LoginName, "Check chat msg from DB failed", utils.GetFuncName(), getChatMsgErr)
 		}
 		//if exist
 		if getChatMsgErr != gorm.ErrRecordNotFound {
@@ -166,9 +154,7 @@ func (s *Server) SendChatMessage(reqData *pb.RequestData) *pb.ResponseData {
 		} else {
 			//create new
 			newChatMsg = &models.ChatMsg{
-				FromId:   fromId,
 				FromName: fromName,
-				ToId:     toId,
 				ToName:   toName,
 				Createdt: time.Now().Unix(),
 				Updatedt: time.Now().Unix(),
@@ -176,7 +162,7 @@ func (s *Server) SendChatMessage(reqData *pb.RequestData) *pb.ResponseData {
 			var newErr error
 			newErr = tx.Create(newChatMsg).Error
 			if newErr != nil {
-				return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Create new chat message failed. Please try again!", utils.GetFuncName(), newErr)
+				return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Create new chat message failed. Please try again!", utils.GetFuncName(), newErr)
 			}
 		}
 	} else {
@@ -186,15 +172,14 @@ func (s *Server) SendChatMessage(reqData *pb.RequestData) *pb.ResponseData {
 	//insert new Msg content
 	newContent := &models.ChatContent{
 		ChatId:   chatMsgId,
-		UserId:   reqData.LoginId,
-		UserName: reqData.LoginName,
+		UserName: reqData.Common.LoginName,
 		Content:  newMsg,
 		Createdt: time.Now().Unix(),
 	}
 	//insert
 	newContentErr := tx.Create(newContent).Error
 	if newContentErr != nil {
-		return pb.ResponseLoginRollbackError(reqData.LoginId, tx, "Create new message failed. Please try again!", utils.GetFuncName(), newContentErr)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Create new message failed. Please try again!", utils.GetFuncName(), newContentErr)
 	}
 	tx.Commit()
 	var newMsgObject models.ChatDisplay
@@ -215,31 +200,27 @@ func (s *Server) SendChatMessage(reqData *pb.RequestData) *pb.ResponseData {
 		NewMsg:     newMsgObject,
 		NewContent: *newContent,
 	}
-	return pb.ResponseSuccessfullyWithAnyData(reqData.LoginId, "Send message successfully", utils.GetFuncName(), resultObject)
-}
-func (s *Server) CheckChatExist(reqData *pb.RequestData) *pb.ResponseData {
-	fromIdAny, toIdExist := reqData.DataMap["fromId"]
-	toIdAny, toIdExist := reqData.DataMap["toId"]
-	if !toIdExist || !toIdExist || reqData.LoginId < 1 || utils.IsEmpty(reqData.LoginName) {
-		return pb.ResponseError("Param not found", utils.GetFuncName(), nil)
-	}
-	fromId := fromIdAny.(int64)
-	toId := toIdAny.(int64)
-	if reqData.LoginId != fromId && reqData.LoginId != toId {
-		return pb.ResponseError("No permission for this feature", utils.GetFuncName(), fmt.Errorf("No permission for this feature"))
-	}
-	exist, err := s.H.CheckExistChat(fromId, toId)
-	if err != nil {
-		return pb.ResponseError("Check chat exist failed", utils.GetFuncName(), err)
-	}
-	return pb.ResponseSuccessfullyWithAnyData(reqData.LoginId, "Check chat exist successfully", utils.GetFuncName(), exist)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Send message successfully", utils.GetFuncName(), resultObject)
 }
 
-func (s *Server) GetChatMsgDisplayList(reqData *pb.RequestData) *pb.ResponseData {
-	if reqData.LoginId < 1 {
-		return pb.ResponseError("Get login Id failed", utils.GetFuncName(), fmt.Errorf("Get login Id failed"))
+func (s *Server) CheckChatExist(ctx context.Context, reqData *pb.CheckChatExistRequest) (*pb.ResponseData, error) {
+	fromName := reqData.FromName
+	toName := reqData.ToName
+	if utils.IsEmpty(fromName) || utils.IsEmpty(toName) {
+		return ResponseLoginError(reqData.Common.LoginName, "Param not found", utils.GetFuncName(), nil)
 	}
-	chatMsgList, _ := s.H.GetChatMsgList(reqData.LoginId)
+	if reqData.Common.LoginName != fromName && reqData.Common.LoginName != toName {
+		return ResponseLoginError(reqData.Common.LoginName, "No permission for this feature", utils.GetFuncName(), fmt.Errorf("No permission for this feature"))
+	}
+	exist, err := s.H.CheckExistChat(fromName, toName)
+	if err != nil {
+		return ResponseLoginError(reqData.Common.LoginName, "Check chat exist failed", utils.GetFuncName(), err)
+	}
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check chat exist successfully", utils.GetFuncName(), exist)
+}
+
+func (s *Server) GetChatMsgDisplayList(ctx context.Context, reqData *pb.CommonRequest) (*pb.ResponseData, error) {
+	chatMsgList, _ := s.H.GetChatMsgList(reqData.LoginName)
 	result := make([]*models.ChatDisplay, 0)
 	for _, chatMsg := range chatMsgList {
 		chatDisplay := &models.ChatDisplay{
@@ -249,14 +230,14 @@ func (s *Server) GetChatMsgDisplayList(reqData *pb.RequestData) *pb.ResponseData
 		if len(chatContentList) > 0 {
 			chatDisplay.LastContent = *chatContentList[len(chatContentList)-1]
 		}
-		if chatMsg.FromId == reqData.LoginId {
+		if chatMsg.FromName == reqData.LoginName {
 			chatDisplay.TargetUser = chatMsg.ToName
 		} else {
 			chatDisplay.TargetUser = chatMsg.FromName
 		}
 		chatDisplay.ChatContentList = chatContentList
 		chatDisplay.HasContent = len(chatContentList) > 0
-		chatDisplay.UnreadNum = s.H.GetUnreadChatContentNumber(reqData.LoginId, chatMsg.Id)
+		chatDisplay.UnreadNum = s.H.GetUnreadChatContentNumber(reqData.LoginName, chatMsg.Id)
 		result = append(result, chatDisplay)
 	}
 	//get unread chat count
@@ -265,7 +246,7 @@ func (s *Server) GetChatMsgDisplayList(reqData *pb.RequestData) *pb.ResponseData
 		UnreadCount int                   `json:"unreadCount"`
 	}{
 		ChatList:    result,
-		UnreadCount: s.H.GetUnreadChatCount(reqData.LoginId),
+		UnreadCount: s.H.GetUnreadChatCount(reqData.LoginName),
 	}
-	return pb.ResponseSuccessfullyWithAnyData(reqData.LoginId, "Get msg display list successfully", utils.GetFuncName(), responseData)
+	return ResponseSuccessfullyWithAnyData(reqData.LoginName, "Get msg display list successfully", utils.GetFuncName(), responseData)
 }

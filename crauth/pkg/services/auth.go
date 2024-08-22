@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"crauth/pkg/db"
 	"crauth/pkg/logpack"
 	"crauth/pkg/models"
@@ -20,26 +21,24 @@ type Server struct {
 	pb.UnimplementedAuthServiceServer
 }
 
-func (s *Server) BeginRegistration(reqData *pb.RequestData) *pb.ResponseData {
+func (s *Server) BeginRegistration(ctx context.Context, reqData *pb.WithUsernameRequest) (*pb.ResponseData, error) {
 	logpack.Info("begin registration ----------------------", utils.GetFuncName())
-	usernameAny, paramExist := reqData.DataMap["username"]
-	if !paramExist {
-		return pb.ResponseError("Username param not found", utils.GetFuncName(), nil)
+	username := reqData.Username
+	if utils.IsEmpty(username) {
+		return ResponseError("Username param not found", utils.GetFuncName(), nil)
 	}
-	username := usernameAny.(string)
-
 	var userObj models.User
 	if utils.IsEmpty(username) {
-		return pb.ResponseError("Username param failed", utils.GetFuncName(), nil)
+		return ResponseError("Username param failed", utils.GetFuncName(), nil)
 	}
 	if result := s.H.DB.Where(&models.User{Username: username}).First(&userObj); result.Error == nil {
-		return pb.ResponseError("Username already exists", utils.GetFuncName(), nil)
+		return ResponseError("Username already exists", utils.GetFuncName(), nil)
 	}
 
 	//check if user exist in inmem
 	exist := passkey.Datastore.CheckExistUser(username)
 	if exist {
-		return pb.ResponseError("User has been registered on passkey manager", utils.GetFuncName(), nil)
+		return ResponseError("User has been registered on passkey manager", utils.GetFuncName(), nil)
 	}
 
 	user := passkey.Datastore.GetUser(username) // Find or create the new user
@@ -47,43 +46,37 @@ func (s *Server) BeginRegistration(reqData *pb.RequestData) *pb.ResponseData {
 	options, session, err := passkey.WebAuthn.BeginRegistration(user)
 	if err != nil {
 		passkey.Datastore.RemoveUser(username)
-		return pb.ResponseError("can't begin registration", utils.GetFuncName(), nil)
+		return ResponseError("can't begin registration", utils.GetFuncName(), nil)
 	}
 	t := uuid.New().String()
 	passkey.Datastore.SaveSession(t, *session)
 	response := make(map[string]any)
 	response["options"] = options
 	response["sessionkey"] = t
-	return pb.ResponseSuccessfullyWithAnyData(0, "Begin registration successfully", utils.GetFuncName(), response)
+	return ResponseSuccessfullyWithAnyData("", "Begin registration successfully", utils.GetFuncName(), response)
 }
 
-func (s *Server) CancelRegister(reqData *pb.RequestData) *pb.ResponseData {
-	sesKey, isExist := reqData.DataMap["sessionKey"]
-	if !isExist {
-		return pb.ResponseError("Session key param not found", utils.GetFuncName(), nil)
-	}
-	sessionKey := sesKey.(string)
+func (s *Server) CancelRegister(ctx context.Context, reqData *pb.CancelRegisterRequest) (*pb.ResponseData, error) {
+	sessionKey := reqData.SessionKey
 	if utils.IsEmpty(sessionKey) {
-		return pb.ResponseError("Session key is empty", utils.GetFuncName(), nil)
+		return ResponseError("Session key is empty", utils.GetFuncName(), nil)
 	}
 	// Get the session data stored from the function above
 	session := passkey.Datastore.GetSession(sessionKey) // FIXME: cover invalid session
 	//remove user by session
 	passkey.Datastore.RemoveUser(string(session.UserID))
-	return pb.ResponseSuccessfully(0, "Remove session user successfully", utils.GetFuncName())
+	return ResponseSuccessfully("", "Remove session user successfully", utils.GetFuncName())
 }
 
-func (s *Server) FinishUpdatePasskey(reqData *pb.RequestData) *pb.ResponseData {
-	sesKeyAny, sesExist := reqData.DataMap["sessionKey"]
-	isResetAny, isResetExist := reqData.DataMap["isResetKey"]
-	if !sesExist || !isResetExist {
-		return pb.ResponseError("Param failed. Please try again", utils.GetFuncName(), nil)
+func (s *Server) FinishUpdatePasskey(ctx context.Context, reqData *pb.FinishUpdatePasskeyRequest) (*pb.ResponseData, error) {
+	sessionKey := reqData.SessionKey
+	isResetKey := reqData.IsReset
+	if utils.IsEmpty(sessionKey) {
+		return ResponseError("Param failed. Please try again", utils.GetFuncName(), nil)
 	}
-	sessionKey := sesKeyAny.(string)
-	isResetKey := isResetAny.(bool)
-	loginUser, check := s.Jwt.HanlderCheckLogin(reqData.AuthToken)
+	loginUser, check := s.Jwt.HanlderCheckLogin(reqData.Common.AuthToken)
 	if !check {
-		return pb.ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
+		return ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
 	}
 	// Get the session data stored from the function above
 	session := passkey.Datastore.GetSession(sessionKey) // FIXME: cover invalid session
@@ -92,12 +85,20 @@ func (s *Server) FinishUpdatePasskey(reqData *pb.RequestData) *pb.ResponseData {
 	user := passkey.Datastore.GetUser(string(session.UserID)) // Get the user
 	username := user.WebAuthnName()
 	if username != loginUser.Username {
-		return pb.ResponseError("Username does not match", utils.GetFuncName(), nil)
+		return ResponseLoginError(loginUser.Username, "Username does not match", utils.GetFuncName(), nil)
+	}
+	//init request data
+	if reqData.Request == nil || utils.IsEmpty(reqData.Request.BodyJson) {
+		return ResponseLoginError(loginUser.Username, "Request body failed", utils.GetFuncName(), nil)
 	}
 
-	credential, err := passkey.WebAuthn.FinishRegistration(user, session, &reqData.Request)
+	request, parseRequestErr := utils.ConvertBodyJsonToRequest(reqData.Request.BodyJson)
+	if parseRequestErr != nil {
+		return ResponseLoginError(loginUser.Username, parseRequestErr.Error(), utils.GetFuncName(), parseRequestErr)
+	}
+	credential, err := passkey.WebAuthn.FinishRegistration(user, session, request)
 	if err != nil {
-		return pb.ResponseError("can't finish registration", utils.GetFuncName(), err)
+		return ResponseLoginError(loginUser.Username, "can't finish registration", utils.GetFuncName(), err)
 	}
 	// If creation was successful, store the credential object
 	//replace current key with new credential
@@ -113,7 +114,7 @@ func (s *Server) FinishUpdatePasskey(reqData *pb.RequestData) *pb.ResponseData {
 	//get user from db
 	updateUser, upUserErr := s.H.GetUserByUsername(loginUser.Username)
 	if upUserErr != nil {
-		return pb.ResponseError("Get update user failed", utils.GetFuncName(), upUserErr)
+		return ResponseLoginError(loginUser.Username, "Get update user failed", utils.GetFuncName(), upUserErr)
 	}
 	tx := s.H.DB.Begin()
 	updateUser.CredsArrJson = user.GetUserCredsJson()
@@ -121,27 +122,26 @@ func (s *Server) FinishUpdatePasskey(reqData *pb.RequestData) *pb.ResponseData {
 	err2 := tx.Save(updateUser).Error
 	if err2 != nil {
 		tx.Rollback()
-		return pb.ResponseError("Update user auth failed", utils.GetFuncName(), err2)
+		return ResponseLoginError(loginUser.Username, "Update user auth failed", utils.GetFuncName(), err2)
 	}
 	tx.Commit()
 	//Login after registration
 	tokenString, authClaim, err := s.Jwt.CreateAuthClaimSession(updateUser)
 	if err != nil {
-		return pb.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+		return ResponseLoginError(loginUser.Username, "Creating login session token failed", utils.GetFuncName(), err)
 	}
 	loginResponse := map[string]any{
 		"token": tokenString,
 		"user":  *authClaim,
 	}
-	return pb.ResponseSuccessfullyWithAnyData(0, "Update user passkey successfully", utils.GetFuncName(), loginResponse)
+	return ResponseSuccessfullyWithAnyData(loginUser.Username, "Update user passkey successfully", utils.GetFuncName(), loginResponse)
 }
 
-func (s *Server) FinishRegistration(reqData *pb.RequestData) *pb.ResponseData {
-	sesKeyAny, sesExist := reqData.DataMap["sessionKey"]
-	if !sesExist {
-		return pb.ResponseError("Session key param not found", utils.GetFuncName(), nil)
+func (s *Server) FinishRegistration(ctx context.Context, reqData *pb.SessionKeyAndHttpRequest) (*pb.ResponseData, error) {
+	sessionKey := reqData.SessionKey
+	if utils.IsEmpty(sessionKey) {
+		return ResponseError("Session key param not found", utils.GetFuncName(), nil)
 	}
-	sessionKey := sesKeyAny.(string)
 	// Get the session data stored from the function above
 	session := passkey.Datastore.GetSession(sessionKey) // FIXME: cover invalid session
 
@@ -151,16 +151,19 @@ func (s *Server) FinishRegistration(reqData *pb.RequestData) *pb.ResponseData {
 	//check username exist on DB again
 	userExist, existErr := s.H.CheckUserExist(username)
 	if existErr != nil {
-		return pb.ResponseError("Check exist username on DB failed", utils.GetFuncName(), existErr)
+		return ResponseError("Check exist username on DB failed", utils.GetFuncName(), existErr)
 	}
 
 	if userExist {
-		return pb.ResponseError("Username already exists. Unable to register", utils.GetFuncName(), nil)
+		return ResponseError("Username already exists. Unable to register", utils.GetFuncName(), nil)
 	}
-
-	credential, err := passkey.WebAuthn.FinishRegistration(user, session, &reqData.Request)
+	request, parseRequestErr := utils.ConvertBodyJsonToRequest(reqData.Request.BodyJson)
+	if parseRequestErr != nil {
+		return ResponseError(parseRequestErr.Error(), utils.GetFuncName(), parseRequestErr)
+	}
+	credential, err := passkey.WebAuthn.FinishRegistration(user, session, request)
 	if err != nil {
-		return pb.ResponseError("can't finish registration", utils.GetFuncName(), err)
+		return ResponseError("can't finish registration", utils.GetFuncName(), err)
 	}
 	// If creation was successful, store the credential object
 	user.AddCredential(credential)
@@ -182,25 +185,25 @@ func (s *Server) FinishRegistration(reqData *pb.RequestData) *pb.ResponseData {
 	err2 := tx.Create(&insertUser).Error
 	if err2 != nil {
 		tx.Rollback()
-		return pb.ResponseError("User creation error. Try again!", utils.GetFuncName(), err2)
+		return ResponseError("User creation error. Try again!", utils.GetFuncName(), err2)
 	}
 	tx.Commit()
 	//Login after registration
 	tokenString, authClaim, err := s.Jwt.CreateAuthClaimSession(&insertUser)
 	if err != nil {
-		return pb.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+		return ResponseError("Creating login session token failed", utils.GetFuncName(), err)
 	}
 	loginResponse := map[string]any{
 		"token": tokenString,
 		"user":  *authClaim,
 	}
-	return pb.ResponseSuccessfullyWithAnyData(0, "Finish registration successfully", utils.GetFuncName(), loginResponse)
+	return ResponseSuccessfullyWithAnyData("", "Finish registration successfully", utils.GetFuncName(), loginResponse)
 }
 
-func (s *Server) AssertionOptions() *pb.ResponseData {
+func (s *Server) AssertionOptions(ctx context.Context, reqData *pb.CommonRequest) (*pb.ResponseData, error) {
 	options, sessionData, err := passkey.WebAuthn.BeginDiscoverableLogin()
 	if err != nil {
-		return pb.ResponseError(err.Error(), utils.GetFuncName(), nil)
+		return ResponseError(err.Error(), utils.GetFuncName(), nil)
 	}
 	t := uuid.New().String()
 	passkey.Datastore.SaveSession(t, *sessionData)
@@ -208,20 +211,23 @@ func (s *Server) AssertionOptions() *pb.ResponseData {
 	response["options"] = options
 	response["sessionkey"] = t
 	response["hasUser"] = passkey.Datastore.CheckHasUser()
-	return pb.ResponseSuccessfullyWithAnyData(0, "Begin registration successfully", utils.GetFuncName(), response)
+	return ResponseSuccessfullyWithAnyData("", "Begin registration successfully", utils.GetFuncName(), response)
 }
 
-func (s *Server) AssertionResult(reqData *pb.RequestData) *pb.ResponseData {
-	sesKeyAny, sesExist := reqData.DataMap["sessionKey"]
-	if !sesExist {
-		return pb.ResponseError("Session key param not found", utils.GetFuncName(), nil)
+func (s *Server) AssertionResult(ctx context.Context, reqData *pb.SessionKeyAndHttpRequest) (*pb.ResponseData, error) {
+	sessionKey := reqData.SessionKey
+	if utils.IsEmpty(sessionKey) {
+		return ResponseError("Session key param not found", utils.GetFuncName(), nil)
 	}
-	sessionKey := sesKeyAny.(string)
 	// Get the session data stored from the function above
 	session := passkey.Datastore.GetSession(sessionKey) // FIXME: cover invalid session
 	//userKey
 	var passkeyUser passkey.PasskeyUser
 	var username string
+	request, parseRequestErr := utils.ConvertBodyJsonToRequest(reqData.Request.BodyJson)
+	if parseRequestErr != nil {
+		return ResponseError(parseRequestErr.Error(), utils.GetFuncName(), parseRequestErr)
+	}
 	credential, err := passkey.WebAuthn.FinishDiscoverableLogin(func(rawId []byte, userhandle []byte) (user webauthn.User, err error) {
 		// check userHandle
 		username = string(userhandle)
@@ -250,9 +256,9 @@ func (s *Server) AssertionResult(reqData *pb.RequestData) *pb.ResponseData {
 		tmpUser.SetCredential(passkeyUser.WebAuthnCredentials())
 		user = tmpUser
 		return
-	}, session, &reqData.Request)
+	}, session, request)
 	if err != nil {
-		return pb.ResponseError("Authentication failed. Login unsuccessful", utils.GetFuncName(), err)
+		return ResponseError("Authentication failed. Login unsuccessful", utils.GetFuncName(), err)
 	}
 	if credential.Authenticator.CloneWarning {
 		logpack.Warn("can't finish login", utils.GetFuncName())
@@ -263,7 +269,7 @@ func (s *Server) AssertionResult(reqData *pb.RequestData) *pb.ResponseData {
 	//get user from username
 	loginUser, err := s.H.GetUserByUsername(username)
 	if err != nil {
-		return pb.ResponseError(fmt.Sprintf("Get user from DB failed. Identifier: %s", passkeyUser.WebAuthnName()), utils.GetFuncName(), err)
+		return ResponseError(fmt.Sprintf("Get user from DB failed. Identifier: %s", passkeyUser.WebAuthnName()), utils.GetFuncName(), err)
 	}
 	loginUser.CredsArrJson = passkeyUser.GetUserCredsJson()
 	//update loginUser
@@ -272,35 +278,36 @@ func (s *Server) AssertionResult(reqData *pb.RequestData) *pb.ResponseData {
 	loginUser.LastLogindt = loginUser.Updatedt
 	updateErr := tx.Save(loginUser).Error
 	if updateErr != nil {
-		return pb.ResponseError("Update credential for login user failed", utils.GetFuncName(), updateErr)
+		tx.Rollback()
+		return ResponseError("Update credential for login user failed", utils.GetFuncName(), updateErr)
 	}
 	tx.Commit()
 	tokenString, authClaim, err := s.Jwt.CreateAuthClaimSession(loginUser)
 	if err != nil {
-		return pb.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+		return ResponseError("Creating login session token failed", utils.GetFuncName(), err)
 	}
 	loginResponse := map[string]any{
 		"token": tokenString,
 		"user":  *authClaim,
 	}
-	return pb.ResponseSuccessfullyWithAnyData(0, "Finish login by passkey successfully", utils.GetFuncName(), loginResponse)
+	return ResponseSuccessfullyWithAnyData("", "Finish login by passkey successfully", utils.GetFuncName(), loginResponse)
 }
 
-func (s *Server) BeginConfirmPasskey(reqData *pb.RequestData) *pb.ResponseData {
+func (s *Server) BeginConfirmPasskey(ctx context.Context, reqData *pb.CommonRequest) (*pb.ResponseData, error) {
 	loginUser, check := s.Jwt.HanlderCheckLogin(reqData.AuthToken)
 	if !check {
-		return pb.ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
+		return ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
 	}
 	logpack.Info(fmt.Sprintf("begin confirm passkey for user: %s"), utils.GetFuncName())
 	//check if user exist in inmem
 	exist := passkey.Datastore.CheckExistUser(loginUser.Username)
 	if !exist {
-		return pb.ResponseError("Username has not been registered on passkey data", utils.GetFuncName(), nil)
+		return ResponseError("Username has not been registered on passkey data", utils.GetFuncName(), nil)
 	}
 	user := passkey.Datastore.GetUser(loginUser.Username) // Find the user
 	options, session, err := passkey.WebAuthn.BeginLogin(user)
 	if err != nil {
-		return pb.ResponseError(err.Error(), utils.GetFuncName(), nil)
+		return ResponseError(err.Error(), utils.GetFuncName(), nil)
 	}
 
 	// Make a session key and store the sessionData values
@@ -310,18 +317,17 @@ func (s *Server) BeginConfirmPasskey(reqData *pb.RequestData) *pb.ResponseData {
 	response := make(map[string]any)
 	response["options"] = options
 	response["sessionkey"] = t
-	return pb.ResponseSuccessfullyWithAnyData(0, "Begin registration successfully", utils.GetFuncName(), response)
+	return ResponseSuccessfullyWithAnyData("", "Begin registration successfully", utils.GetFuncName(), response)
 }
 
-func (s *Server) FinishConfirmPasskey(req *pb.RequestData) *pb.ResponseData {
-	sesKeyAny, sesExist := req.DataMap["sessionKey"]
-	if !sesExist {
-		return pb.ResponseError("Session key param not found", utils.GetFuncName(), nil)
+func (s *Server) FinishConfirmPasskey(ctx context.Context, reqData *pb.SessionKeyAndHttpRequest) (*pb.ResponseData, error) {
+	sessionKey := reqData.SessionKey
+	if utils.IsEmpty(sessionKey) {
+		return ResponseError("Session key param not found", utils.GetFuncName(), nil)
 	}
-	sessionKey := sesKeyAny.(string)
-	loginUser, check := s.Jwt.HanlderCheckLogin(req.AuthToken)
+	loginUser, check := s.Jwt.HanlderCheckLogin(reqData.Common.AuthToken)
 	if !check {
-		return pb.ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
+		return ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
 	}
 	// Get the session key from the header
 	session := passkey.Datastore.GetSession(sessionKey) // FIXME: cover invalid session
@@ -331,12 +337,16 @@ func (s *Server) FinishConfirmPasskey(req *pb.RequestData) *pb.ResponseData {
 	//regist user to DB
 	username := user.WebAuthnName()
 	if username != loginUser.Username {
-		return pb.ResponseError("The authentication username information does not match", utils.GetFuncName(), nil)
+		return ResponseError("The authentication username information does not match", utils.GetFuncName(), nil)
 	}
-
-	credential, err := passkey.WebAuthn.FinishLogin(user, session, &req.Request)
+	//init request body
+	request, parseRequestErr := utils.ConvertBodyJsonToRequest(reqData.Request.BodyJson)
+	if parseRequestErr != nil {
+		return ResponseError(parseRequestErr.Error(), utils.GetFuncName(), parseRequestErr)
+	}
+	credential, err := passkey.WebAuthn.FinishLogin(user, session, request)
 	if err != nil {
-		return pb.ResponseError("can't finish confirm passkey", utils.GetFuncName(), err)
+		return ResponseError("can't finish confirm passkey", utils.GetFuncName(), err)
 	}
 
 	// Handle credential.Authenticator.CloneWarning
@@ -349,17 +359,15 @@ func (s *Server) FinishConfirmPasskey(req *pb.RequestData) *pb.ResponseData {
 	passkey.Datastore.SaveUser(user)
 	// Delete the session data
 	passkey.Datastore.DeleteSession(sessionKey)
-	return pb.ResponseSuccessfully(0, "Finish confirm passkey succefully", utils.GetFuncName())
+	return ResponseSuccessfully("", "Finish confirm passkey succefully", utils.GetFuncName())
 }
 
-func (s *Server) ChangeUsernameFinish(reqData *pb.RequestData) *pb.ResponseData {
-	sesKeyAny, sesExist := reqData.DataMap["sessionKey"]
-	oldUsernameAny, uExist := reqData.DataMap["oldUsername"]
-	if !sesExist || !uExist {
-		return pb.ResponseError("Param not found", utils.GetFuncName(), nil)
+func (s *Server) ChangeUsernameFinish(ctx context.Context, reqData *pb.ChangeUsernameFinishRequest) (*pb.ResponseData, error) {
+	sessionKey := reqData.SessionKey
+	oldUsername := reqData.OldUsername
+	if utils.IsEmpty(sessionKey) || utils.IsEmpty(oldUsername) {
+		return ResponseError("Param not found", utils.GetFuncName(), nil)
 	}
-	sessionKey := sesKeyAny.(string)
-	oldUsername := oldUsernameAny.(string)
 	// Get the session data stored from the function above
 	session := passkey.Datastore.GetSession(sessionKey) // FIXME: cover invalid session
 	// In out example username == userID, but in real world it should be different
@@ -368,14 +376,19 @@ func (s *Server) ChangeUsernameFinish(reqData *pb.RequestData) *pb.ResponseData 
 	//check username exist on DB again
 	userExist, existErr := s.H.CheckUserExist(userKey)
 	if existErr != nil {
-		return pb.ResponseError("Check exist user on DB failed", utils.GetFuncName(), existErr)
+		return ResponseError("Check exist user on DB failed", utils.GetFuncName(), existErr)
 	}
 	if userExist {
-		return pb.ResponseError("Username already exists. Unable to register", utils.GetFuncName(), nil)
+		return ResponseError("Username already exists. Unable to register", utils.GetFuncName(), nil)
 	}
-	credential, err := passkey.WebAuthn.FinishRegistration(user, session, &reqData.Request)
+	//init request body
+	request, parseRequestErr := utils.ConvertBodyJsonToRequest(reqData.Request.BodyJson)
+	if parseRequestErr != nil {
+		return ResponseError(parseRequestErr.Error(), utils.GetFuncName(), parseRequestErr)
+	}
+	credential, err := passkey.WebAuthn.FinishRegistration(user, session, request)
 	if err != nil {
-		return pb.ResponseError("can't finish registration", utils.GetFuncName(), err)
+		return ResponseError("can't finish registration", utils.GetFuncName(), err)
 	}
 	// If creation was successful, store the credential object
 	user.AddCredential(credential)
@@ -388,7 +401,8 @@ func (s *Server) ChangeUsernameFinish(reqData *pb.RequestData) *pb.ResponseData 
 	//get old user
 	oldUser, oldUErr := s.H.GetUserByUsername(oldUsername)
 	if oldUErr != nil {
-		return pb.ResponseError("Get old user from DB failed", utils.GetFuncName(), oldUErr)
+		tx.Rollback()
+		return ResponseError("Get old user from DB failed", utils.GetFuncName(), oldUErr)
 	}
 
 	oldUser.Username = userKey
@@ -397,33 +411,32 @@ func (s *Server) ChangeUsernameFinish(reqData *pb.RequestData) *pb.ResponseData 
 	updateErr := tx.Save(oldUser).Error
 	if updateErr != nil {
 		tx.Rollback()
-		return pb.ResponseError("Update username failed. Try again!", utils.GetFuncName(), updateErr)
+		return ResponseError("Update username failed. Try again!", utils.GetFuncName(), updateErr)
 	}
-	tx.Commit()
 	//Login after registration
 	tokenString, authClaim, err := s.Jwt.CreateAuthClaimSession(oldUser)
 	if err != nil {
-		return pb.ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+		tx.Rollback()
+		return ResponseError("Creating login session token failed", utils.GetFuncName(), err)
 	}
+	tx.Commit()
 	loginResponse := map[string]any{
 		"token": tokenString,
 		"user":  *authClaim,
 	}
-	return pb.ResponseSuccessfullyWithAnyData(0, "Finish registration successfully", utils.GetFuncName(), loginResponse)
+	return ResponseSuccessfullyWithAnyData("", "Finish registration successfully", utils.GetFuncName(), loginResponse)
 }
 
-func (s *Server) SyncUsernameDB(reqData *pb.RequestData) *pb.ResponseData {
-	newUsernameAny, newUExist := reqData.DataMap["newUsername"]
-	oldUsernameAny, oldUExist := reqData.DataMap["oldUsername"]
-	if !newUExist || !oldUExist {
-		return pb.ResponseError("Param not found", utils.GetFuncName(), nil)
+func (s *Server) SyncUsernameDB(ctx context.Context, reqData *pb.SyncUsernameDBRequest) (*pb.ResponseData, error) {
+	newUsername := reqData.NewUsername
+	oldUsername := reqData.OldUsername
+	if utils.IsEmpty(newUsername) || utils.IsEmpty(oldUsername) {
+		return ResponseError("Get Param not found", utils.GetFuncName(), nil)
 	}
-	newUsername := newUsernameAny.(string)
-	oldUsername := oldUsernameAny.(string)
 	//check logging in
-	authClaims, isLoggingin := s.Jwt.HanlderCheckLogin(reqData.AuthToken)
+	authClaims, isLoggingin := s.Jwt.HanlderCheckLogin(reqData.Common.AuthToken)
 	if !isLoggingin || authClaims.Username != newUsername {
-		return pb.ResponseError("Target user is not logging in", utils.GetFuncName(), fmt.Errorf("Target user is not logging in"))
+		return ResponseError("Target user is not logging in", utils.GetFuncName(), fmt.Errorf("Target user is not logging in"))
 	}
 	go func() {
 		//update contact on user table
@@ -436,5 +449,5 @@ func (s *Server) SyncUsernameDB(reqData *pb.RequestData) *pb.ResponseData {
 		}
 		logpack.Info("Sync username on all table successfully", utils.GetFuncName())
 	}()
-	return pb.ResponseSuccessfully(0, "Sync user table successfully", utils.GetFuncName())
+	return ResponseSuccessfully("", "Sync user table successfully", utils.GetFuncName())
 }

@@ -1,45 +1,91 @@
 syntax = "proto3";
 
-package auth;
+package crauth;
 
-option go_package= "./pkg/pb";
+option go_package= "/pb";
 
 service AuthService{
-  rpc Register(RegisterRequest) returns (RegisterResponse);
-  rpc Login(LoginRequest) returns (LoginResponse);
-  rpc Validate(ValidateRequest) returns (ValidateResponse);
-
-  rpc AdminLogin(LoginRequest) returns (LoginResponse);
+  rpc BeginRegistration(WithUsernameRequest) returns (ResponseData);
+  rpc CancelRegister(CancelRegisterRequest) returns (ResponseData);
+  rpc FinishUpdatePasskey(FinishUpdatePasskeyRequest) returns (ResponseData);
+  rpc FinishRegistration(SessionKeyAndHttpRequest) returns (ResponseData);
+  rpc AssertionOptions(CommonRequest) returns (ResponseData);
+  rpc AssertionResult(SessionKeyAndHttpRequest) returns (ResponseData);
+  rpc BeginConfirmPasskey(CommonRequest) returns (ResponseData);
+  rpc FinishConfirmPasskey(SessionKeyAndHttpRequest) returns (ResponseData);
+  rpc ChangeUsernameFinish(ChangeUsernameFinishRequest) returns (ResponseData);
+  rpc SyncUsernameDB(SyncUsernameDBRequest) returns (ResponseData);
+  rpc GetAdminUserList(CommonRequest) returns (ResponseData);
+  rpc GetUserInfoByUsername(WithUsernameRequest) returns (ResponseData);
+  rpc GetAdminUserInfo(WithUserIdRequest) returns (ResponseData);
+  rpc GetExcludeLoginUserNameList(CommonRequest) returns (ResponseData);
+  rpc ChangeUserStatus(ChangeUserStatusRequest) returns (ResponseData);
+  rpc IsLoggingOn(CommonRequest) returns (ResponseData);
+  rpc GenRandomUsername(CommonRequest) returns (ResponseData);
 }
 
-message RegisterRequest{
-  string email = 1;
-  string password = 2;
+message WithUsernameRequest {
+  CommonRequest common = 1;
+  string username = 2;
 }
 
-message RegisterResponse{
-  int64 status = 1;
-  string error = 2;
+message WithUserIdRequest {
+  CommonRequest common = 1;
+  int64 userId = 2;
 }
 
-message LoginRequest{
- string email = 1;
-  string password = 2;
+message CancelRegisterRequest {
+  CommonRequest common = 1;
+  string sessionKey = 2;
 }
 
-message  LoginResponse{
-  int64 status = 1;
-  string error = 2;
-  string token = 3;
+message FinishUpdatePasskeyRequest {
+  CommonRequest common = 1;
+  HttpRequest request = 2;
+  string sessionKey = 3;
+  bool isReset = 4;
 }
 
-message ValidateRequest{
-  string token = 1;
-  string role = 2;
+message SessionKeyAndHttpRequest {
+  CommonRequest common = 1;
+  HttpRequest request = 2;
+  string sessionKey = 3;
 }
 
-message ValidateResponse{
-  int64 status = 1;
-  string error = 2;
-  int64  userId = 3;
+message ChangeUsernameFinishRequest {
+  CommonRequest common = 1;
+  HttpRequest request = 2;
+  string sessionKey = 3;
+  string oldUsername = 4;
 }
+
+message SyncUsernameDBRequest {
+  CommonRequest common = 1;
+  string newUsername = 2;
+  string oldUsername = 3;
+}
+
+message ChangeUserStatusRequest {
+  CommonRequest common = 1;
+  int64 userId = 2;
+  int64 active = 3;
+}
+
+message HttpRequest {
+  string headerJson = 1;
+  string bodyJson = 2;
+}
+
+message CommonRequest {
+  string authToken = 1;
+  string loginName = 2;
+  int64 role = 3;
+}
+
+message ResponseData{
+  bool error = 1;
+  string code = 2;
+  string msg = 3;
+  string data = 4;
+}
+

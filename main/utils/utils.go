@@ -63,52 +63,24 @@ func GetAuthHost() string {
 	if !IsEmpty(AuthHost) {
 		return AuthHost
 	}
-	AuthHost = beego.AppConfig.String("authhost")
+	AuthHost = beego.AppConfig.String("AUTH_SERVICE_URL")
 	return AuthHost
-}
-
-func GetAuthPort() string {
-	if !IsEmpty(AuthPort) {
-		return AuthPort
-	}
-	AuthPort = beego.AppConfig.String("authport")
-	return AuthPort
 }
 
 func GetChatHost() string {
 	if !IsEmpty(ChatHost) {
 		return ChatHost
 	}
-	ChatHost = beego.AppConfig.String("chathost")
+	ChatHost = beego.AppConfig.String("CHAT_SERVICE_URL")
 	return ChatHost
-}
-
-func GetChatPort() string {
-	if !IsEmpty(ChatPort) {
-		return ChatPort
-	}
-	ChatPort = beego.AppConfig.String("chatport")
-	return ChatPort
 }
 
 func GetAssetsHost() string {
 	if !IsEmpty(AssetsHost) {
 		return AssetsHost
 	}
-	AssetsHost = beego.AppConfig.String("assethost")
+	AssetsHost = beego.AppConfig.String("ASSETS_SERVICE_URL")
 	return AssetsHost
-}
-
-func AuthSite() string {
-	return fmt.Sprintf("%s:%s", GetAuthHost(), GetAuthPort())
-}
-
-func GetAssetsPort() string {
-	if !IsEmpty(AssetsPort) {
-		return AssetsPort
-	}
-	AssetsPort = beego.AppConfig.String("assetport")
-	return AssetsPort
 }
 
 func GetUrlCodeStatusFromValue(status int) (UrlCodeStatus, error) {

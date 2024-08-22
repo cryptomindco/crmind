@@ -39,7 +39,7 @@ func (s *Server) SyncCryptocurrencyPrice() {
 				continue
 			}
 			s.H.WriteRateToDB(usdRateMap, allResultMap)
-			time.Sleep(7 * time.Second)
+			time.Sleep(8 * time.Second)
 		}
 	}()
 }
@@ -197,8 +197,7 @@ func (s *Server) UpdateAssetManagerByType(assetType string) {
 	assetMgr.CheckAndLoadWallet()
 }
 
-func (s *Server) CreateNewAddressForAsset(userId int64, username string, isAdmin bool, assetObject assets.AssetType) (*models.Addresses, *models.Asset, error) {
-	tx := s.H.DB.Begin()
+func (s *Server) CreateNewAddressForAsset(username string, isAdmin bool, assetObject assets.AssetType) (*models.Addresses, *models.Asset, error) {
 	s.UpdateAssetManagerByType(assetObject.String())
 	assetObj, assetMgrExist := utils.GlobalItem.AssetMgrMap[assetObject.String()]
 	if !assetMgrExist {
@@ -237,6 +236,7 @@ func (s *Server) CreateNewAddressForAsset(userId int64, username string, isAdmin
 	}
 	//if user asset is nil, insert new asset to DB
 	var assetId int64
+	tx := s.H.DB.Begin()
 	if userAsset == nil {
 		asset := models.Asset{
 			DisplayName: assetObject.ToFullName(),
@@ -336,13 +336,13 @@ func (s *Server) CreateAssetAndConnectRPC(assetType assets.AssetType) (assets.As
 
 // Sync blockchain data with system DB data to check data consistency
 func (s *Server) SystemSyncHandler() {
-	tx := s.H.DB
 	//Get allow asset list
 	assetList, err := utils.GetAllowAssetNames(s.Conf.AllowAssets)
 	if err != nil {
 		logpack.Error("Sync by date error", utils.GetFuncName(), err)
 		return
 	}
+	tx := s.H.DB.Begin()
 	for _, asset := range assetList {
 		//If is USD, skip
 		if asset == assets.USDWalletAsset.String() {

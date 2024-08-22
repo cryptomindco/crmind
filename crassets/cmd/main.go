@@ -61,14 +61,8 @@ func main() {
 		H:    h,
 		Conf: c,
 	}
-
 	grpcServer := grpc.NewServer()
-
-	pb.RegisterChatServiceServer(grpcServer, &s)
-
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalln("Failed to serve:", err)
-	}
+	pb.RegisterAssetsServiceServer(grpcServer, &s)
 	handler := handler.GlobalHandler{
 		Server: s,
 	}
@@ -78,4 +72,7 @@ func main() {
 	s.DecredNotificationsHandler()
 	handler.SyncSystemData()
 	handler.SyncTransactionConfirmed()
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalln("Failed to serve:", err)
+	}
 }

@@ -15,7 +15,7 @@ const (
 	USDWalletAsset     AssetType = "usd"
 )
 
-var AuthHost, AuthPort, AssetsHost, AssetsPort, ChatHost, ChatPort string
+var AuthHost, AssetsHost, ChatHost string
 
 var LoginExcludeUrl = []string{"/404", "/exit", "/login", "/LoginSubmit", "/checkLogin", "/register", "/RegisterSubmit", "/walletSocket", "/withdrawl",
 	"/confirmWithdraw", "/passkey/registerStart", "/passkey/registerFinish", "/assertion/options",

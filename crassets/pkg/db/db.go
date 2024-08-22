@@ -64,7 +64,7 @@ func (h *Handler) GetSuperadminSystemAddress(assetType string) (string, error) {
 		return "", fmt.Errorf("get superAdmin asset failed")
 	}
 	address, err := h.GetLastestAddressOfAsset(adminAsset.Id)
-	if err != nil {
+	if err != nil || address == nil {
 		return "", err
 	}
 	return address.Address, nil
@@ -72,7 +72,7 @@ func (h *Handler) GetSuperadminSystemAddress(assetType string) (string, error) {
 
 func (h *Handler) GetLastestAddressOfAsset(assetId int64) (*models.Addresses, error) {
 	address := models.Addresses{}
-	queryErr := h.DB.Where(&models.Addresses{AssetId: assetId}).First(&address).Error
+	queryErr := h.DB.Where(&models.Addresses{AssetId: assetId}).Limit(1).Find(&address).Error
 	if queryErr != nil {
 		if queryErr != gorm.ErrRecordNotFound {
 			return nil, queryErr
@@ -84,7 +84,7 @@ func (h *Handler) GetLastestAddressOfAsset(assetId int64) (*models.Addresses, er
 
 func (h *Handler) GetSuperAdminAsset(assetType string) (*models.Asset, error) {
 	asset := models.Asset{}
-	queryErr := h.DB.Where(&models.Asset{IsAdmin: true, Type: assetType}).First(&asset).Error
+	queryErr := h.DB.Where(&models.Asset{IsAdmin: true, Type: assetType}).Limit(1).Find(&asset).Error
 	if queryErr != nil {
 		if queryErr == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -113,9 +113,8 @@ func (h *Handler) ReadRateFromDB() (*models.RateObject, error) {
 
 // return: usdRate, allRate, error
 func (h *Handler) ReadRateJsonStrFromDB() (string, string, error) {
-	settings := models.Rates{}
-	queryBuilder := fmt.Sprintf("SELECT * from rates")
-	settingsErr := h.DB.Raw(queryBuilder).Scan(&settings).Error
+	var settings models.Rates
+	settingsErr := h.DB.Limit(1).Find(&settings).Error
 	if settingsErr != nil {
 		return "", "", settingsErr
 	}
@@ -196,6 +195,7 @@ func (h *Handler) WriteRateToDB(usdRateMap map[string]float64, allRateMap map[st
 		tx.Rollback()
 		logpack.Error("Update rates table failed", utils.GetFuncName(), err)
 	}
+	err = tx.Commit().Error
 }
 
 func (h *Handler) GetAccountFromUsername(username string) (*models.Accounts, error) {
@@ -294,7 +294,7 @@ func (h *Handler) CheckAndCreateAccountToken(username string, role int) (token s
 func (h *Handler) GetAssetFromAddress(address string, assetType string) (*models.Asset, error) {
 	//Check asset exist on assets table
 	assets := models.Asset{}
-	queryBuilder := fmt.Sprintf("SELECT * FROM %sasset WHERE type='%s' AND status=%d AND id IN (SELECT asset_id FROM %saddresses WHERE address='%s')", utils.GetAssetRelatedTablePrefix(), assetType, int(utils.AssetStatusActive), utils.GetAssetRelatedTablePrefix(), address)
+	queryBuilder := fmt.Sprintf("SELECT * FROM %sassets WHERE type='%s' AND status=%d AND id IN (SELECT asset_id FROM %saddresses WHERE address='%s')", utils.GetAssetRelatedTablePrefix(), assetType, int(utils.AssetStatusActive), utils.GetAssetRelatedTablePrefix(), address)
 	err := h.DB.Raw(queryBuilder).Scan(&assets).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -355,7 +355,7 @@ func (h *Handler) GetRateFromDBByAsset(assetType string) float64 {
 }
 
 func (h *Handler) CheckMatchAddressWithUser(assetId, addressId int64, username string, archived bool) bool {
-	queryBuilder := fmt.Sprintf("SELECT count(*) from %sasset as aet where id = %d AND user_name = %s AND EXISTS(SELECT 1 FROM %saddresses WHERE id = %d AND asset_id = aet.id AND archived=%v)", utils.GetAssetRelatedTablePrefix(),
+	queryBuilder := fmt.Sprintf("SELECT count(*) from %sassets as aet where id = %d AND user_name = %s AND EXISTS(SELECT 1 FROM %saddresses WHERE id = %d AND asset_id = aet.id AND archived=%v)", utils.GetAssetRelatedTablePrefix(),
 		assetId, username, utils.GetAssetRelatedTablePrefix(), addressId, archived)
 	var count int64
 	countErr := h.DB.Raw(queryBuilder).Scan(&count).Error
@@ -437,7 +437,7 @@ func (h *Handler) GetTxHistoryById(txHistoryId int64) (*models.TxHistory, error)
 	return &history, err
 }
 
-func (h *Handler) CancelTxCodeById(ownername string, codeId int64) error {
+func (h *Handler) CancelTxCodeByUsername(ownername string, codeId int64) error {
 	txCode := models.TxCode{}
 	queryErr := h.DB.Where(&models.TxCode{Id: codeId}).First(&txCode).Error
 	if queryErr != nil {
@@ -453,8 +453,10 @@ func (h *Handler) CancelTxCodeById(ownername string, codeId int64) error {
 	updateErr := tx.Save(&txCode).Error
 	if updateErr != nil {
 		tx.Rollback()
+		return updateErr
 	}
-	return updateErr
+	tx.Commit()
+	return nil
 }
 
 // Create new code for withdraw url, 32 characters
@@ -478,11 +480,10 @@ func (h *Handler) CreateNewUrlCode() (string, bool) {
 }
 
 func (h *Handler) GetRates() (*models.Rates, error) {
-	rates := models.Rates{}
-	queryBuilder := fmt.Sprintf("SELECT * from rates")
-	ratesErr := h.DB.Raw(queryBuilder).Scan(&rates).Error
-	if ratesErr != nil {
-		return nil, ratesErr
+	var rates models.Rates
+	settingsErr := h.DB.Limit(1).Find(&rates).Error
+	if settingsErr != nil {
+		return nil, settingsErr
 	}
 	return &rates, nil
 }
@@ -523,8 +524,10 @@ func (h *Handler) UpdateUserContacts(username, contacts string) error {
 		err = tx.Save(&account).Error
 	}
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+	tx.Commit()
 	return nil
 }
 
@@ -619,7 +622,6 @@ func (h *Handler) HandlerTransferOnchainCryptocurrency(senderName string, curren
 		return nil, fmt.Errorf("Invalid address. Please check again!")
 	}
 	assetType := assets.StringToAssetType(currency)
-	tx := h.DB.Begin()
 	assetObj, assetMgrExist := utils.GlobalItem.AssetMgrMap[assetType.String()]
 	if !assetMgrExist {
 		return nil, fmt.Errorf("Create RPC Client failed")
@@ -688,6 +690,7 @@ func (h *Handler) HandlerTransferOnchainCryptocurrency(senderName string, curren
 	senderAsset.Balance -= amountToSend + transFee
 	senderAsset.OnChainBalance -= amountToSend + transFee
 	//update asset
+	tx := h.DB.Begin()
 	updateErr := tx.Save(senderAsset).Error
 	if updateErr != nil {
 		tx.Rollback()
@@ -731,7 +734,6 @@ func (h *Handler) GetAddressListByAssetId(assetId int64) ([]string, error) {
 }
 
 func (h *Handler) HandlerInternalWithdrawl(txCode *models.TxCode, user models.UserInfo, rateSend float64) bool {
-	tx := h.DB.Begin()
 	//get assets of sender
 	assetObj := assets.StringToAssetType(txCode.Asset)
 	senderAsset, senderAssetErr := h.GetUserAsset(txCode.OwnerName, txCode.Asset)
@@ -755,10 +757,11 @@ func (h *Handler) HandlerInternalWithdrawl(txCode *models.TxCode, user models.Us
 		logpack.Error("Retrieve recipient asset data failed. Please try again!", utils.GetFuncName(), receiverAssetErr)
 		return false
 	}
-
+	tx := h.DB.Begin()
 	//update sender asset
 	senderAssetUpdateErr := tx.Save(senderAsset).Error
 	if senderAssetUpdateErr != nil {
+		tx.Rollback()
 		logpack.Error("Update Sender failed. Please try again!", utils.GetFuncName(), senderAssetUpdateErr)
 		return false
 	}
@@ -768,6 +771,7 @@ func (h *Handler) HandlerInternalWithdrawl(txCode *models.TxCode, user models.Us
 	if receiverAssetCreate {
 		_, newReceiverAsset, newErr := h.CreateNewAddressForAsset(user.Username, utils.IsSuperAdmin(user.Role), assetObj)
 		if newErr != nil {
+			tx.Rollback()
 			logpack.Error("Create new asset and address failed. Please check again!", utils.GetFuncName(), newErr)
 			return false
 		}
@@ -777,6 +781,7 @@ func (h *Handler) HandlerInternalWithdrawl(txCode *models.TxCode, user models.Us
 
 		receiverAssetUpdateErr := tx.Save(newReceiverAsset).Error
 		if receiverAssetUpdateErr != nil {
+			tx.Rollback()
 			logpack.Error("Update balance for asset failed. Please check again!", utils.GetFuncName(), receiverAssetUpdateErr)
 			return false
 		}
@@ -826,7 +831,6 @@ func (h *Handler) HandlerInternalWithdrawl(txCode *models.TxCode, user models.Us
 }
 
 func (h *Handler) CreateNewAddressForAsset(username string, isAdmin bool, assetObject assets.AssetType) (*models.Addresses, *models.Asset, error) {
-	tx := h.DB.Begin()
 	assetObj, assetMgrExist := utils.GlobalItem.AssetMgrMap[assetObject.String()]
 	if !assetMgrExist {
 		return nil, nil, fmt.Errorf("RPC Client failed at the server. Please contact admin!")
@@ -864,6 +868,7 @@ func (h *Handler) CreateNewAddressForAsset(username string, isAdmin bool, assetO
 	}
 	//if user asset is nil, insert new asset to DB
 	var assetId int64
+	tx := h.DB.Begin()
 	if userAsset == nil {
 		asset := models.Asset{
 			DisplayName: assetObject.ToFullName(),
@@ -937,7 +942,7 @@ func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetTy
 		directionFilter = fmt.Sprintf("(sender_id = %d OR receiver_id = %d)", loginUser.Username, loginUser.Username)
 	}
 
-	queryCount := fmt.Sprintf("SELECT COUNT(*) from %stx_history WHERE %s%s", utils.GetAssetRelatedTablePrefix(), directionFilter, filterStr)
+	queryCount := fmt.Sprintf("SELECT COUNT(*) from %stx_histories WHERE %s%s", utils.GetAssetRelatedTablePrefix(), directionFilter, filterStr)
 	var totalRowCount int64
 	countErr := h.DB.Raw(queryCount).Scan(&totalRowCount).Error
 	if countErr != nil {
@@ -951,7 +956,7 @@ func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetTy
 	}
 
 	offset := perpage * (pageNum - 1)
-	queryBuilder := fmt.Sprintf("SELECT * from %stx_history WHERE %s%s ORDER BY createdt DESC OFFSET %d LIMIT %d", utils.GetAssetRelatedTablePrefix(), directionFilter, filterStr, offset, perpage)
+	queryBuilder := fmt.Sprintf("SELECT * from %stx_histories WHERE %s%s ORDER BY createdt DESC OFFSET %d LIMIT %d", utils.GetAssetRelatedTablePrefix(), directionFilter, filterStr, offset, perpage)
 	listErr := h.DB.Raw(queryBuilder).Scan(&txHistoryList).Error
 	if listErr != nil {
 		return historyDispList, 0
@@ -1002,7 +1007,7 @@ func (h *Handler) GetAssetList(username string, allowAsset []string) ([]*models.
 	for _, asset := range allowAsset {
 		tempAllowAssets = append(tempAllowAssets, fmt.Sprintf("'%s'", asset))
 	}
-	builderSQL := fmt.Sprintf("SELECT * from %sasset WHERE user_name=%s AND status = %d AND type IN (%s) ORDER BY sort", utils.GetAssetRelatedTablePrefix(), username, int(utils.AssetStatusActive), strings.Join(tempAllowAssets, ","))
+	builderSQL := fmt.Sprintf("SELECT * from %sassets WHERE user_name=%s AND status = %d AND type IN (%s) ORDER BY sort", utils.GetAssetRelatedTablePrefix(), username, int(utils.AssetStatusActive), strings.Join(tempAllowAssets, ","))
 	err := h.DB.Raw(builderSQL).Scan(&assetList).Error
 	if err != nil {
 		return nil, err
