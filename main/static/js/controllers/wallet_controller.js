@@ -300,13 +300,12 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: '/confirmAddressAction', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           window.location.reload()
-        }
-        if (data["error"] != "") {
+        } else {
           $("#cancelerr_msg").removeClass("d-none")
-          $("#cancelerr_msg").text(data["error_msg"])
+          $("#cancelerr_msg").text(res.msg)
         }
       },
     });
@@ -323,13 +322,12 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: '/cancelUrlCode', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           window.location.reload()
-        }
-        if (data["error"] != "") {
+        } else {
           $("#cancelerr_msg").removeClass("d-none")
-          $("#cancelerr_msg").text(data["error_msg"])
+          $("#cancelerr_msg").text(res.msg)
         }
       },
     });
@@ -465,19 +463,16 @@ export default class extends BaseController {
         },
         type: "GET", //OR GET
         url: '/check-contact-user', //The same form's action URL
-        success: function (data) {
-          if (data["error"] == "") {
+        success: function (res) {
+          if (!res.error) {
+            const isExist = res.data
             _this.usernameError = false
             $("#addToContactArea").removeClass("d-none")
             //check result
-            if(data["result"]) {
-              const result = JSON.parse(data["result"])
-              $("#addToContactCheckbox").prop('checked', result.contactExist)
-            }
-          }
-          if (data["error"] != "") {
+            $("#addToContactCheckbox").prop('checked', isExist)
+          } else {
             $("#usernameErrMsg").removeClass("d-none")
-            $("#usernameErrMsg").text(data["error_msg"])
+            $("#usernameErrMsg").text(res.msg)
             $("#transferButton").prop("disabled", true);
             _this.usernameError = true
           }
@@ -505,19 +500,16 @@ export default class extends BaseController {
         },
         type: "GET", //OR GET
         url: '/check-contact-user', //The same form's action URL
-        success: function (data) {
-          if (data["error"] == "") {
+        success: function (res) {
+          if (!res.error) {
             _this.usernameError = false
+            const isExist = res.data
             $("#addToContactArea").removeClass("d-none")
             //check result
-            if(data["result"]) {
-              const result = JSON.parse(data["result"])
-              $("#addToContactCheckbox").prop('checked', result.contactExist)
-            }
-          }
-          if (data["error"] != "") {
+            $("#addToContactCheckbox").prop('checked', isExist)
+          } else {
             $("#usernameErrMsg").removeClass("d-none")
-            $("#usernameErrMsg").text(data["error_msg"])
+            $("#usernameErrMsg").text(res.msg)
             $("#transferButton").prop("disabled", true);
             _this.usernameError = true
           }
@@ -593,11 +585,11 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: '/confirmAmount', //The same form's action URL
-      success: function (data) {
+      success: function (res) {
         const diff = _this.getRoundNumber(_this.assetType)
-        if (data["error"] == "") {
+        if (!res.error) {
           $("#amounterr_msg").addClass("d-none")
-          const result = data["result"]
+          const result = res.data
           _this.btcFee = parseFloat(result)
           _this.confirmed = true
           _this.checkValidTransferButton()
@@ -618,14 +610,14 @@ export default class extends BaseController {
             $("#urlcodeFeeNotify").text("*You'll not be charged fee if the recipient chooses to withdraw using system username")
           }
         }
-        if (data["error"] == "exist") {
+        if (res.error && res.errorCode == "exist") {
           _this.btcFee = 0.0
           _this.confirmed = true
           $("#existAddressSystem").removeClass('d-none')
-          $("#existAddressSystem").html(data["error_msg"])
+          $("#existAddressSystem").html(res.msg)
         }
 
-        if (data["error"] == "" || data["error"] == "exist") {
+        if (!res.error || (res.error && res.errorCode == "exist")) {
           $("#btcFee").text(formatToLocalString(Number(_this.btcFee), diff, diff))
           $("#btcCost").text(formatToLocalString(Number(_this.btcFee) + amount, diff, diff))
           $("#feeExchange").text(formatToLocalString(Number(_this.btcFee) * _this.rate, 3, 3))
@@ -634,9 +626,9 @@ export default class extends BaseController {
           return
         }
 
-        if (data["error"] != "") {
+        if (res.error) {
           $("#amounterr_msg").removeClass("d-none")
-          $("#amounterr_msg").text(data["error_msg"])
+          $("#amounterr_msg").text(res.msg)
           $("#transferButton").prop("disabled", true);
         }
       },
@@ -663,14 +655,13 @@ export default class extends BaseController {
         rate: this.paymentRate },
       type: "POST", //OR GET
       url: "/send-trading-request", //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           window.location.href = "/";
           return;
-        }
-        if (data["error"] != "") {
+        } else {
           $("#tradingSendingErr_msg").removeClass("d-none")
-          $("#tradingSendingErr_msg").text(data["error_msg"])
+          $("#tradingSendingErr_msg").text(res.msg)
         }
       },
     });
@@ -695,8 +686,8 @@ export default class extends BaseController {
       data: data,
       type: "POST", //OR GET
       url: url, //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           if(_this.sendBy == "urlcode") {
             //return detail page with URL Code tab
             window.location.href = "/assets/detail?type=" + _this.assetType + "&tab=urlcode"
@@ -704,16 +695,15 @@ export default class extends BaseController {
           }
           window.location.href = "/";
           return;
-        }
-        if (data["error"] != "") {
+        } else {
           if(_this.assetType == "usd") {
             $("#resulterr_msg").removeClass("d-none");
-            $("#resulterr_msg").text(data["error_msg"]);
+            $("#resulterr_msg").text(res.msg);
           } else {
             $("#confirmErr").removeClass("d-none");
-            $("#confirmErr").text(data["error_msg"]);
+            $("#confirmErr").text(res.msg);
           }
-        }
+        } 
       },
     });
   }
@@ -847,16 +837,15 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: '/updateNewLabel', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
+      success: function (res) {
+        if (!res.error) {
           $("#" + id + "LabelInput").addClass("d-none")
           $("#" + id + "LabelText").removeClass("d-none")
           $("#" + id + "LabelText").text(mainLabel)
           return;
-        }
-        if (data["error"] != "") {
+        } else {
           $("#" + id + "LabelErr_msg").removeClass("d-none");
-          $("#" + id + "LabelErr_msg").text(data["error_msg"]);
+          $("#" + id + "LabelErr_msg").text(res.msg);
         }
       },
     });
@@ -1057,9 +1046,9 @@ export default class extends BaseController {
       },
       type: "POST", //OR GET
       url: '/createNewAddress', //The same form's action URL
-      success: function (data) {
-        if (data["error"] == "") {
-          const newAddress = data["address"]
+      success: function (res) {
+        if (!res.error) {
+          const newAddress = res.data
           _this.currentAddress = newAddress
           //append to select options
           $("#addressSelector").append($('<option>', {
@@ -1070,10 +1059,9 @@ export default class extends BaseController {
           _this.displayAddressArea(newAddress)
           $("#addressSelector").val(newAddress)
           return;
-        }
-        if (data["error"] != "") {
+        } else {
           $("#createAddr_msg").removeClass("d-none");
-          $("#createAddr_msg").text(data["error_msg"]);
+          $("#createAddr_msg").text(res.msg);
         }
       },
     });
@@ -1174,8 +1162,11 @@ export default class extends BaseController {
     $.ajax({
       type: "GET", //OR GET
       url: '/fetch-rate', //The same form's action URL
-      success: function (data) {
-        const rateStr = data["rateMap"]
+      success: function (res) {
+        if (res.error) {
+          return
+        }
+        const rateStr = res.data
         const rateObject = JSON.parse(rateStr)
         const rateMapJson = rateObject.usdRates
         const allRateMapJson = rateObject.allRates

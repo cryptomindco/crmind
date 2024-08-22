@@ -1,1 +1,0 @@
-# Authentication - Install Documentation

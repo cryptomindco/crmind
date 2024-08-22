@@ -1,0 +1,167 @@
+syntax = "proto3";
+
+package assets;
+
+option go_package= "/pb";
+
+service AssetsService {
+  rpc CreateNewAddress(OneStringRequest) returns (ResponseData);
+  rpc SyncTransactions(CommonRequest) returns (ResponseData);
+  rpc SendTradingRequest(SendTradingDataRequest) returns (ResponseData);
+  rpc TransferAmount(TransferAmountRequest) returns (ResponseData);
+  rpc AddToContact(OneStringRequest) returns (ResponseData);
+  rpc FilterTxHistory(FilterTxHistoryRequest) returns (ResponseData);
+  rpc GetCodeListData(GetCodeListRequest) returns (ResponseData);
+  rpc GetAddressListDataWithStatus(GetAddressListRequest) returns (ResponseData);
+  rpc ConfirmAmount(ConfirmAmountRequest) returns (ResponseData);
+  rpc ConfirmWithdrawal(ConfirmWithdrawalRequest) returns (ResponseData);
+  rpc UpdateNewLabel(UpdateLabelRequest) returns (ResponseData);
+  rpc GetBalanceSummary(OneStringRequest) returns (ResponseData);
+  rpc GetAssetDBList(OneStringRequest) returns (ResponseData);
+  rpc GetUserAssetDB(GetUserAssetDBRequest) returns (ResponseData);
+  rpc GetAddressList(OneIntegerRequest) returns (ResponseData);
+  rpc CountAddress(CountAddressRequest) returns (ResponseData);
+  rpc CheckHasCodeList(OneStringRequest) returns (ResponseData);
+  rpc GetContactList(CommonRequest) returns (ResponseData);
+  rpc FilterTxCode(FilterTxCodeRequest) returns (ResponseData);
+  rpc GetTxHistory(OneIntegerRequest) returns (ResponseData);
+  rpc FilterAddressList(FilterAddressListRequest) returns (ResponseData);
+  rpc CheckAndCreateAccountToken(CheckAndCreateAccountTokenRequest) returns (ResponseData);
+  rpc FetchRate(CommonRequest) returns (ResponseData);
+  rpc CheckAssetMatchWithUser(OneIntegerRequest) returns (ResponseData);
+  rpc CheckAddressMatchWithUser(CheckAddressMatchWithUserRequest) returns (ResponseData);
+  rpc GetAddress(OneIntegerRequest) returns (ResponseData);
+  rpc ConfirmAddressAction(ConfirmAddressActionRequest) returns (ResponseData);
+  rpc CancelUrlCode(OneIntegerRequest) returns (ResponseData);
+}
+
+message OneStringRequest {
+  CommonRequest common = 1;
+  string data = 2;
+}
+
+message OneIntegerRequest {
+  CommonRequest common = 1;
+  int64 data = 2;
+}
+
+message SendTradingDataRequest {
+  CommonRequest common = 1;
+  string asset = 2;
+  string tradingType = 3;
+  string paymentType = 4;
+  double amount = 5;
+  double rate = 6;
+}
+
+message ConfirmWithdrawalRequest {
+  CommonRequest common = 1;
+  string target = 2;
+  string code = 3;
+}
+
+message UpdateLabelRequest {
+  CommonRequest common = 1;
+  int64 assetId = 2;
+  int64 addressId = 3;
+  string newMainLabel = 4;
+  string assetType = 5;
+}
+
+message GetAddressListRequest {
+  CommonRequest common = 1;
+  int64 assetId = 2;
+  string status = 3;
+}
+
+message GetCodeListRequest {
+  CommonRequest common = 1;
+  string asset = 2;
+  string codeStatus = 3;
+}
+
+message FilterTxHistoryRequest {
+  CommonRequest common = 1;
+  string allowAssets = 2;
+  string type = 3;
+  string direction = 4;
+  int64 perPage = 5;
+  int64 pageNum = 6;
+}
+
+message ConfirmAmountRequest {
+  CommonRequest common = 1;
+  string asset = 2;
+  string toAddress = 3;
+  string sendBy = 4;
+  double amount = 5;
+}
+
+message TransferAmountRequest {
+  CommonRequest common = 1;
+  string currency = 2;
+  double amount = 3;
+  string receiver = 4;
+  int64 receiverRole = 5;
+  double rate = 6;
+  string note = 7;
+  string sendBy = 8;
+  string address = 9;
+}
+
+message GetUserAssetDBRequest {
+  CommonRequest common = 1;
+  string username = 2;
+  string type = 3;
+}
+
+message CountAddressRequest {
+  CommonRequest common = 1;
+  int64 assetId = 2;
+  bool activeFlg = 3;
+}
+
+message FilterTxCodeRequest {
+  CommonRequest common = 1;
+  string assetType = 2;
+  string status = 3;
+}
+
+message CheckAddressMatchWithUserRequest {
+  CommonRequest common = 1;
+  int64 assetId = 2;
+  int64 addressId = 3;
+  bool archived = 4;
+}
+
+message CheckAndCreateAccountTokenRequest {
+  CommonRequest common = 1;
+  string username = 2;
+  int64 role = 3;
+}
+
+message FilterAddressListRequest {
+  CommonRequest common = 1;
+  int64 assetId = 2;
+  string status = 3;
+}
+
+message ConfirmAddressActionRequest {
+  CommonRequest common = 1;
+  int64 assetId = 2;
+  int64 addressId = 3;
+  string action = 4;
+}
+
+message CommonRequest {
+  string authToken = 1;
+  string loginName = 2;
+  int64 role = 3;
+}
+
+message ResponseData{
+  bool error = 1;
+  string code = 2;
+  string msg = 3;
+  string data = 4;
+}

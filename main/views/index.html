@@ -1,6 +1,146 @@
 {{template "common/head.html" .}}
 {{template "common/top.html" .}}
-<div class="content">
-    <p>Index</p>
+{{$AdminAssets := .AssetList}}
+<div class="content" data-controller="assets" data-assets-types="{{.TypeJson}}">
+    {{if .IsSuperAdmin}}
+    <div class="d-flex justify-content-center">
+        <div class="main-company-table">
+            <div class="justify-content-center d-flex">
+                <div class="{{if .IsSuperAdmin}}p-3 main-shadow border-radius-10 {{end}} w-100">
+                    <div class="align-items-center">
+                        <p class="mb-0 fs-22 fw-600">System Summary</p>
+                        <div class="row">
+                            {{range $index,$elem := $AdminAssets}}
+                            <div class="col-12 p-2 col-sm-6 col-lg-3 mt-2 d-table-cell">
+                                <div class="card border-0 h-100">
+                                    <div class="card-body">
+                                        <p class="card-title">{{$elem.TypeDisplay}}</p>
+                                        <hr>
+                                        <p class="card-text">
+                                        <p>Balance: <span class="{{if ne $elem.Type "usd"}}{{$elem.Type}}-{{end}}amount-number">{{$elem.Balance}}</span></p>
+                                        {{if ne $elem.Type "usd"}}
+                                        <p>Daemon Balance: <span
+                                                class="{{$elem.Type}}-amount-number">{{$elem.DaemonBalance}}</span>
+                                        </p>
+                                        <p>Spendable: <span
+                                                class="{{$elem.Type}}-amount-number">{{$elem.SpendableFund}}</span></p>
+                                        {{end}}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{end}}
+    <div>
+        <h4 class="fw-600 d-inline">Assets</h4>
+    </div>
+    <div class="row mt-2">
+        <div class="col-12 card-table-wrapper px-0 col-md-6 col-lg-5" id="walletListArea">
+            <table class="table card-table mb-0">
+                <thead>
+                    <tr>
+                        <th class="fw-600">Name</th>
+                        <th class="text-center" scope="col">Balance</th>
+                        <th class="text-center" scope="col">Exchange</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range $index,$elem := .Assets}}
+                    <tr role="alert" class="company-list-row" style="background-color: {{assetColor $elem.Type}};"
+                        data-action="click->assets#toAssetDetail" data-assets-type-param="{{$elem.Type}}">
+                        <td>
+                            <img src="/static/images/icons/{{$elem.Type}}-icon.svg" alt="mdo" width="25" height="25"
+                                class="rounded-circle">
+                            <span class="fs-16 ms-2">{{$elem.DisplayName}}</span>
+                        </td>
+                        <td class="text-center fs-17">{{if eq $elem.Type "usd"}}${{end}}<span id="{{$elem.Type}}Value"
+                                class="d-none">{{$elem.Balance}}</span><span
+                                class="{{roundDecimalClassWithAsset $elem.Type}}">{{$elem.Balance}}</span>
+                            {{if ne $elem.Type "usd"}}{{toUppercase $elem.Type}}{{end}}</td>
+                        <td class="text-center fs-17">
+                            <p class="balance-exchange-rate">
+                                {{if eq $elem.Type "usd"}}
+                                #
+                                {{else}}
+                                $<span id="{{$elem.Type}}Rate"></span>
+                                {{end}}
+                            </p>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row main-shadow p-1 p-md-3 mt-3">
+        <div class="pb-2 d-flex justify-content-between">
+            <p class="fw-600 fs-20">Transactions History</p>
+        </div>
+        <div class="tx-list-top mb-2">
+            <div class="d-flex ai-center">
+                <select id="directionFilter" data-action="change->assets#filterDirection" class="form-select w-auto">
+                    <option value="all">All</option>
+                    <option value="buy">Buy</option>
+                    <option value="sell">Sell</option>
+                    <option value="sent">All Sent</option>
+                    <option value="received">All Received</option>
+                    <option value="offchainsent">Internal Sent</option>
+                    <option value="offchainreceived">Internal Received</option>
+                    <option value="onchainsent">External Sent</option>
+                    <option value="onchainreceived">External Received</option>
+                </select>
+                <select id="transFilter" data-action="change->assets#filterWallet" class="form-select w-auto ms-2">
+                    <option value="all">All Assets</option>
+                    <option value="usd">US Dollar</option>
+                    <option value="btc">Bitcoin</option>
+                    <option value="dcr">Decred</option>
+                    <option value="ltc">Litecoin</option>
+                </select>
+            </div>
+            <div class="pagination-row">
+                <div class="d-flex">
+                    <p class="fs-15">Rows per page</p>
+                    <select id="numperpage" data-action="change->assets#numPerPageChange"
+                        class="form-select w-auto ms-2 row-per-page-selector">
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="pagination-number" data-assets-target="paginationTopBar">
+                </div>
+            </div>
+        </div>
+        <hr class="hr mt-0" />
+        <div data-assets-target="historyTable" class="history-table">
+        </div>
+        <div class="mt-2">
+            <div class="pagination-row botton-paging">
+                <div class="d-flex">
+                    <p class="fs-15">Rows per page</p>
+                    <select id="numperpageBottom" data-action="change->assets#numPerBottomPageChange"
+                        class="form-select w-auto ms-2 row-per-page-selector">
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="pagination-number" data-assets-target="paginationBottomBar">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
 </div>
 {{template "common/foot.html" .}}

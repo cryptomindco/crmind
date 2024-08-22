@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package crchat;
+
+option go_package= "/pb";
+
+service ChatService{
+  rpc UpdateUnreadForChat(UpdateUnreadForChatRequest) returns (ResponseData);
+  rpc DeleteChat(DeleteChatRequest) returns (ResponseData);
+  rpc CheckAndCreateChat(CheckAndCreateChatRequest) returns (ResponseData);
+  rpc SendChatMessage(SendChatMessageRequest) returns (ResponseData);
+  rpc CheckChatExist(CheckChatExistRequest) returns (ResponseData);
+  rpc GetChatMsgDisplayList(CommonRequest) returns (ResponseData);
+}
+
+message DeleteChatRequest {
+  CommonRequest common = 1;
+  int64 chatId = 2;
+}
+
+message SendChatMessageRequest {
+  CommonRequest common = 1;
+  int64 chatId = 2;
+  string fromName =3;
+  string toName = 4;
+  string newMsg = 5;
+}
+
+message CheckChatExistRequest {
+  CommonRequest common = 1;
+  string fromName =2;
+  string toName = 3;
+}
+
+message UpdateUnreadForChatRequest {
+  CommonRequest common = 1;
+  int64 chatId = 2;
+  int64 userName = 3;
+}
+
+message CheckAndCreateChatRequest {
+  CommonRequest common = 1;
+  string toName = 2;
+}
+
+message CommonRequest {
+  string authToken = 1;
+  string loginName = 2;
+  int64 role = 3;
+}
+
+message ResponseData{
+  bool error = 1;
+  string code = 2;
+  string msg = 3;
+  string data = 4;
+}

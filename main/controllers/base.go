@@ -80,6 +80,14 @@ func (this *BaseController) ResponseSuccessfullyWithAnyData(loginId int64, msg, 
 	this.ServeJSON()
 }
 
+func (this *BaseController) ResponseSuccessfullyWithAnyDataNoLog(result any) {
+	this.Data["json"] = utils.ResponseData{
+		IsError: false,
+		Data:    result,
+	}
+	this.ServeJSON()
+}
+
 func (this *BaseController) AdminAuthCheck() (*models.AuthClaims, error) {
 	authClaim, err := this.AuthCheck()
 	if err != nil {
@@ -94,7 +102,6 @@ func (this *BaseController) AdminAuthCheck() (*models.AuthClaims, error) {
 func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
 	authClaim, err := this.GetLoginUser()
 	if err != nil {
-		fmt.Println("check hereeeee")
 		this.Redirect("/login", http.StatusFound)
 		return nil, err
 	}
@@ -152,6 +159,354 @@ func (this *BaseController) GetChatMsgDisplayList(userId int64) ([]*models.ChatD
 		}
 	}
 	return nil, 0
+}
+
+func (this *BaseController) GetAdminAssetsBalance() ([]*models.AssetDisplay, error) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-balance-summary"),
+		Header: map[string]string{
+			"Authorization": this.GetLoginToken(),
+			"AllowAssets":   utils.GetAllowAssets()},
+	}
+
+	var result []*models.AssetDisplay
+	err := services.HttpRequest(req, &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.IsError {
+		return nil, fmt.Errorf(response.Msg)
+	}
+	err = utils.CatchObject(response.Data, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (this *BaseController) GetAddressListByAssetId(assetId int64) ([]string, error) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-address-list"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"assetid":       fmt.Sprintf("%d", assetId),
+		},
+	}
+	if err := services.HttpRequest(req, &response); err != nil {
+		return nil, err
+	}
+	if response.IsError {
+		return nil, fmt.Errorf(response.Msg)
+	}
+	var addressList []string
+	err := utils.CatchObject(response.Data, &addressList)
+	if err != nil {
+		return nil, err
+	}
+	return addressList, nil
+}
+
+func (this *BaseController) GetAddressById(addressId int64) (*models.Addresses, error) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-address"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"addressid":     fmt.Sprintf("%d", addressId),
+		},
+	}
+	err := services.HttpRequest(req, &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.IsError {
+		return nil, fmt.Errorf(response.Msg)
+	}
+	var res models.Addresses
+	err = utils.CatchObject(response.Data, &res)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (this *BaseController) GetAssetByUser(userId int64, assetType string) (*utils.TempoRes, error) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-user-asset"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"userid":        fmt.Sprintf("%d", userId),
+			"type":          assetType,
+		},
+	}
+	var result utils.TempoRes
+
+	err := services.HttpRequest(req, &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.IsError {
+		return nil, fmt.Errorf(response.Msg)
+	}
+	err = utils.CatchObject(response.Data, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (this *BaseController) CheckMatchAddressWithUser(assetId, addressId int64, archived bool) bool {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/address-match-user"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"assetid":       fmt.Sprintf("%d", assetId),
+			"addressid":     fmt.Sprintf("%d", addressId),
+			"archived":      fmt.Sprintf("%v", archived),
+		},
+	}
+	if err := services.HttpRequest(req, &response); err != nil {
+		return false
+	}
+
+	if response.IsError {
+		return false
+	}
+	isMatch, isOk := response.Data.(bool)
+	if !isOk {
+		return false
+	}
+	return isMatch
+}
+
+func (this *BaseController) CheckAssetMatchUser(assetId int64) bool {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/asset-match-user"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"assetid":       fmt.Sprintf("%d", assetId),
+		},
+	}
+	if err := services.HttpRequest(req, &response); err != nil {
+		return false
+	}
+
+	if response.IsError {
+		return false
+	}
+	isMatch, isOk := response.Data.(bool)
+	if !isOk {
+		return false
+	}
+	return isMatch
+}
+
+func (this *BaseController) FilterAddressList(assetId int64, status string) ([]models.Addresses, error) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/filter-address-list"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"assetid":       fmt.Sprintf("%d", assetId),
+			"status":        status,
+		},
+	}
+	if err := services.HttpRequest(req, &response); err != nil {
+		return nil, err
+	}
+
+	if response.IsError {
+		return nil, fmt.Errorf(response.Msg)
+	}
+	var addrListRes []models.Addresses
+	err := utils.CatchObject(response.Data, &addrListRes)
+	if err != nil {
+		return nil, err
+	}
+	return addrListRes, nil
+}
+
+func (this *BaseController) CheckAndCreateAccountToken(userId int64, username string, role int) (string, error) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/create-account-token"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"userid":        fmt.Sprintf("%d", userId),
+			"username":      username,
+			"role":          fmt.Sprintf("%d", role),
+		},
+	}
+	if err := services.HttpRequest(req, &response); err != nil {
+		return "", err
+	}
+
+	if response.IsError {
+		return "", fmt.Errorf(response.Msg)
+	}
+	token, ok := response.Data.(string)
+	if !ok {
+		return "", fmt.Errorf("Get token failed")
+	}
+	return token, nil
+}
+
+func (this *BaseController) GetTxHistory(txHistoryId int64) (*models.TxHistory, error) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-txhistory"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"txhistoryid":   fmt.Sprintf("%d", txHistoryId),
+		},
+	}
+	if err := services.HttpRequest(req, &response); err != nil {
+		return nil, err
+	}
+
+	if response.IsError {
+		return nil, fmt.Errorf(response.Msg)
+	}
+	var txRes models.TxHistory
+	err := utils.CatchObject(response.Data, &txRes)
+	if err != nil {
+		return nil, err
+	}
+	return &txRes, nil
+}
+
+func (this *BaseController) FilterUrlCodeList(assetType string, status string) ([]models.TxCode, error) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/filter-txcode"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"assettype":     assetType,
+			"status":        status,
+		},
+	}
+	if err := services.HttpRequest(req, &response); err != nil {
+		return nil, err
+	}
+
+	if response.IsError {
+		return nil, fmt.Errorf(response.Msg)
+	}
+	var resultData []models.TxCode
+	err := utils.CatchObject(response.Data, &resultData)
+	if err != nil {
+		return nil, err
+	}
+	return resultData, nil
+}
+
+func (this *BaseController) CountAddressesWithStatus(assetId int64, activeFlg bool) int64 {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/count-address"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"assetid":       fmt.Sprintf("%d", assetId),
+			"activeflg":     fmt.Sprintf("%v", activeFlg),
+		},
+	}
+	if err := services.HttpRequest(req, &response); err != nil {
+		return 0
+	}
+
+	if response.IsError {
+		return 0
+	}
+	count, ok := response.Data.(int64)
+	if ok {
+		return 0
+	}
+	return count
+}
+
+func (this *BaseController) CheckHasCodeList(assetType string) bool {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/has-txcodes"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+			"assetType":     assetType,
+		},
+	}
+	err := services.HttpRequest(req, &response)
+
+	if err != nil || response.IsError {
+		return false
+	}
+	check, ok := response.Data.(bool)
+	if !ok {
+		return false
+	}
+	return check
+}
+
+func (this *BaseController) GetContactList() []string {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-contacts"),
+		Payload: map[string]string{
+			"authorization": this.GetLoginToken(),
+		},
+	}
+	err := services.HttpRequest(req, &response)
+
+	if err != nil || response.IsError {
+		return []string{}
+	}
+	var res []string
+	err = utils.CatchObject(response.Data, &res)
+	if err != nil {
+		return []string{}
+	}
+	return res
+}
+
+func (this *BaseController) GetUserAssetList() ([]*models.Asset, error) {
+	var response utils.ResponseData
+	req := &services.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-asset-list"),
+		Header: map[string]string{
+			"Authorization": this.GetLoginToken(),
+			"AllowAssets":   utils.GetAllowAssets()},
+	}
+
+	var result []*models.Asset
+	err := services.HttpRequest(req, &response)
+	if err != nil {
+		return result, err
+	}
+	if response.IsError {
+		return result, fmt.Errorf(response.Msg)
+	}
+	err = utils.CatchObject(response.Data, &result)
+	if err != nil {
+		return result, err
+	}
+	return result, nil
 }
 
 func (this *BaseController) GetUsernameListExcludeId() []models.UserInfo {
@@ -250,4 +605,12 @@ func (this *BaseController) CheckSettingsExist() (*models.Settings, error) {
 		return nil, queryErr
 	}
 	return &settings, nil
+}
+
+func (this *BaseController) GetAssetNamesFromAssetList(assetList []*models.Asset) []string {
+	result := make([]string, 0)
+	for _, asset := range assetList {
+		result = append(result, asset.Type)
+	}
+	return result
 }

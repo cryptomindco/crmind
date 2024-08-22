@@ -40,6 +40,25 @@ func init() {
 	beego.Router("/updateUnread", &controllers.ChatController{}, "post:UpdateUnreadForChat")
 	beego.Router("/deleteChat", &controllers.ChatController{}, "post:DeleteChat")
 	beego.Router("/sendChatMessage", &controllers.ChatController{}, "post:SendChatMessage")
+	//Transfer router
+	beego.Router("/transfer/GetHistoryList", &controllers.TransferController{}, "get:FilterTxHistory")
+	beego.Router("/check-contact-user", &controllers.TransferController{}, "get:CheckContactUser")
+	beego.Router("/confirmAmount", &controllers.TransferController{}, "post:ConfirmAmount")
+	beego.Router("/transfer-amount", &controllers.TransferController{}, "post:TransferAmount")
+	beego.Router("/updateNewLabel", &controllers.TransferController{}, "post:UpdateNewLabel")
+	//Trading router
+	beego.Router("/send-trading-request", &controllers.TradingController{}, "post:SendTradingRequest")
+
+	//Assets Router
+	beego.Router("/fetch-rate", &controllers.AssetsController{}, "get:FetchRate")
+	beego.Router("/assets/detail", &controllers.AssetsController{}, "get:AssetsDetail")
+	beego.Router("/GetCodeListData", &controllers.AssetsController{}, "get:GetCodeListData")
+	beego.Router("/GetAddressListData", &controllers.AssetsController{}, "get:GetAddressListData")
+	beego.Router("/confirmAddressAction", &controllers.AssetsController{}, "post:ConfirmAddressAction")
+	beego.Router("/cancelUrlCode", &controllers.AssetsController{}, "post:CancelUrlCode")
+
+	beego.Router("/createNewAddress", &controllers.WalletController{}, "post:CreateNewAddress")
+
 	//Configure URLs with and without login authentication
 	InitSetFilterUrl()
 	//Filter, intercept all requests
