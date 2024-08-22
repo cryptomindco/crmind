@@ -3,11 +3,10 @@ package controllers
 import (
 	"crmind/logpack"
 	"crmind/models"
+	"crmind/pb/assetspb"
 	"crmind/services"
 	"crmind/utils"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 )
@@ -17,17 +16,12 @@ type AssetsController struct {
 }
 
 func (this *AssetsController) FetchRate() {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/fetch-rate"),
-		Payload: map[string]string{},
-	}
-	if err := services.HttpRequest(req, &response); err != nil {
+	res, err := services.FetchRateHandler(this.Ctx.Request.Context())
+	if err != nil {
 		this.ResponseError("Fetch rate failed", utils.GetFuncName(), err)
 		return
 	}
-	this.Data["json"] = response
+	this.Data["json"] = res
 	this.ServeJSON()
 }
 
@@ -42,7 +36,7 @@ func (this *AssetsController) GetCodeListData() {
 	status := strings.TrimSpace(this.GetString("codeStatus"))
 
 	//Get url code list
-	urlCodeList, urlCodeErr := this.FilterUrlCodeList(assetType, status)
+	urlCodeList, urlCodeErr := this.FilterUrlCodeList(loginUser.Username, assetType, status)
 	if urlCodeErr != nil {
 		this.Data["json"] = nil
 		this.ServeJSON()
@@ -65,7 +59,7 @@ func (this *AssetsController) GetCodeListData() {
 			IsCreatedt:       urlCode.Status == int(utils.UrlCodeStatusCreated),
 		}
 		if urlCode.Status == int(utils.UrlCodeStatusConfirmed) && urlCode.HistoryId > 0 {
-			history, err := this.GetTxHistory(urlCode.HistoryId)
+			history, err := this.GetTxHistory(loginUser.Username, urlCode.HistoryId)
 			if err == nil {
 				txCodeDisp.TxHistory = history
 			}
@@ -95,7 +89,7 @@ func (this *AssetsController) GetAddressListData() {
 	}
 
 	//check asset id match with loginUser
-	assetMatch := this.CheckAssetMatchUser(assetId)
+	assetMatch := this.CheckAssetMatchUser(loginUser.Username, assetId)
 	if !assetMatch {
 		this.Data["json"] = nil
 		this.ServeJSON()
@@ -103,14 +97,14 @@ func (this *AssetsController) GetAddressListData() {
 	}
 	status := strings.TrimSpace(this.GetString("status"))
 	//Get url code list
-	addressList, addressErr := this.FilterAddressList(assetId, status)
+	addressList, addressErr := this.FilterAddressList(loginUser.Username, assetId, status)
 	if addressErr != nil {
 		this.Data["json"] = nil
 		this.ServeJSON()
 		return
 	}
 	//user token
-	token, tokenErr := this.CheckAndCreateAccountToken(loginUser.Id, loginUser.Username, loginUser.Role)
+	token, tokenErr := this.CheckAndCreateAccountToken(loginUser.Username, loginUser.Username, loginUser.Role)
 	if tokenErr != nil {
 		this.Data["json"] = nil
 		this.ServeJSON()
@@ -153,7 +147,7 @@ func (this *AssetsController) AssetsDetail() {
 		return
 	}
 
-	tempRes, assetErr := this.GetAssetByUser(loginUser.Id, assetType)
+	tempRes, assetErr := this.GetAssetByUser(loginUser.Username, loginUser.Username, assetType)
 	if assetErr != nil {
 		this.TplName = "err_403.html"
 		return
@@ -168,13 +162,13 @@ func (this *AssetsController) AssetsDetail() {
 	addressList := make([]string, 0)
 	if asset.Id > 0 {
 		var addrErr error
-		addressList, addrErr = this.GetAddressListByAssetId(asset.Id)
+		addressList, addrErr = this.GetAddressListByAssetId(loginUser.Username, asset.Id)
 		if addrErr != nil {
 			this.TplName = "err_403.html"
 			return
 		}
 	}
-	assetList, err := this.GetUserAssetList()
+	assetList, err := this.GetUserAssetList(loginUser.Username)
 	if err != nil {
 		logpack.FError("Get Asset List for user failed", loginUser.Id, utils.GetFuncName(), err)
 		this.TplName = "err_403.html"
@@ -189,11 +183,11 @@ func (this *AssetsController) AssetsDetail() {
 			break
 		}
 	}
-	activeAddressCount := this.CountAddressesWithStatus(asset.Id, true)
-	archivedAddressCount := this.CountAddressesWithStatus(asset.Id, false)
+	activeAddressCount := this.CountAddressesWithStatus(loginUser.Username, asset.Id, true)
+	archivedAddressCount := this.CountAddressesWithStatus(loginUser.Username, asset.Id, false)
 	//check have code list
-	hasCodeList := this.CheckHasCodeList(assetType)
-	this.Data["ContactList"] = this.GetContactList()
+	hasCodeList := this.CheckHasCodeList(loginUser.Username, assetType)
+	this.Data["ContactList"] = this.GetContactList(loginUser.Username)
 	this.Data["HasAddress"] = len(addressList) > 0
 	this.Data["AddressList"] = addressList
 	this.Data["HasCodeList"] = hasCodeList
@@ -219,19 +213,18 @@ func (this *AssetsController) ConfirmAddressAction() {
 		return
 	}
 	action := this.GetString("action")
-	var response utils.ResponseData
-	formData := url.Values{
-		"authorization": {this.GetLoginToken()},
-		"assetId":       {fmt.Sprintf("%d", assetId)},
-		"addressId":     {fmt.Sprintf("%d", addressId)},
-		"action":        {action},
-	}
-	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/confirm-address-action"), formData, &response); err != nil {
-		this.ResponseError("Confirm address action failed", utils.GetFuncName(), err)
-		return
-	}
-	if response.IsError {
-		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+	//confirm address action
+	_, err = services.ConfirmAddressActionHandler(this.Ctx.Request.Context(), &assetspb.ConfirmAddressActionRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginUser.Username,
+		},
+		AssetId:   assetId,
+		AddressId: addressId,
+		Action:    action,
+	})
+
+	if err != nil {
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
 		return
 	}
 	this.ResponseSuccessfully(loginUser.Id, "Confirm address action successfully", utils.GetFuncName())
@@ -251,17 +244,14 @@ func (this *AssetsController) CancelUrlCode() {
 		return
 	}
 
-	var response utils.ResponseData
-	formData := url.Values{
-		"authorization": {this.GetLoginToken()},
-		"codeId":        {fmt.Sprintf("%d", codeId)},
-	}
-	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/cancel-url-code"), formData, &response); err != nil {
-		this.ResponseError("cancel url code failed", utils.GetFuncName(), err)
-		return
-	}
-	if response.IsError {
-		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+	_, err = services.CancelUrlCodeHandler(this.Ctx.Request.Context(), &assetspb.OneIntegerRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginUser.Username,
+		},
+		Data: codeId,
+	})
+	if err != nil {
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
 		return
 	}
 	this.ResponseSuccessfully(loginUser.Id, "Cancel url code successfully", utils.GetFuncName())

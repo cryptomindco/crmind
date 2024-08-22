@@ -4,10 +4,9 @@ export default class extends BaseController {
   static values = {
     randomUsername: String,
     isConfirm: Boolean,
-  }
+  };
 
-  async initialize() {
-  }
+  async initialize() {}
 
   async hanlderFinish(opts, sessionKey, startConditionalUI) {
     const { startAuthentication } = SimpleWebAuthnBrowser;
@@ -17,10 +16,10 @@ export default class extends BaseController {
     } catch (error) {
       console.log("Conditional UI request was aborted");
       $("#loadingArea").addClass("d-none");
-      $("#loginButton").removeClass("d-none")
-      $("#sectionTitle").text("Login with passkey")
-      $("#createAccount").removeClass("d-none")
-      $("#orText").removeClass("d-none")
+      $("#loginButton").removeClass("d-none");
+      $("#sectionTitle").text("Login with passkey");
+      $("#createAccount").removeClass("d-none");
+      $("#orText").removeClass("d-none");
       return;
     }
     fetch("/assertion/result", {
@@ -41,10 +40,10 @@ export default class extends BaseController {
           $("#loginErr_msg").removeClass("d-none");
           $("#loginErr_msg").text(json.msg);
           $("#loadingArea").addClass("d-none");
-          $("#loginButton").removeClass("d-none")
-          $("#sectionTitle").text("Login with passkey")
-          $("#createAccount").removeClass("d-none")
-          $("#orText").removeClass("d-none")
+          $("#loginButton").removeClass("d-none");
+          $("#sectionTitle").text("Login with passkey");
+          $("#createAccount").removeClass("d-none");
+          $("#orText").removeClass("d-none");
         }
       });
   }
@@ -58,34 +57,34 @@ export default class extends BaseController {
       url: "/gen-random-username", //The same form's action URL
       success: function (res) {
         if (!res.error) {
-          const result = JSON.parse(res.data)
-          _this.randomUsername = result.username
+          const result = JSON.parse(res.data);
+          _this.randomUsername = result.username;
           _this.isConfirm = true;
-          $("#loginButton").addClass("d-none")
-          $("#confirmButton").removeClass("d-none")
-          $("#createAccount").addClass("d-none")
-          $("#orText").addClass("d-none")
-          $("#usernameConfirmArea").removeClass("d-none")
-          $("#usernameInput").val(_this.randomUsername)
-          $("#sectionTitle").text('Create Account')
-          $("#registerBtn").addClass('d-none')
-          $("#footerArea").removeClass('d-none')
-          $("#backBtn").removeClass('d-none')
-          $("#loginErr_msg").addClass("d-none")
+          $("#loginButton").addClass("d-none");
+          $("#confirmButton").removeClass("d-none");
+          $("#createAccount").addClass("d-none");
+          $("#orText").addClass("d-none");
+          $("#usernameConfirmArea").removeClass("d-none");
+          $("#usernameInput").val(_this.randomUsername);
+          $("#sectionTitle").text("Create Account");
+          $("#registerBtn").addClass("d-none");
+          $("#footerArea").removeClass("d-none");
+          $("#backBtn").removeClass("d-none");
+          $("#loginErr_msg").addClass("d-none");
         }
         if (res.error) {
-          $("#loginErr_msg").removeClass("d-none")
-          $("#loginErr_msg").text(res.msg)
+          $("#loginErr_msg").removeClass("d-none");
+          $("#loginErr_msg").text(res.msg);
         }
       },
     });
   }
 
   inputBlur() {
-    const curUsername = $("#usernameInput").val()
-    if (!curUsername || curUsername == '') {
-      $("#usernameInput").val(this.randomUsername)
-      $("#randomUsernameMsg").removeClass('d-none')
+    const curUsername = $("#usernameInput").val();
+    if (!curUsername || curUsername == "") {
+      $("#usernameInput").val(this.randomUsername);
+      $("#randomUsernameMsg").removeClass("d-none");
     }
   }
 
@@ -93,50 +92,48 @@ export default class extends BaseController {
     const _this = this;
     e.preventDefault();
     //check new username is valid
-    const newUsername = $("#usernameInput").val().trim()
+    const newUsername = $("#usernameInput").val().trim();
     if (newUsername != this.randomUsername) {
       $.ajax({
         data: {
           username: newUsername,
         },
         type: "GET", //OR GET
-        url: '/check-user', //The same form's action URL
+        url: "/check-user", //The same form's action URL
         success: function (res) {
           if (!res.error) {
             //check result
-            if(res.data) {
-              const result = res.data
-              if (result.exist) {
-                $("#registererr_msg").removeClass("d-none")
-                $("#registererr_msg").text('That name is not available')
-                $("#confirmButton").prop("disabled", true)
-                return
-              }
+            const exist = res.data;
+            if (exist) {
+              $("#registererr_msg").removeClass("d-none");
+              $("#registererr_msg").text("That name is not available");
+              $("#confirmButton").prop("disabled", true);
+              return;
             }
-            _this.handlerRegister(newUsername)
+            _this.handlerRegister(newUsername);
           } else {
-            $("#confirmButton").prop("disabled", true)
-            $("#registererr_msg").removeClass("d-none")
-            $("#registererr_msg").text(res.msg)
-            return
+            $("#confirmButton").prop("disabled", true);
+            $("#registererr_msg").removeClass("d-none");
+            $("#registererr_msg").text(res.msg);
+            return;
           }
         },
       });
-      return
+      return;
     }
-    this.handlerRegister(newUsername)
+    this.handlerRegister(newUsername);
   }
 
   handlerRegister(newUsername) {
-    let sessionKey
+    let sessionKey;
     let options;
-    const _this = this
+    const _this = this;
     $("#usernameConfirmArea").addClass("d-none");
     $("#loadingArea").removeClass("d-none");
     $("#loadingText").text("Creating new account...");
-    $("#footerArea").addClass("d-none")
-    $("#confirmButton").addClass("d-none")
-    $("#sectionTitle").addClass("d-none")
+    $("#footerArea").addClass("d-none");
+    $("#confirmButton").addClass("d-none");
+    $("#sectionTitle").addClass("d-none");
     //check and create new username
     $.ajax({
       data: {
@@ -146,7 +143,7 @@ export default class extends BaseController {
       url: "/passkey/registerStart", //The same form's action URL
       success: function (res) {
         if (!res.error) {
-          const resultData = res.data
+          const resultData = JSON.parse(res.data);
           if (resultData) {
             options = resultData.options;
             sessionKey = resultData.sessionkey;
@@ -156,39 +153,39 @@ export default class extends BaseController {
               _this.cancelRegisterUser(sessionKey);
             }
             $("#loadingArea").addClass("d-none");
-            $("#footerArea").removeClass("d-none")
-            $("#confirmButton").removeClass("d-none")
+            $("#footerArea").removeClass("d-none");
+            $("#confirmButton").removeClass("d-none");
             $("#registererr_msg").removeClass("d-none");
             $("#registererr_msg").text("Registration error. Please try again!");
-            $("#sectionTitle").removeClass("d-none")
+            $("#sectionTitle").removeClass("d-none");
             return;
           }
           _this.handlerFinishRegistration(options, sessionKey);
         } else {
           _this.cancelRegisterUser(sessionKey);
           $("#loadingArea").addClass("d-none");
-          $("#footerArea").removeClass("d-none")
-          $("#confirmButton").removeClass("d-none")
+          $("#footerArea").removeClass("d-none");
+          $("#confirmButton").removeClass("d-none");
           $("#registererr_msg").removeClass("d-none");
           $("#registererr_msg").text(res.msg);
-          $("#sectionTitle").removeClass("d-none")
+          $("#sectionTitle").removeClass("d-none");
         }
       },
     });
   }
 
   resetToStartPage() {
-    $("#loginButton").removeClass("d-none")
-    $("#footerArea").addClass("d-none")
-    $("#confirmButton").addClass("d-none")
-    $("#createAccount").removeClass("d-none")
-    $("#orText").removeClass("d-none")
-    $("#usernameConfirmArea").addClass("d-none")
-    $("#sectionTitle").text('Login with passkey')
-    $("#registererr_msg").addClass("d-none")
-    $("#loginErr_msg").addClass("d-none")
-    $("#registerBtn").removeClass('d-none')
-    $("#backBtn").addClass('d-none')
+    $("#loginButton").removeClass("d-none");
+    $("#footerArea").addClass("d-none");
+    $("#confirmButton").addClass("d-none");
+    $("#createAccount").removeClass("d-none");
+    $("#orText").removeClass("d-none");
+    $("#usernameConfirmArea").addClass("d-none");
+    $("#sectionTitle").text("Login with passkey");
+    $("#registererr_msg").addClass("d-none");
+    $("#loginErr_msg").addClass("d-none");
+    $("#registerBtn").removeClass("d-none");
+    $("#backBtn").addClass("d-none");
   }
 
   async handlerFinishRegistration(options, sessionKey) {
@@ -202,9 +199,9 @@ export default class extends BaseController {
       _this.cancelRegisterUser(sessionKey);
       console.log("Cancel user registration");
       $("#loadingArea").addClass("d-none");
-      $("#confirmButton").removeClass("d-none")
-      $("#sectionTitle").removeClass("d-none")
-      _this.resetToStartPage()
+      $("#confirmButton").removeClass("d-none");
+      $("#sectionTitle").removeClass("d-none");
+      _this.resetToStartPage();
       return;
     }
     fetch("/passkey/registerFinish", {
@@ -220,48 +217,48 @@ export default class extends BaseController {
       })
       .then(function (json) {
         if (!json.error) {
-         //redirect to homepage
-         window.location.href = "/"
+          //redirect to homepage
+          window.location.href = "/";
         } else {
           $("#loadingArea").addClass("d-none");
-          $("#sectionTitle").removeClass("d-none")
-          $("#confirmButton").removeClass("d-none")
+          $("#sectionTitle").removeClass("d-none");
+          $("#confirmButton").removeClass("d-none");
           $("#registererr_msg").removeClass("d-none");
           $("#registererr_msg").text(json.msg);
           _this.cancelRegisterUser(sessionKey);
-          _this.resetToStartPage()
+          _this.resetToStartPage();
         }
       });
   }
 
   usernameChange() {
     $("#registererr_msg").addClass("d-none");
-    const newUsername = $("#usernameInput").val().trim()
-    if (!newUsername || newUsername == '') {
-      $("#confirmButton").prop("disabled", true)
-      return
+    const newUsername = $("#usernameInput").val().trim();
+    if (!newUsername || newUsername == "") {
+      $("#confirmButton").prop("disabled", true);
+      return;
     }
-    $("#confirmButton").prop("disabled", false)
+    $("#confirmButton").prop("disabled", false);
   }
 
   inputFocus() {
     $("#registererr_msg").addClass("d-none");
     if (this.randomUsername != $("#usernameInput").val().trim()) {
-      return
+      return;
     }
     //when focus to input, hide msg text and clear random username
-    $("#randomUsernameMsg").addClass('d-none')
-    $("#usernameInput").val('')
+    $("#randomUsernameMsg").addClass("d-none");
+    $("#usernameInput").val("");
   }
 
   openLogin() {
     $("#loadingArea").removeClass("d-none");
-    $("#createAccount").addClass("d-none")
-    $("#orText").addClass("d-none")
-    $("#sectionTitle").text("Select your Passkey")
+    $("#createAccount").addClass("d-none");
+    $("#orText").addClass("d-none");
+    $("#sectionTitle").text("Select your Passkey");
     $("#loadingText").text("Loading...");
-    $("#loginButton").addClass("d-none")
-    $("#loginErr_msg").addClass("d-none")
+    $("#loginButton").addClass("d-none");
+    $("#loginErr_msg").addClass("d-none");
     const _this = this;
     $.ajax({
       data: {},
@@ -269,7 +266,7 @@ export default class extends BaseController {
       url: "/assertion/options", //The same form's action URL
       success: function (res) {
         if (!res.error) {
-          const resultData = res.data;
+          const resultData = JSON.parse(res.data);
           if (!resultData || !resultData.options) {
             return;
           }
@@ -278,7 +275,7 @@ export default class extends BaseController {
           const sessionKey = resultData.sessionkey;
           _this.hanlderFinish(opts, sessionKey, false);
         } else {
-          _this.resetToStartPage()
+          _this.resetToStartPage();
         }
       },
     });

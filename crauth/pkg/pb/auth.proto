@@ -7,6 +7,7 @@ option go_package= "/pb";
 service AuthService{
   rpc BeginRegistration(WithUsernameRequest) returns (ResponseData);
   rpc CancelRegister(CancelRegisterRequest) returns (ResponseData);
+  rpc BeginUpdatePasskey(CommonRequest) returns (ResponseData);
   rpc FinishUpdatePasskey(FinishUpdatePasskeyRequest) returns (ResponseData);
   rpc FinishRegistration(SessionKeyAndHttpRequest) returns (ResponseData);
   rpc AssertionOptions(CommonRequest) returns (ResponseData);
@@ -22,6 +23,7 @@ service AuthService{
   rpc ChangeUserStatus(ChangeUserStatusRequest) returns (ResponseData);
   rpc IsLoggingOn(CommonRequest) returns (ResponseData);
   rpc GenRandomUsername(CommonRequest) returns (ResponseData);
+  rpc CheckUser(WithUsernameRequest) returns (ResponseData);
 }
 
 message WithUsernameRequest {

@@ -68,6 +68,29 @@ func (s *Server) CancelRegister(ctx context.Context, reqData *pb.CancelRegisterR
 	return ResponseSuccessfully("", "Remove session user successfully", utils.GetFuncName())
 }
 
+func (s *Server) BeginUpdatePasskey(ctx context.Context, reqData *pb.CommonRequest) (*pb.ResponseData, error) {
+	//Get token
+	loginUser, check := s.Jwt.HanlderCheckLogin(reqData.AuthToken)
+	if !check {
+		return ResponseError("Login authentication error. Please try again", utils.GetFuncName(), nil)
+	}
+	logpack.Info(fmt.Sprintf("begin update passkey of: %s", loginUser.Username), utils.GetFuncName())
+	//check if user exist in inmem
+	user := passkey.Datastore.GetUser(loginUser.Username) // Find or create the new user
+
+	options, session, err := passkey.WebAuthn.BeginRegistration(user)
+	if err != nil {
+		return ResponseLoginError(loginUser.Username, "can't begin update passkey", utils.GetFuncName(), nil)
+	}
+	// Make a session key and store the sessionData values
+	t := uuid.New().String()
+	passkey.Datastore.SaveSession(t, *session)
+	response := make(map[string]any)
+	response["options"] = options
+	response["sessionkey"] = t
+	return ResponseSuccessfullyWithAnyData(loginUser.Username, "Begin registration successfully", utils.GetFuncName(), response)
+}
+
 func (s *Server) FinishUpdatePasskey(ctx context.Context, reqData *pb.FinishUpdatePasskeyRequest) (*pb.ResponseData, error) {
 	sessionKey := reqData.SessionKey
 	isResetKey := reqData.IsReset

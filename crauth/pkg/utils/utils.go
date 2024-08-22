@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
+	"strings"
 )
 
 func IsEmpty(x interface{}) bool {
@@ -63,11 +64,8 @@ func ConvertToJsonString(value any) (string, error) {
 
 func ConvertBodyJsonToRequest(bodyJson string) (*http.Request, error) {
 	request := http.Request{}
-	var body io.ReadCloser
-	parseErr := json.Unmarshal([]byte(bodyJson), &body)
-	if parseErr != nil {
-		return nil, fmt.Errorf("parse Request body failed")
-	}
-	request.Body = body
+	bodyReader := strings.NewReader(bodyJson)
+	bodyReadCloser := io.NopCloser(bodyReader)
+	request.Body = bodyReadCloser
 	return &request, nil
 }

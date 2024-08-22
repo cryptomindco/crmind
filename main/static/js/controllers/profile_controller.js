@@ -18,35 +18,41 @@ export default class extends BaseController {
 
   confirmDialogYes() {
     switch (this.dialogType) {
-      case 'username':
-        this.confirmChangeUsername()
-        break
-      case 'add':
-        this.handlerUpdatePasskey(false)
-        break
-      case 'reset':
-        this.handlerUpdatePasskey(true)
+      case "username":
+        this.confirmChangeUsername();
+        break;
+      case "add":
+        this.handlerUpdatePasskey(false);
+        break;
+      case "reset":
+        this.handlerUpdatePasskey(true);
     }
   }
 
   showAddCredentialDialog() {
-    $("#dialogContent").text('Resend your current passkey to your passkey manager. Would you like to continue?')
-    this.dialogType = 'add'
+    $("#dialogContent").text(
+      "Resend your current passkey to your passkey manager. Would you like to continue?"
+    );
+    this.dialogType = "add";
     $("#usernameChangeConfirm")
       .on("shown.bs.modal", function () {})
-      .modal("show")
+      .modal("show");
   }
 
   showUpdatePasskeyDialog() {
-    $("#dialogContent").text('Invalidated your current passkey and makes a new one. Would you like to continue?')
-    this.dialogType = 'reset'
+    $("#dialogContent").text(
+      "Invalidated your current passkey and makes a new one. Would you like to continue?"
+    );
+    this.dialogType = "reset";
     $("#usernameChangeConfirm")
       .on("shown.bs.modal", function () {})
-      .modal("show")
+      .modal("show");
   }
 
   handlerUpdatePasskey(isReset) {
-    $("#usernameChangeConfirm").on("shown.bs.modal", function () {}).modal('hide')
+    $("#usernameChangeConfirm")
+      .on("shown.bs.modal", function () {})
+      .modal("hide");
     if (!this.username || this.username == "") {
       $("#updateErr").removeClass("d-none");
       $("#updateErr").text("Username is empty. Please try again");
@@ -61,7 +67,7 @@ export default class extends BaseController {
       url: "/passkey/updateStart", //The same form's action URL
       success: function (res) {
         if (!res.error) {
-          const resultData = res.data;
+          const resultData = JSON.parse(res.data);
           if (resultData) {
             options = resultData.options;
             sessionKey = resultData.sessionkey;
@@ -81,7 +87,7 @@ export default class extends BaseController {
   }
 
   closeConfirmDialog() {
-    $("#loadingArea").addClass('d-none')
+    $("#loadingArea").addClass("d-none");
   }
 
   editBtnClick() {
@@ -144,22 +150,22 @@ export default class extends BaseController {
       success: function (res) {
         if (!res.error) {
           //check result
-          if (res.data) {
-            const result = res.data
-            if (result.exist) {
-              $("#newUsernameErr").removeClass("d-none");
-              $("#newUsernameErr").text("Username already exists");
-              return;
-            }
+          const exist = res.data;
+          if (exist) {
+            $("#newUsernameErr").removeClass("d-none");
+            $("#newUsernameErr").text("Username already exists");
+            return;
           }
           _this.newUsername = newUsername;
-          $("#loadingArea").removeClass('d-none')
-          $("#loadingText").text('Updating username')
-          $("#dialogContent").text('Changing your user name will require changing your passkey to work with your new username. Would you like to continue?')
-          _this.dialogType = 'username'
+          $("#loadingArea").removeClass("d-none");
+          $("#loadingText").text("Updating username");
+          $("#dialogContent").text(
+            "Changing your user name will require changing your passkey to work with your new username. Would you like to continue?"
+          );
+          _this.dialogType = "username";
           $("#usernameChangeConfirm")
             .on("shown.bs.modal", function () {})
-            .modal("show")
+            .modal("show");
         } else {
           $("#newUsernameErr").removeClass("d-none");
           $("#newUsernameErr").text(res.msg);
@@ -169,14 +175,16 @@ export default class extends BaseController {
   }
 
   confirmChangeUsername() {
-    $("#usernameChangeConfirm").on("shown.bs.modal", function () {}).modal('hide')
+    $("#usernameChangeConfirm")
+      .on("shown.bs.modal", function () {})
+      .modal("hide");
     if (!this.newUsername || this.newUsername == "") {
       $("#newUsernameErr").removeClass("d-none");
       $("#newUsernameErr").text("Get new username failed");
-      $("#loadingArea").addClass('d-none')
+      $("#loadingArea").addClass("d-none");
       return;
     }
-    const _this = this
+    const _this = this;
     //check and create new username
     $.ajax({
       data: {
@@ -188,7 +196,7 @@ export default class extends BaseController {
         let sessionKey;
         let options;
         if (!res.error) {
-          const resultData = res.data;
+          const resultData = JSON.parse(res.data);
           if (resultData) {
             options = resultData.options;
             sessionKey = resultData.sessionkey;
@@ -199,7 +207,7 @@ export default class extends BaseController {
             }
             $("#newUsernameErr").removeClass("d-none");
             $("#newUsernameErr").text("Registration error. Please try again!");
-            $("#loadingArea").addClass('d-none')
+            $("#loadingArea").addClass("d-none");
             return;
           }
           _this.handlerFinishChangeUsername(options, sessionKey);
@@ -207,7 +215,7 @@ export default class extends BaseController {
           _this.cancelRegisterUser(sessionKey);
           $("#newUsernameErr").removeClass("d-none");
           $("#newUsernameErr").text(res.msg);
-          $("#loadingArea").addClass('d-none')
+          $("#loadingArea").addClass("d-none");
         }
       },
     });
@@ -222,7 +230,7 @@ export default class extends BaseController {
       );
     } catch (error) {
       _this.cancelRegisterUser(sessionKey);
-      $("#loadingArea").addClass('d-none')
+      $("#loadingArea").addClass("d-none");
       console.log("Cancel user registration");
       return;
     }
@@ -240,11 +248,11 @@ export default class extends BaseController {
       })
       .then(function (json) {
         if (!json.error) {
-          window.location.reload()
+          window.location.reload();
         } else {
           $("#newUsernameErr").removeClass("d-none");
           $("#newUsernameErr").text(json.msg);
-          $("#loadingArea").addClass('d-none')
+          $("#loadingArea").addClass("d-none");
           _this.cancelRegisterUser(sessionKey);
         }
       });

@@ -3,6 +3,9 @@ package controllers
 import (
 	"crmind/logpack"
 	"crmind/models"
+	"crmind/pb/assetspb"
+	"crmind/pb/authpb"
+	"crmind/pb/chatpb"
 	"crmind/services"
 	"crmind/utils"
 	"encoding/json"
@@ -122,7 +125,7 @@ func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
 	}
 	this.Data["UserInfoList"] = userInfoList
 	//user chat list initialization
-	chatMsgList, hasUnreadChatCount := this.GetChatMsgDisplayList(authClaim.Id)
+	chatMsgList, hasUnreadChatCount := this.GetChatMsgDisplayList(authClaim.Username)
 	//content chatMsgList data to json
 	chatMsgJsonStr, chatJsonErr := utils.ConvertToJsonString(chatMsgList)
 	if chatJsonErr != nil {
@@ -134,397 +137,336 @@ func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
 	return authClaim, nil
 }
 
-func (this *BaseController) GetChatMsgDisplayList(userId int64) ([]*models.ChatDisplay, int) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.ChatSite(), "/get-chat-msg"),
-		Header: map[string]string{
-			"Authorization": this.GetLoginToken(),
-			"UserId":        fmt.Sprintf("%d", userId)},
+func (this *BaseController) GetChatMsgDisplayList(loginName string) ([]*models.ChatDisplay, int) {
+	res, err := services.GetChatMsgDisplayListHandler(this.Ctx.Request.Context(), &chatpb.CommonRequest{
+		LoginName: loginName,
+	})
+	if err != nil {
+		return nil, 0
 	}
 	type ResData struct {
 		ChatList    []*models.ChatDisplay `json:"chatList"`
 		UnreadCount int                   `json:"unreadCount"`
 	}
 	var result ResData
-	err := services.HttpRequest(req, &response)
-	if err == nil && !response.IsError {
-		jsonBytes, err := json.Marshal(response.Data)
-		if err == nil {
-			err = json.Unmarshal(jsonBytes, &result)
-			if err == nil {
-				return result.ChatList, result.UnreadCount
-			}
-		}
+	parseErr := utils.JsonStringToObject(res.Data, &result)
+	if parseErr != nil {
+		return nil, 0
 	}
-	return nil, 0
+
+	return result.ChatList, result.UnreadCount
+
 }
 
-func (this *BaseController) GetAdminAssetsBalance() ([]*models.AssetDisplay, error) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-balance-summary"),
-		Header: map[string]string{
-			"Authorization": this.GetLoginToken(),
-			"AllowAssets":   utils.GetAllowAssets()},
-	}
-
+func (this *BaseController) GetAdminAssetsBalance(loginName string, role int64) ([]*models.AssetDisplay, error) {
+	res, err := services.GetBalanceSummaryHandler(this.Ctx.Request.Context(), &assetspb.OneStringRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
+			Role:      role,
+		},
+		Data: utils.GetAllowAssets(),
+	})
 	var result []*models.AssetDisplay
-	err := services.HttpRequest(req, &response)
 	if err != nil {
 		return nil, err
 	}
-	if response.IsError {
-		return nil, fmt.Errorf(response.Msg)
-	}
-	err = utils.CatchObject(response.Data, &result)
+
+	err = utils.JsonStringToObject(res.Data, &result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (this *BaseController) GetAddressListByAssetId(assetId int64) ([]string, error) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-address-list"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"assetid":       fmt.Sprintf("%d", assetId),
+func (this *BaseController) GetAddressListByAssetId(loginName string, assetId int64) ([]string, error) {
+	res, err := services.GetAddressListHandler(this.Ctx.Request.Context(), &assetspb.OneIntegerRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
-	}
-	if err := services.HttpRequest(req, &response); err != nil {
+		Data: assetId,
+	})
+	if err != nil {
 		return nil, err
 	}
-	if response.IsError {
-		return nil, fmt.Errorf(response.Msg)
-	}
 	var addressList []string
-	err := utils.CatchObject(response.Data, &addressList)
+	err = utils.JsonStringToObject(res.Data, &addressList)
 	if err != nil {
 		return nil, err
 	}
 	return addressList, nil
 }
 
-func (this *BaseController) GetAddressById(addressId int64) (*models.Addresses, error) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-address"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"addressid":     fmt.Sprintf("%d", addressId),
+func (this *BaseController) GetAddressById(loginName string, addressId int64) (*models.Addresses, error) {
+	res, err := services.GetAddressHandler(this.Ctx.Request.Context(), &assetspb.OneIntegerRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
-	}
-	err := services.HttpRequest(req, &response)
+		Data: addressId,
+	})
 	if err != nil {
 		return nil, err
 	}
-	if response.IsError {
-		return nil, fmt.Errorf(response.Msg)
-	}
-	var res models.Addresses
-	err = utils.CatchObject(response.Data, &res)
+
+	var addr models.Addresses
+	err = utils.JsonStringToObject(res.Data, &addr)
 	if err != nil {
 		return nil, err
 	}
-	return &res, nil
+	return &addr, nil
 }
 
-func (this *BaseController) GetAssetByUser(userId int64, assetType string) (*utils.TempoRes, error) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-user-asset"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"userid":        fmt.Sprintf("%d", userId),
-			"type":          assetType,
+func (this *BaseController) GetAssetByUser(loginName, userName string, assetType string) (*utils.TempoRes, error) {
+	res, err := services.GetUserAssetDBHandler(this.Ctx.Request.Context(), &assetspb.GetUserAssetDBRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
-	}
-	var result utils.TempoRes
-
-	err := services.HttpRequest(req, &response)
+		Username: userName,
+		Type:     assetType,
+	})
 	if err != nil {
 		return nil, err
 	}
-	if response.IsError {
-		return nil, fmt.Errorf(response.Msg)
-	}
-	err = utils.CatchObject(response.Data, &result)
+	var result utils.TempoRes
+	err = utils.JsonStringToObject(res.Data, &result)
 	if err != nil {
 		return nil, err
 	}
 	return &result, nil
 }
 
-func (this *BaseController) CheckMatchAddressWithUser(assetId, addressId int64, archived bool) bool {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/address-match-user"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"assetid":       fmt.Sprintf("%d", assetId),
-			"addressid":     fmt.Sprintf("%d", addressId),
-			"archived":      fmt.Sprintf("%v", archived),
+func (this *BaseController) CheckMatchAddressWithUser(loginName string, assetId, addressId int64, archived bool) bool {
+	res, err := services.CheckAddressMatchWithUserHandler(this.Ctx.Request.Context(), &assetspb.CheckAddressMatchWithUserRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
+		AssetId:   assetId,
+		AddressId: addressId,
+		Archived:  archived,
+	})
+	if err != nil {
+		return false
 	}
-	if err := services.HttpRequest(req, &response); err != nil {
+	var resMap map[string]bool
+	parseErr := utils.JsonStringToObject(res.Data, &resMap)
+	if parseErr != nil {
 		return false
 	}
 
-	if response.IsError {
-		return false
-	}
-	isMatch, isOk := response.Data.(bool)
+	isMatch, isOk := resMap["isMatch"]
 	if !isOk {
 		return false
 	}
 	return isMatch
 }
 
-func (this *BaseController) CheckAssetMatchUser(assetId int64) bool {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/asset-match-user"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"assetid":       fmt.Sprintf("%d", assetId),
+func (this *BaseController) CheckAssetMatchUser(loginName string, assetId int64) bool {
+	res, err := services.CheckAssetMatchWithUserHandler(this.Ctx.Request.Context(), &assetspb.OneIntegerRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
-	}
-	if err := services.HttpRequest(req, &response); err != nil {
+		Data: assetId,
+	})
+	if err != nil {
 		return false
 	}
-
-	if response.IsError {
+	var resMap map[string]bool
+	parseErr := utils.JsonStringToObject(res.Data, &resMap)
+	if parseErr != nil {
 		return false
 	}
-	isMatch, isOk := response.Data.(bool)
-	if !isOk {
-		return false
-	}
+	isMatch := resMap["isMatch"]
 	return isMatch
 }
 
-func (this *BaseController) FilterAddressList(assetId int64, status string) ([]models.Addresses, error) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/filter-address-list"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"assetid":       fmt.Sprintf("%d", assetId),
-			"status":        status,
+func (this *BaseController) FilterAddressList(loginName string, assetId int64, status string) ([]models.Addresses, error) {
+	res, err := services.FilterAddressListHandler(this.Ctx.Request.Context(), &assetspb.FilterAddressListRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
-	}
-	if err := services.HttpRequest(req, &response); err != nil {
+		AssetId: assetId,
+		Status:  status,
+	})
+
+	if err != nil {
 		return nil, err
 	}
-
-	if response.IsError {
-		return nil, fmt.Errorf(response.Msg)
-	}
 	var addrListRes []models.Addresses
-	err := utils.CatchObject(response.Data, &addrListRes)
+	err = utils.JsonStringToObject(res.Data, &addrListRes)
 	if err != nil {
 		return nil, err
 	}
 	return addrListRes, nil
 }
 
-func (this *BaseController) CheckAndCreateAccountToken(userId int64, username string, role int) (string, error) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/create-account-token"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"userid":        fmt.Sprintf("%d", userId),
-			"username":      username,
-			"role":          fmt.Sprintf("%d", role),
+func (this *BaseController) CheckAndCreateAccountToken(loginName, username string, role int) (string, error) {
+	res, err := services.CheckAndCreateAccountTokenHandler(this.Ctx.Request.Context(), &assetspb.CheckAndCreateAccountTokenRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
-	}
-	if err := services.HttpRequest(req, &response); err != nil {
+		Username: username,
+		Role:     int64(role),
+	})
+
+	if err != nil {
 		return "", err
 	}
 
-	if response.IsError {
-		return "", fmt.Errorf(response.Msg)
+	var resMap map[string]string
+	parseErr := utils.JsonStringToObject(res.Data, &resMap)
+	if parseErr != nil {
+		return "", parseErr
 	}
-	token, ok := response.Data.(string)
+
+	token, ok := resMap["token"]
 	if !ok {
 		return "", fmt.Errorf("Get token failed")
 	}
 	return token, nil
 }
 
-func (this *BaseController) GetTxHistory(txHistoryId int64) (*models.TxHistory, error) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-txhistory"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"txhistoryid":   fmt.Sprintf("%d", txHistoryId),
+func (this *BaseController) GetTxHistory(loginName string, txHistoryId int64) (*models.TxHistory, error) {
+	res, err := services.GetTxHistoryHandler(this.Ctx.Request.Context(), &assetspb.OneIntegerRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
-	}
-	if err := services.HttpRequest(req, &response); err != nil {
+		Data: txHistoryId,
+	})
+
+	if err != nil {
 		return nil, err
 	}
-
-	if response.IsError {
-		return nil, fmt.Errorf(response.Msg)
-	}
 	var txRes models.TxHistory
-	err := utils.CatchObject(response.Data, &txRes)
+	err = utils.JsonStringToObject(res.Data, &txRes)
 	if err != nil {
 		return nil, err
 	}
 	return &txRes, nil
 }
 
-func (this *BaseController) FilterUrlCodeList(assetType string, status string) ([]models.TxCode, error) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/filter-txcode"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"assettype":     assetType,
-			"status":        status,
-		},
-	}
-	if err := services.HttpRequest(req, &response); err != nil {
-		return nil, err
-	}
+func (this *BaseController) FilterUrlCodeList(loginName, assetType string, status string) ([]models.TxCode, error) {
+	res, err := services.FilterTxCodeHandler(this.Ctx.Request.Context(), &assetspb.FilterTxCodeRequest{
+		Common:    &assetspb.CommonRequest{LoginName: loginName},
+		AssetType: assetType,
+		Status:    status,
+	})
 
-	if response.IsError {
-		return nil, fmt.Errorf(response.Msg)
-	}
-	var resultData []models.TxCode
-	err := utils.CatchObject(response.Data, &resultData)
 	if err != nil {
 		return nil, err
+	}
+	var resultData []models.TxCode
+	parseErr := utils.JsonStringToObject(res.Data, &resultData)
+	if parseErr != nil {
+		return nil, parseErr
 	}
 	return resultData, nil
 }
 
-func (this *BaseController) CountAddressesWithStatus(assetId int64, activeFlg bool) int64 {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/count-address"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"assetid":       fmt.Sprintf("%d", assetId),
-			"activeflg":     fmt.Sprintf("%v", activeFlg),
+func (this *BaseController) CountAddressesWithStatus(loginName string, assetId int64, activeFlg bool) int64 {
+	res, err := services.CountAddressHandler(this.Ctx.Request.Context(), &assetspb.CountAddressRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
-	}
-	if err := services.HttpRequest(req, &response); err != nil {
-		return 0
-	}
+		AssetId:   assetId,
+		ActiveFlg: activeFlg,
+	})
 
-	if response.IsError {
+	if err != nil {
 		return 0
 	}
-	count, ok := response.Data.(int64)
+	var resMap map[string]int64
+	parseErr := utils.JsonStringToObject(res.Data, &resMap)
+	if parseErr != nil {
+		return 0
+	}
+	count, ok := resMap["count"]
 	if ok {
 		return 0
 	}
 	return count
 }
 
-func (this *BaseController) CheckHasCodeList(assetType string) bool {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/has-txcodes"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-			"assetType":     assetType,
+func (this *BaseController) CheckHasCodeList(loginName string, assetType string) bool {
+	res, err := services.CheckHasCodeListHandler(this.Ctx.Request.Context(), &assetspb.OneStringRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
 		},
-	}
-	err := services.HttpRequest(req, &response)
+		Data: assetType,
+	})
 
-	if err != nil || response.IsError {
+	if err != nil {
 		return false
 	}
-	check, ok := response.Data.(bool)
+
+	var resMap map[string]bool
+	parseErr := utils.JsonStringToObject(res.Data, &resMap)
+	if parseErr != nil {
+		return false
+	}
+	check, ok := resMap["hasCode"]
 	if !ok {
 		return false
 	}
 	return check
 }
 
-func (this *BaseController) GetContactList() []string {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-contacts"),
-		Payload: map[string]string{
-			"authorization": this.GetLoginToken(),
-		},
-	}
-	err := services.HttpRequest(req, &response)
-
-	if err != nil || response.IsError {
-		return []string{}
-	}
-	var res []string
-	err = utils.CatchObject(response.Data, &res)
+func (this *BaseController) GetContactList(loginName string) []string {
+	res, err := services.GetContactListHandler(this.Ctx.Request.Context(), &assetspb.CommonRequest{
+		LoginName: loginName,
+	})
 	if err != nil {
 		return []string{}
 	}
-	return res
+	var result []string
+	parseErr := utils.JsonStringToObject(res.Data, &result)
+	if parseErr != nil {
+		return []string{}
+	}
+	return result
 }
 
-func (this *BaseController) GetUserAssetList() ([]*models.Asset, error) {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AssetsSite(), "/assets/get-asset-list"),
-		Header: map[string]string{
-			"Authorization": this.GetLoginToken(),
-			"AllowAssets":   utils.GetAllowAssets()},
+func (this *BaseController) GetUserByUsername(username string) (*models.UserInfo, error) {
+	res, err := services.GetUserInfoByUsernameHandler(this.Ctx.Request.Context(), &authpb.WithUsernameRequest{
+		Username: username,
+	})
+	if err != nil {
+		return nil, err
 	}
+	var result models.UserInfo
+	parseErr := utils.JsonStringToObject(res.Data, &result)
+	if parseErr != nil {
+		return nil, parseErr
+	}
+	return &result, nil
+}
 
+func (this *BaseController) GetUserAssetList(loginName string) ([]*models.Asset, error) {
+	res, err := services.GetAssetDBListHandler(this.Ctx.Request.Context(), &assetspb.OneStringRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginName,
+		},
+		Data: utils.GetAllowAssets(),
+	})
 	var result []*models.Asset
-	err := services.HttpRequest(req, &response)
 	if err != nil {
 		return result, err
 	}
-	if response.IsError {
-		return result, fmt.Errorf(response.Msg)
-	}
-	err = utils.CatchObject(response.Data, &result)
-	if err != nil {
-		return result, err
+	parseErr := utils.JsonStringToObject(res.Data, &result)
+	if parseErr != nil {
+		return result, parseErr
 	}
 	return result, nil
 }
 
 func (this *BaseController) GetUsernameListExcludeId() []models.UserInfo {
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", this.AuthSite(), "/username-list"),
-		Header:  map[string]string{"Authorization": this.GetLoginToken()},
+	res, err := services.GetExcludeLoginUserNameListHandler(this.Ctx.Request.Context(), &authpb.CommonRequest{
+		AuthToken: this.GetLoginToken(),
+	})
+	result := make([]models.UserInfo, 0)
+	if err != nil {
+		return result
 	}
-	usernameList := make([]models.UserInfo, 0)
-	err := services.HttpRequest(req, &response)
-	if err == nil && !response.IsError {
-		jsonBytes, err := json.Marshal(response.Data)
-		if err == nil {
-			json.Unmarshal(jsonBytes, &usernameList)
-		}
-	}
-	return usernameList
+	utils.JsonStringToObject(res.Data, &result)
+	return result
 }
 
 func (this *BaseController) SimpleAdminAuthCheck() (*models.AuthClaims, error) {
@@ -552,18 +494,6 @@ func (this *BaseController) GetLoginUser() (*models.AuthClaims, error) {
 	return &authClaim, nil
 }
 
-func (this *BaseController) AuthSite() string {
-	return fmt.Sprintf("%s:%s", utils.GetAuthHost(), utils.GetAuthPort())
-}
-
-func (this *BaseController) ChatSite() string {
-	return fmt.Sprintf("%s:%s", utils.GetChatHost(), utils.GetChatPort())
-}
-
-func (this *BaseController) AssetsSite() string {
-	return fmt.Sprintf("%s:%s", utils.GetAssetsHost(), utils.GetAssetsPort())
-}
-
 // Check user is superadmin
 func (this *BaseController) IsSuperAdmin(user models.AuthClaims) bool {
 	return user.Role == int(utils.RoleSuperAdmin)
@@ -574,17 +504,16 @@ func (this *BaseController) SyncUsernameDB(userId int64, oldUsername, newUsernam
 }
 
 func (this *BaseController) SyncUsernameOnUserTable(userId int64, oldUsername, newUsername string) {
-	var response utils.ResponseData
-	if err := services.HttpFullPost(fmt.Sprintf("%s%s", this.AuthSite(), "/auth/syncChangeUsername"), this.Ctx.Request.Body, map[string]string{
-		"Authorization": fmt.Sprintf("%s%s", "Bearer ", this.GetSession(utils.Tokenkey).(string)),
-		"OldUsername":   oldUsername,
-		"NewUsername":   newUsername,
-	}, &response); err != nil {
+	_, err := services.SyncUsernameDBHandler(this.Ctx.Request.Context(), &authpb.SyncUsernameDBRequest{
+		Common: &authpb.CommonRequest{
+			AuthToken: fmt.Sprintf("%s%s", "Bearer ", this.GetSession(utils.Tokenkey).(string)),
+		},
+		NewUsername: newUsername,
+		OldUsername: oldUsername,
+	})
+
+	if err != nil {
 		logpack.FError("Sync user data failed", userId, utils.GetFuncName(), err)
-		return
-	}
-	if response.IsError {
-		logpack.FError(response.Msg, userId, utils.GetFuncName(), nil)
 		return
 	}
 	logpack.FInfo("Sync user data successfully", userId, utils.GetFuncName())

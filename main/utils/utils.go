@@ -4,6 +4,7 @@ import (
 	"crmind/models"
 	"encoding/json"
 	"fmt"
+	"io"
 	"runtime"
 	"strings"
 	"time"
@@ -39,12 +40,29 @@ func GetFuncName() string {
 	return fmt.Sprintf("%s", runtime.FuncForPC(pc).Name())
 }
 
-func ObjectToJsonString(obj interface{}) string {
-	b, err := json.Marshal(obj)
+func RequestBodyToString(body io.ReadCloser) string {
+	b, err := io.ReadAll(body)
 	if err != nil {
 		return ""
 	}
 	return string(b)
+}
+
+func ObjectToJsonString(obj interface{}) string {
+	b, err := json.Marshal(obj)
+	fmt.Println("err: ", err)
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
+}
+
+func JsonStringToObject(jsonString string, to interface{}) error {
+	err := json.Unmarshal([]byte(jsonString), &to)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func CatchObject(from interface{}, to interface{}) error {

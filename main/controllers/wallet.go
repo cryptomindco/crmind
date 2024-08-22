@@ -1,10 +1,10 @@
 package controllers
 
 import (
+	"crmind/pb/assetspb"
 	"crmind/services"
 	"crmind/utils"
 	"fmt"
-	"net/url"
 )
 
 type WalletController struct {
@@ -25,20 +25,25 @@ func (this *WalletController) CreateNewAddress() {
 		return
 	}
 
-	var response utils.ResponseData
-	formData := url.Values{
-		"authorization": {this.GetLoginToken()},
-		"assetType":     {selectedType},
-	}
-	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AssetsSite(), "/wallet/create-new-address"), formData, &response); err != nil {
-		this.ResponseError("Create new address failed", utils.GetFuncName(), err)
+	res, err := services.CreateNewAddressHandler(this.Ctx.Request.Context(), &assetspb.OneStringRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginUser.Username,
+			Role:      int64(loginUser.Role),
+		},
+		Data: selectedType,
+	})
+
+	if err != nil {
+		this.ResponseLoginError(loginUser.Id, "Create new address failed", utils.GetFuncName(), err)
 		return
 	}
-	if response.IsError {
-		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+	var resMap map[string]string
+	parseErr := utils.JsonStringToObject(res.Data, &resMap)
+	if parseErr != nil {
+		this.ResponseLoginError(loginUser.Id, parseErr.Error(), utils.GetFuncName(), parseErr)
 		return
 	}
-	address, isOk := response.Data.(string)
+	address, isOk := resMap["address"]
 	if !isOk {
 		this.ResponseError("Get new address failed", utils.GetFuncName(), fmt.Errorf("Get new address failed"))
 		return

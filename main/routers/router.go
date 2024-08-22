@@ -17,8 +17,6 @@ func init() {
 	beego.Router("/assertion/result", &controllers.AuthController{}, "post:AssertionResult")
 	beego.Router("/passkey/updateStart", &controllers.AuthController{}, "post:BeginUpdatePasskey")
 	beego.Router("/passkey/updateFinish", &controllers.AuthController{}, "post:FinishUpdatePasskey")
-	beego.Router("/passkey/confirmStart", &controllers.AuthController{}, "post:BeginConfirmPasskey")
-	beego.Router("/passkey/confirmFinish", &controllers.AuthController{}, "post:FinishConfirmPasskey")
 	beego.Router("/passkey/cancelRegister", &controllers.AuthController{}, "post:CancelRegister")
 	beego.Router("/passkey/changeUsernameFinish", &controllers.AuthController{}, "post:ChangeUsernameFinish")
 	beego.Router("/exit", &controllers.AuthController{}, "get:Quit")

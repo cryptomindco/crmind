@@ -33,6 +33,7 @@ service AssetsService {
   rpc GetAddress(OneIntegerRequest) returns (ResponseData);
   rpc ConfirmAddressAction(ConfirmAddressActionRequest) returns (ResponseData);
   rpc CancelUrlCode(OneIntegerRequest) returns (ResponseData);
+  rpc CheckContactUser(OneStringRequest) returns (ResponseData);
 }
 
 message OneStringRequest {

@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "crmind/routers"
+	"crmind/services"
 	"crmind/utils"
 	"fmt"
 	"io"
@@ -49,7 +50,18 @@ func main() {
 	//set allow assets
 	utils.AllowAssets, _ = utils.GetAssetStrFromSettings()
 	initServiceConfig()
+	//TODO: Display follow settings on DB. Default if off
+	initMicroserviceClient()
 	beego.Run()
+}
+
+func initMicroserviceClient() {
+	//init auth client
+	services.CheckAndInitAuthClient()
+	//init assets client
+	services.CheckAndInitAssetsClient()
+	//init chat client
+	services.CheckAndInitChatClient()
 }
 
 func initServiceConfig() {

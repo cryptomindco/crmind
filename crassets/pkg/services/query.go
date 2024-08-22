@@ -35,7 +35,9 @@ func (s *Server) CreateNewAddress(ctx context.Context, reqData *pb.OneStringRequ
 		return ResponseLoginError(reqData.Common.LoginName, createErr.Error(), utils.GetFuncName(), nil)
 	}
 
-	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Create new address successfully", utils.GetFuncName(), address.Address)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Create new address successfully", utils.GetFuncName(), map[string]string{
+		"address": address.Address,
+	})
 }
 
 func (s *Server) SyncTransactions(ctx context.Context, reqData *pb.CommonRequest) (*pb.ResponseData, error) {

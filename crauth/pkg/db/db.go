@@ -30,7 +30,7 @@ func Init(config config.Config) Handler {
 // Check user exist with username and status active
 func (h *Handler) CheckUserExist(username string) (bool, error) {
 	var count int64
-	if result := h.DB.Where(&models.User{Username: username, Status: int(utils.StatusActive)}).Count(&count); result.Error != nil {
+	if result := h.DB.Model(&models.User{}).Where("username = ? AND status = ?", username, int(utils.StatusActive)).Count(&count); result.Error != nil {
 		return false, result.Error
 	}
 	return count > 0, nil
@@ -61,9 +61,11 @@ func (h *Handler) GetNewRandomUsername() (string, error) {
 	//Try up to 10 times if username creations failed
 	for breakLoop < 10 {
 		newUsername := utils.RandSeq(8)
+		fmt.Println("Check hreere", newUsername)
 		breakLoop++
 		//check token exist on user table
 		exist, err := h.CheckUserExist(newUsername)
+		fmt.Println("Check err : ", err)
 		if err != nil || exist {
 			continue
 		}

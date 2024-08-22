@@ -1,10 +1,10 @@
 package routers
 
 import (
+	"crmind/pb/authpb"
 	"crmind/services"
 	"crmind/utils"
 	"fmt"
-	"net/http"
 	"strings"
 
 	beego "github.com/beego/beego/v2/adapter"
@@ -44,29 +44,17 @@ var FilterCryptomind = func(ctx *context.Context) {
 		ctx.Redirect(302, loginUrl)
 		return
 	}
-	var response utils.ResponseData
-	okLogin := false
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf("%s%s", utils.AuthSite(), "/is-logging"),
-		Payload: map[string]string{},
-		Header: map[string]string{
-			"Authorization": fmt.Sprintf("%s%s", "Bearer ", token),
-		},
-	}
 
-	err := services.HttpRequest(req, &response)
-	if err != nil {
+	//check login with rpc client
+	okLogin, err := services.CheckMiddlewareLogin(ctx.Request.Context(), &authpb.CommonRequest{
+		AuthToken: fmt.Sprintf("%s%s", "Bearer ", token),
+	})
+	if err != nil || !okLogin {
 		ctx.Redirect(302, loginUrl)
 		return
 	}
-
-	okLogin = !response.IsError
 	//Determine whether to only verify the login URL
 	if _, ok := filterOnlyLoginCheckURLMap[ctx.Request.URL.Path]; okLogin && ok {
 		return
-	}
-	if !okLogin {
-		ctx.Redirect(302, loginUrl)
 	}
 }

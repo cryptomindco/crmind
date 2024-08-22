@@ -3,12 +3,12 @@ package controllers
 import (
 	"crmind/logpack"
 	"crmind/models"
+	"crmind/pb/assetspb"
+	"crmind/pb/authpb"
 	"crmind/services"
 	"crmind/utils"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/beego/beego/v2/client/orm"
 )
@@ -24,20 +24,12 @@ func (this *AdminController) Get() {
 		return
 	}
 	var userList = make([]models.User, 0)
-	//Get user list
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method:  http.MethodGet,
-		Payload: map[string]string{},
-		HttpUrl: fmt.Sprintf("%s%s", this.AuthSite(), "/admin/get-users"),
-		Header:  map[string]string{"Authorization": this.GetLoginToken()},
-	}
-	err = services.HttpRequest(req, &response)
-	if err == nil && !response.IsError {
-		jsonBytes, err := json.Marshal(response.Data)
-		if err == nil {
-			json.Unmarshal(jsonBytes, &userList)
-		}
+	res, err := services.GetAdminUserListHandler(this.Ctx.Request.Context(), &authpb.CommonRequest{
+		AuthToken: this.GetLoginToken(),
+	})
+
+	if err == nil && !res.Error {
+		utils.JsonStringToObject(res.Data, &userList)
 	}
 	this.Data["UserList"] = userList
 	this.TplName = "admin/users.html"
@@ -55,23 +47,16 @@ func (this *AdminController) UserDetail() {
 		this.Redirect("/", http.StatusFound)
 		return
 	}
-	//Get user info
-	var response utils.ResponseData
-	req := &services.ReqConfig{
-		Method: http.MethodGet,
-		Payload: map[string]string{
-			"userId": fmt.Sprintf("%d", userId),
+
+	res, err := services.GetAdminUserInfoHandler(this.Ctx.Request.Context(), &authpb.WithUserIdRequest{
+		UserId: userId,
+		Common: &authpb.CommonRequest{
+			AuthToken: this.GetLoginToken(),
 		},
-		HttpUrl: fmt.Sprintf("%s%s", this.AuthSite(), "/admin/user-info"),
-		Header:  map[string]string{"Authorization": this.GetLoginToken()},
-	}
+	})
 	var targetUser models.User
-	err = services.HttpRequest(req, &response)
-	if err == nil && !response.IsError {
-		jsonBytes, err := json.Marshal(response.Data)
-		if err == nil {
-			json.Unmarshal(jsonBytes, &targetUser)
-		}
+	if err == nil && !res.Error {
+		utils.JsonStringToObject(res.Data, &targetUser)
 	}
 	this.Data["User"] = targetUser
 	logpack.Info(fmt.Sprintf("User Detail, Useid: %d", userId), utils.GetFuncName())
@@ -84,25 +69,24 @@ func (this *AdminController) ChangeUserStatus() {
 		this.ResponseError("Check login session failed", utils.GetFuncName(), err)
 		return
 	}
-	userIdParam := this.GetString("userId")
-	activeFlg := this.GetString("active")
-
-	if utils.IsEmpty(userIdParam) || utils.IsEmpty(activeFlg) {
+	userId, userIdErr := this.GetInt64("userId")
+	activeFlg, activeErr := this.GetInt64("active")
+	if userIdErr != nil || activeErr != nil {
 		this.ResponseError("Get user info param failed", utils.GetFuncName(), fmt.Errorf("Get user info param failed"))
 		return
 	}
 
-	var response utils.ResponseData
-	formData := url.Values{
-		"userId":        {userIdParam},
-		"active":        {activeFlg},
-		"authorization": {this.GetLoginToken()},
-	}
-	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AuthSite(), "/admin/change-user-status"), formData, &response); err != nil {
+	res, err := services.ChangeUserStatusHandler(this.Ctx.Request.Context(), &authpb.ChangeUserStatusRequest{
+		Common: &authpb.CommonRequest{
+			AuthToken: this.GetLoginToken(),
+		},
+		UserId: userId,
+		Active: activeFlg,
+	})
+	if err != nil {
 		this.ResponseError("Request change user status failed", utils.GetFuncName(), err)
-		return
 	}
-	this.Data["json"] = response
+	this.Data["json"] = res
 	this.ServeJSON()
 }
 
@@ -183,17 +167,13 @@ func (this *AdminController) SyncTransactions() {
 		return
 	}
 
-	//send sync request
-	formData := url.Values{
-		"authorization": {this.GetLoginToken()},
-	}
-	var response utils.ResponseData
-	if err := services.HttpPost(fmt.Sprintf("%s%s", this.AssetsSite(), "/syncTransactions"), formData, &response); err != nil {
-		this.ResponseError("can't send new chat message", utils.GetFuncName(), err)
-		return
-	}
-	if response.IsError {
-		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+	_, err = services.SyncTransactionsHandler(this.Ctx.Request.Context(), &assetspb.CommonRequest{
+		Role:      int64(loginUser.Role),
+		LoginName: loginUser.Username,
+	})
+
+	if err != nil {
+		this.ResponseError("can't sync transactions", utils.GetFuncName(), err)
 		return
 	}
 	this.ResponseSuccessfully(loginUser.Id, "Synchronized transaction successfully", utils.GetFuncName())

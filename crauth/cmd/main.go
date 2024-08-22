@@ -80,11 +80,10 @@ func main() {
 	grpcServer := grpc.NewServer()
 
 	pb.RegisterAuthServiceServer(grpcServer, &s)
-
+	InitForWebAuthn(c, h)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalln("Failed to serve:", err)
 	}
-	InitForWebAuthn(c, h)
 }
 
 func InitForWebAuthn(c config.Config, hanlder db.Handler) {

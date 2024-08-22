@@ -122,5 +122,19 @@ func (s *Server) GenRandomUsername(ctx context.Context, reqData *pb.CommonReques
 	}
 	result := make(map[string]string)
 	result["username"] = username
-	return ResponseSuccessfullyWithAnyData("", fmt.Sprintf("Get random username: %s", username), utils.GetFuncName(), utils.ObjectToJsonString(result))
+	return ResponseSuccessfullyWithAnyData("", fmt.Sprintf("Get random username: %s", username), utils.GetFuncName(), result)
+}
+
+func (s *Server) CheckUser(ctx context.Context, reqData *pb.WithUsernameRequest) (*pb.ResponseData, error) {
+	username := reqData.Username
+	if utils.IsEmpty(username) {
+		return ResponseError("Username param not found", utils.GetFuncName(), nil)
+	}
+	exist, err := s.H.CheckUserExist(username)
+	if err != nil {
+		return ResponseError("Check exist user failed", utils.GetFuncName(), nil)
+	}
+	return ResponseSuccessfullyWithAnyData("", "Check username exist successfully", utils.GetFuncName(), map[string]any{
+		"exist": exist,
+	})
 }

@@ -1,10 +1,9 @@
 package controllers
 
 import (
+	"crmind/pb/chatpb"
 	"crmind/services"
 	"crmind/utils"
-	"fmt"
-	"net/url"
 	"strings"
 )
 
@@ -18,19 +17,21 @@ func (this *ChatController) UpdateUnreadForChat() {
 		this.ResponseError(err.Error(), utils.GetFuncName(), err)
 		return
 	}
-	chatIdStr := strings.TrimSpace(this.GetString("chatId"))
-
-	formData := url.Values{
-		"authorization": {this.GetLoginToken()},
-		"chatId":        {chatIdStr},
-	}
-	var response utils.ResponseData
-	if err := services.HttpPost(fmt.Sprintf("%s%s", this.ChatSite(), "/updateUnread"), formData, &response); err != nil {
-		this.ResponseError("can't begin update unread chat", utils.GetFuncName(), err)
+	chatId, chatIdErr := this.GetInt64("chatId")
+	if chatIdErr != nil {
+		this.ResponseLoginError(loginUser.Id, chatIdErr.Error(), utils.GetFuncName(), chatIdErr)
 		return
 	}
-	if response.IsError {
-		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+	_, err = services.UpdateUnreadForChatHandler(this.Ctx.Request.Context(), &chatpb.UpdateUnreadForChatRequest{
+		ChatId:   chatId,
+		UserName: loginUser.Username,
+		Common: &chatpb.CommonRequest{
+			LoginName: loginUser.Username,
+		},
+	})
+
+	if err != nil {
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
 		return
 	}
 	this.ResponseSuccessfully(loginUser.Id, "Update unread successfully", utils.GetFuncName())
@@ -42,19 +43,20 @@ func (this *ChatController) DeleteChat() {
 		this.ResponseError(err.Error(), utils.GetFuncName(), err)
 		return
 	}
-	chatIdStr := strings.TrimSpace(this.GetString("chatId"))
-
-	formData := url.Values{
-		"authorization": {this.GetLoginToken()},
-		"chatId":        {chatIdStr},
-	}
-	var response utils.ResponseData
-	if err := services.HttpPost(fmt.Sprintf("%s%s", this.ChatSite(), "/deleteChat"), formData, &response); err != nil {
-		this.ResponseError("can't delete chat", utils.GetFuncName(), err)
+	chatId, chatIdErr := this.GetInt64("chatId")
+	if chatIdErr != nil {
+		this.ResponseLoginError(loginUser.Id, chatIdErr.Error(), utils.GetFuncName(), chatIdErr)
 		return
 	}
-	if response.IsError {
-		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
+
+	_, err = services.DeleteChatHandler(this.Ctx.Request.Context(), &chatpb.DeleteChatRequest{
+		Common: &chatpb.CommonRequest{
+			LoginName: loginUser.Username,
+		},
+		ChatId: chatId,
+	})
+	if err != nil {
+		this.ResponseLoginError(loginUser.Id, "can't delete chat", utils.GetFuncName(), err)
 		return
 	}
 	this.ResponseSuccessfully(loginUser.Id, "Delete chat successfully", utils.GetFuncName())
@@ -66,23 +68,23 @@ func (this *ChatController) SendChatMessage() {
 		this.ResponseError(err.Error(), utils.GetFuncName(), err)
 		return
 	}
-	formData := url.Values{
-		"authorization": {this.GetLoginToken()},
-		"chatId":        {strings.TrimSpace(this.GetString("chatId"))},
-		"fromName":      {strings.TrimSpace(this.GetString("fromName"))},
-		"fromId":        {strings.TrimSpace(this.GetString("fromId"))},
-		"toName":        {strings.TrimSpace(this.GetString("toName"))},
-		"toId":          {strings.TrimSpace(this.GetString("toId"))},
-		"newMsg":        {strings.TrimSpace(this.GetString("newMsg"))},
+	chatId, chatIdErr := this.GetInt64("chatId")
+	if chatIdErr != nil {
+		this.ResponseLoginError(loginUser.Id, chatIdErr.Error(), utils.GetFuncName(), chatIdErr)
+		return
 	}
-	var response utils.ResponseData
-	if err := services.HttpPost(fmt.Sprintf("%s%s", this.ChatSite(), "/sendChatMessage"), formData, &response); err != nil {
+	res, err := services.SendChatMessageHandler(this.Ctx.Request.Context(), &chatpb.SendChatMessageRequest{
+		Common: &chatpb.CommonRequest{
+			LoginName: loginUser.Username,
+		},
+		ChatId:   chatId,
+		FromName: strings.TrimSpace(this.GetString("fromName")),
+		ToName:   strings.TrimSpace(this.GetString("toName")),
+		NewMsg:   strings.TrimSpace(this.GetString("newMsg")),
+	})
+	if err != nil {
 		this.ResponseError("can't send new chat message", utils.GetFuncName(), err)
 		return
 	}
-	if response.IsError {
-		this.ResponseError(response.Msg, utils.GetFuncName(), fmt.Errorf(response.Msg))
-		return
-	}
-	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Send new chat successfully", utils.GetFuncName(), response.Data)
+	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Send new chat successfully", utils.GetFuncName(), res.Data)
 }

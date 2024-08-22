@@ -117,7 +117,7 @@ func (s *Server) CheckHasCodeList(ctx context.Context, reqData *pb.OneStringRequ
 		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
 	hasCode := s.H.CheckHasCodeList(assetType, reqData.Common.LoginName)
-	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check code list successfully", utils.GetFuncName(), hasCode)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check code list successfully", utils.GetFuncName(), map[string]bool{"hasCode": hasCode})
 }
 
 func (s *Server) GetContactList(ctx context.Context, reqData *pb.CommonRequest) (*pb.ResponseData, error) {
@@ -132,7 +132,9 @@ func (s *Server) CountAddress(ctx context.Context, reqData *pb.CountAddressReque
 		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
 	countAddress := s.H.CountAddressesWithStatus(assetId, activeFlg)
-	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Count address successfully", utils.GetFuncName(), countAddress)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Count address successfully", utils.GetFuncName(), map[string]int64{
+		"count": countAddress,
+	})
 }
 
 func (s *Server) FilterTxCode(ctx context.Context, reqData *pb.FilterTxCodeRequest) (*pb.ResponseData, error) {
@@ -156,7 +158,9 @@ func (s *Server) CheckAddressMatchWithUser(ctx context.Context, reqData *pb.Chec
 		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
 	isMatch := s.H.CheckMatchAddressWithUser(assetId, addressId, reqData.Common.LoginName, archived)
-	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check address match with user successfully", utils.GetFuncName(), isMatch)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check address match with user successfully", utils.GetFuncName(), map[string]bool{
+		"isMatch": isMatch,
+	})
 }
 
 func (s *Server) CheckAssetMatchWithUser(ctx context.Context, reqData *pb.OneIntegerRequest) (*pb.ResponseData, error) {
@@ -166,7 +170,9 @@ func (s *Server) CheckAssetMatchWithUser(ctx context.Context, reqData *pb.OneInt
 	}
 	isMatch := s.H.CheckAssetMatchWithUser(assetId, reqData.Common.LoginName)
 
-	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check asset match with user successfully", utils.GetFuncName(), isMatch)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check asset match with user successfully", utils.GetFuncName(), map[string]bool{
+		"isMatch": isMatch,
+	})
 }
 
 func (s *Server) CheckAndCreateAccountToken(ctx context.Context, reqData *pb.CheckAndCreateAccountTokenRequest) (*pb.ResponseData, error) {
@@ -179,7 +185,9 @@ func (s *Server) CheckAndCreateAccountToken(ctx context.Context, reqData *pb.Che
 	if err != nil {
 		return ResponseLoginError(reqData.Common.LoginName, err.Error(), utils.GetFuncName(), err)
 	}
-	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check or create account token successfully", utils.GetFuncName(), token)
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check or create account token successfully", utils.GetFuncName(), map[string]string{
+		"token": token,
+	})
 }
 
 func (s *Server) FilterAddressList(ctx context.Context, reqData *pb.FilterAddressListRequest) (*pb.ResponseData, error) {
@@ -271,4 +279,29 @@ func (s *Server) CancelUrlCode(ctx context.Context, reqData *pb.OneIntegerReques
 		return ResponseLoginError(reqData.Common.LoginName, cancelErr.Error(), utils.GetFuncName(), nil)
 	}
 	return ResponseSuccessfully(reqData.Common.LoginName, "Cancel Withdraw Code successfully!", utils.GetFuncName())
+}
+
+func (s *Server) CheckContactUser(ctx context.Context, reqData *pb.OneStringRequest) (*pb.ResponseData, error) {
+	username := reqData.Data
+	if reqData.Common.LoginName == username {
+		return ResponseLoginError(reqData.Common.LoginName, "The recipient cannot be you", utils.GetFuncName(), nil)
+	}
+	var userCount int64
+	err := s.H.DB.Where(&models.Accounts{Username: username}).Count(&userCount).Error
+	if err != nil {
+		return ResponseLoginError(reqData.Common.LoginName, "Count contact user failed", utils.GetFuncName(), err)
+	}
+	if userCount > 0 {
+		//check if user is setted on loginUser contacts
+		contactList, contactErr := s.H.GetContactListFromUser(username)
+		if contactErr != nil {
+			return ResponseLoginError(reqData.Common.LoginName, "Parse Contact list failed", utils.GetFuncName(), contactErr)
+		}
+		exist := utils.CheckUsernameExistOnContactList(username, contactList)
+		return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Check exist finish", utils.GetFuncName(), map[string]bool{
+			"exist": exist,
+		})
+	}
+	//user not exist
+	return ResponseLoginError(reqData.Common.LoginName, "Username does not exist", utils.GetFuncName(), nil)
 }
