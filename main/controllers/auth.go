@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"crmind/models"
+	"crmind/pb/assetspb"
 	"crmind/pb/authpb"
 	"crmind/services"
 	"crmind/utils"
@@ -15,6 +16,127 @@ type AuthController struct {
 
 func (this *AuthController) Get() {
 	this.TplName = "login.html"
+}
+
+func (this *AuthController) ErrorPage() {
+	this.TplName = "error.html"
+}
+
+func (this *AuthController) Error403Page() {
+	this.TplName = "err_403.html"
+}
+
+func (this *AuthController) WithdrawWithNewAccountFinish() {
+	urlCode := this.Ctx.Request.Header.Get("Url-Code")
+	if utils.IsEmpty(urlCode) {
+		this.ResponseError("Get Url Code param failed", utils.GetFuncName(), nil)
+		return
+	}
+	sessionKey := this.Ctx.Request.Header.Get("Session-Key")
+	res, err := services.FinishRegistrationHandler(this.Ctx.Request.Context(), &authpb.SessionKeyAndHttpRequest{
+		SessionKey: sessionKey,
+		Request: &authpb.HttpRequest{
+			BodyJson: utils.RequestBodyToString(this.Ctx.Request.Body),
+		},
+	})
+	if err != nil {
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
+		return
+	}
+	var data map[string]any
+	err = utils.JsonStringToObject(res.Data, &data)
+	if err != nil {
+		this.ResponseError("Parse res data failed", utils.GetFuncName(), err)
+	}
+	var authClaim models.AuthClaims
+	user, userExist := data["user"]
+	token, tokenExist := data["token"]
+	if !userExist || !tokenExist {
+		this.ResponseError("Get login token failed", utils.GetFuncName(), fmt.Errorf("Get login token failed"))
+		return
+	}
+	tokenString := token.(string)
+	err = utils.CatchObject(user, &authClaim)
+	if err != nil {
+		this.ResponseError("Parse login user failed", utils.GetFuncName(), err)
+		return
+	}
+	//set token on session
+	this.SetSession(utils.Tokenkey, tokenString)
+	this.SetSession(utils.LoginUserKey, authClaim)
+	//init create new usd assets
+	services.CreateNewAssetHandler(this.Ctx.Request.Context(), &assetspb.OneStringRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: authClaim.Username,
+			Role:      int64(authClaim.Role),
+		},
+		Data: string(utils.USDWalletAsset),
+	})
+	//handler withdrawl with username
+	_, err = services.HandlerURLCodeWithdrawlWithAccountHandler(this.Ctx.Request.Context(), &assetspb.URLCodeWithdrawWithAccountRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: authClaim.Username,
+			Role:      int64(authClaim.Role),
+		},
+		Username: authClaim.Username,
+		Code:     urlCode,
+	})
+	if err != nil {
+		this.ResponseError("Withdraw with url code failed", utils.GetFuncName(), err)
+		return
+	}
+	this.ResponseSuccessfully(0, "Withdraw with new account successfully", utils.GetFuncName())
+}
+
+func (this *AuthController) WithdrawConfirmLoginResult() {
+	urlCode := this.Ctx.Request.Header.Get("Url-Code")
+	if utils.IsEmpty(urlCode) {
+		this.ResponseError("Get Url Code param failed", utils.GetFuncName(), nil)
+		return
+	}
+	sessionKey := this.Ctx.Request.Header.Get("Session-Key")
+	res, err := services.AssertionResultHandler(this.Ctx.Request.Context(), &authpb.SessionKeyAndHttpRequest{
+		SessionKey: sessionKey,
+		Request: &authpb.HttpRequest{
+			BodyJson: utils.RequestBodyToString(this.Ctx.Request.Body),
+		},
+	})
+	if err != nil {
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
+		return
+	}
+
+	var data map[string]any
+	err = utils.JsonStringToObject(res.Data, &data)
+	if err != nil {
+		this.ResponseError("Parse res data failed", utils.GetFuncName(), err)
+		return
+	}
+	tokenString := ""
+	var authClaim models.AuthClaims
+	tokenString, _ = data["token"].(string)
+	err = utils.CatchObject(data["user"], &authClaim)
+	if err != nil {
+		this.ResponseError("Parse login user failed", utils.GetFuncName(), err)
+		return
+	}
+	//set token on session
+	this.SetSession(utils.Tokenkey, tokenString)
+	this.SetSession(utils.LoginUserKey, authClaim)
+	//handler withdrawl with username
+	_, err = services.HandlerURLCodeWithdrawlWithAccountHandler(this.Ctx.Request.Context(), &assetspb.URLCodeWithdrawWithAccountRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: authClaim.Username,
+			Role:      int64(authClaim.Role),
+		},
+		Username: authClaim.Username,
+		Code:     urlCode,
+	})
+	if err != nil {
+		this.ResponseError("Withdraw with url code failed", utils.GetFuncName(), err)
+		return
+	}
+	this.ResponseSuccessfully(0, "Withdraw successfully", utils.GetFuncName())
 }
 
 func (this *AuthController) CheckUser() {

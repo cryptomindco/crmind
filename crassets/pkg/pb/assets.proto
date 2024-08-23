@@ -4,6 +4,8 @@ package assets;
 
 option go_package= "/pb";
 
+import "google/api/annotations.proto";
+
 service AssetsService {
   rpc CreateNewAddress(OneStringRequest) returns (ResponseData);
   rpc SyncTransactions(CommonRequest) returns (ResponseData);
@@ -17,7 +19,7 @@ service AssetsService {
   rpc ConfirmWithdrawal(ConfirmWithdrawalRequest) returns (ResponseData);
   rpc UpdateNewLabel(UpdateLabelRequest) returns (ResponseData);
   rpc GetBalanceSummary(OneStringRequest) returns (ResponseData);
-  rpc GetAssetDBList(OneStringRequest) returns (ResponseData);
+  rpc GetAssetDBList(GetAssetDBListRequest) returns (ResponseData);
   rpc GetUserAssetDB(GetUserAssetDBRequest) returns (ResponseData);
   rpc GetAddressList(OneIntegerRequest) returns (ResponseData);
   rpc CountAddress(CountAddressRequest) returns (ResponseData);
@@ -34,6 +36,43 @@ service AssetsService {
   rpc ConfirmAddressAction(ConfirmAddressActionRequest) returns (ResponseData);
   rpc CancelUrlCode(OneIntegerRequest) returns (ResponseData);
   rpc CheckContactUser(OneStringRequest) returns (ResponseData);
+  rpc TransactionDetail(OneIntegerRequest) returns (ResponseData);
+  rpc AdminUpdateBalance(AdminBalanceUpdateRequest) returns (ResponseData);
+  rpc GetTxCode(OneStringRequest) returns (ResponseData);
+  rpc HandlerURLCodeWithdrawlWithAccount(URLCodeWithdrawWithAccountRequest) returns (ResponseData);
+  rpc CreateNewAsset(OneStringRequest) returns (ResponseData);
+  rpc WalletSocket(WalletNotifyRequest) returns (ResponseData) {
+    option (google.api.http) = {
+      post: "/walletSocket"
+      body: "*"
+    };
+  };
+}
+
+message GetAssetDBListRequest {
+  CommonRequest common = 1;
+  string username = 2;
+  string allowassets = 3;
+}
+
+message URLCodeWithdrawWithAccountRequest {
+  CommonRequest common = 1;
+  string username = 2;
+  string code = 3;
+}
+
+message WalletNotifyRequest {
+  string txid = 1;
+  string type = 2;
+}
+
+message AdminBalanceUpdateRequest {
+  CommonRequest common = 1;
+  double input = 2;
+  string username = 3;
+  int64 userRole = 4;
+  string type = 5;
+  string action = 6;
 }
 
 message OneStringRequest {
@@ -108,6 +147,7 @@ message TransferAmountRequest {
   string note = 7;
   string sendBy = 8;
   string address = 9;
+  bool addToContact = 10;
 }
 
 message GetUserAssetDBRequest {

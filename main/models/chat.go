@@ -1,10 +1,8 @@
 package models
 
 type ChatMsg struct {
-	Id       int64  `json:"id"`
-	FromId   int64  `json:"fromId"`
+	Id       int64  `json:"id" gorm:"primaryKey"`
 	FromName string `json:"fromName"`
-	ToId     int64  `json:"toId"`
 	ToName   string `json:"toName"`
 	PinMsg   string `json:"pinMsg"`
 	Createdt int64  `json:"createdt"`
@@ -12,9 +10,8 @@ type ChatMsg struct {
 }
 
 type ChatContent struct {
-	Id       int64  `json:"id"`
+	Id       int64  `json:"id" gorm:"primaryKey"`
 	ChatId   int64  `json:"chatId"`
-	UserId   int64  `json:"userId"`
 	UserName string `json:"userName"`
 	Content  string `json:"content"`
 	IsHello  bool   `json:"isHello"`

@@ -49,6 +49,7 @@ func main() {
 	beego.BConfig.Log.AccessLogs = true
 	//set allow assets
 	utils.AllowAssets, _ = utils.GetAssetStrFromSettings()
+	utils.ActiveServices, _ = utils.GetServicesStrFromSettings()
 	initServiceConfig()
 	//TODO: Display follow settings on DB. Default if off
 	initMicroserviceClient()
@@ -56,12 +57,20 @@ func main() {
 }
 
 func initMicroserviceClient() {
-	//init auth client
-	services.CheckAndInitAuthClient()
-	//init assets client
-	services.CheckAndInitAssetsClient()
-	//init chat client
-	services.CheckAndInitChatClient()
+	if utils.IsAuthActive() {
+		//init auth client
+		services.CheckAndInitAuthClient()
+	}
+
+	if utils.IsChatActive() {
+		//init chat client
+		services.CheckAndInitChatClient()
+	}
+
+	if utils.IsAssetsActive() {
+		//init assets client
+		services.CheckAndInitAssetsClient()
+	}
 }
 
 func initServiceConfig() {
@@ -95,6 +104,20 @@ func addFuncMap() {
 	beego.AddFuncMap("assetColor", assetColor)
 	beego.AddFuncMap("roundDecimalClassWithAsset", roundDecimalClassWithAsset)
 	beego.AddFuncMap("assetName", assetName)
+	beego.AddFuncMap("stepByType", stepByType)
+}
+
+func stepByType(assetType string) string {
+	switch assetType {
+	case string(utils.BTCWalletAsset):
+		return "0.00000001"
+	case string(utils.DCRWalletAsset):
+		return "0.0000001"
+	case string(utils.LTCWalletAsset):
+		return "0.00000001"
+	default:
+		return "0.01"
+	}
 }
 
 func assetColor(assetType string) string {

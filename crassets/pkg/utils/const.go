@@ -12,6 +12,9 @@ const (
 	TransactionTypeFees     = "fee"
 	TradingTypeBuy          = "buy"
 	TradingTypeSell         = "sell"
+	AdminActionUpdate       = "update"
+	AdminActionDeposit      = "deposit"
+	AdminActionWithdraw     = "withdrawal"
 )
 
 type UserRole int

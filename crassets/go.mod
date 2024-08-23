@@ -29,6 +29,7 @@ require (
 	github.com/ltcsuite/ltcwallet/wallet/txrules v1.2.0
 	github.com/ltcsuite/ltcwallet/wallet/txsizes v1.1.0
 	github.com/spf13/viper v1.15.0
+	google.golang.org/genproto/googleapis/api v0.0.0-20240822170219-fc7c04adadcd
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 	gorm.io/driver/postgres v1.5.0

@@ -28,7 +28,7 @@ func (this *MainController) Get() {
 		}
 	}
 	this.Data["AssetList"] = assetList
-	assets, _ := this.GetUserAssetList(loginUser.Username)
+	assets, _ := this.GetUserAssetList(loginUser.Username, loginUser.Username)
 	this.Data["Assets"] = assets
 	//get currency name list of asset list
 	currencies := this.GetAssetNamesFromAssetList(assets)

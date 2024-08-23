@@ -613,196 +613,187 @@ func (s *Server) SystemSyncHandler() {
 
 // check and sync daemon data with DB data
 func (s *Server) SyncDecredHandler(assetMgr assets.Asset) {
-	// //Get account list with balance
-	// balanceMap := assetMgr.GetBalanceMapByLabel()
-	// accountAssetMap := make(map[string]*models.Asset)
-	// //Address array
-	// addressArray := make([]*models.Addresses, 0)
-	// //sync account on DB
-	// for account, balance := range balanceMap {
-	// 	//because account is username. so, check user is exist with username
-	// 	user, userErr := GetUserInfoByName(account)
-	// 	if userErr != nil {
-	// 		continue
-	// 	}
-	// 	//then, check account exist on asset
-	// 	asset, assetErr := utils.GetAssetByOwner(user.Id, o, assets.DCRWalletAsset.String())
-	// 	//if error, continue
-	// 	if assetErr != nil && assetErr != orm.ErrNoRows {
-	// 		continue
-	// 	}
-	// 	assetObj := assets.DCRWalletAsset
-	// 	//if asset not exist, insert to DB
-	// 	if assetErr == orm.ErrNoRows {
-	// 		asset = &models.Asset{
-	// 			DisplayName:    assetObj.ToFullName(),
-	// 			UserId:         user.Id,
-	// 			UserName:       user.Username,
-	// 			IsAdmin:        utils.IsSuperAdmin(user.Role),
-	// 			Type:           assetObj.String(),
-	// 			Sort:           assetObj.AssetSortInt(),
-	// 			Balance:        balance,
-	// 			OnChainBalance: balance,
-	// 			Status:         int(utils.AssetStatusActive),
-	// 			Createdt:       time.Now().Unix(),
-	// 			Updatedt:       time.Now().Unix(),
-	// 		}
-	// 		_, assetInsertErr := tx.Insert(asset)
-	// 		if assetInsertErr != nil {
-	// 			tx.Rollback()
-	// 			continue
-	// 		}
-	// 	} else {
-	// 		if asset.OnChainBalance != balance {
-	// 			//update asset
-	// 			asset.OnChainBalance = balance
-	// 			asset.Updatedt = time.Now().Unix()
-	// 			_, assetUpdateErr := tx.Update(asset)
-	// 			if assetUpdateErr != nil {
-	// 				tx.Rollback()
-	// 				continue
-	// 			}
-	// 		}
-	// 	}
-	// 	//get address by account
-	// 	addressList, addrErr := assetMgr.GetAddressesByLabel(account)
-	// 	if addrErr == nil {
-	// 		for _, addr := range addressList {
-	// 			//check address exist on DB
-	// 			checkAddr, checkErr := utils.GetAddress(addr)
-	// 			if checkErr != nil && checkErr != orm.ErrNoRows {
-	// 				continue
-	// 			}
-	// 			//if not exist, create new
-	// 			if checkAddr == nil && checkErr == orm.ErrNoRows {
-	// 				checkAddr = &models.Addresses{
-	// 					AssetId:       asset.Id,
-	// 					Address:       addr,
-	// 					LocalReceived: 0,
-	// 					ChainReceived: 0,
-	// 					Label:         user.Username,
-	// 					Createdt:      time.Now().Unix(),
-	// 				}
-	// 			}
-	// 			addressArray = append(addressArray, checkAddr)
-	// 		}
-	// 	}
-	// 	accountAssetMap[account] = asset
-	// }
-	// //get all transactions
-	// allTransactions, err := assetMgr.GetAllTransactions()
-	// if err != nil {
-	// 	tx.Commit()
-	// 	return
-	// }
-	// receivedTransactions := make([]assets.ListTransactionsResult, 0)
-	// for _, transaction := range allTransactions {
-	// 	if transaction.Category == assets.CategoryReceive {
-	// 		//check account exist on map
-	// 		_, accountExist := accountAssetMap[transaction.Account]
-	// 		if accountExist {
-	// 			receivedTransactions = append(receivedTransactions, transaction)
-	// 		}
-	// 	}
-	// }
-	// //with dcr, only check received transactions
-	// for _, receivedTransaction := range receivedTransactions {
-	// 	asset, exist := accountAssetMap[receivedTransaction.Account]
-	// 	if !exist {
-	// 		continue
-	// 	}
+	//Get account list with balance
+	balanceMap := assetMgr.GetBalanceMapByLabel()
+	accountAssetMap := make(map[string]*models.Asset)
+	//Address array
+	addressArray := make([]*models.Addresses, 0)
+	tx := s.H.DB.Begin()
+	//sync account on DB
+	for account, balance := range balanceMap {
+		//then, check account exist on asset
+		asset, assetErr := s.H.GetUserAsset(account, assets.DCRWalletAsset.String())
+		//if error, continue
+		if assetErr != nil {
+			continue
+		}
+		assetObj := assets.DCRWalletAsset
+		//if asset not exist, insert to DB
+		if asset == nil {
+			asset = &models.Asset{
+				DisplayName:    assetObj.ToFullName(),
+				UserName:       account,
+				IsAdmin:        false,
+				Type:           assetObj.String(),
+				Sort:           assetObj.AssetSortInt(),
+				Balance:        balance,
+				OnChainBalance: balance,
+				Status:         int(utils.AssetStatusActive),
+				Createdt:       time.Now().Unix(),
+				Updatedt:       time.Now().Unix(),
+			}
+			assetInsertErr := tx.Create(asset).Error
+			if assetInsertErr != nil {
+				continue
+			}
+		} else {
+			if asset.OnChainBalance != balance {
+				//update asset
+				asset.OnChainBalance = balance
+				asset.Updatedt = time.Now().Unix()
+				assetUpdateErr := tx.Save(asset).Error
+				if assetUpdateErr != nil {
+					continue
+				}
+			}
+		}
+		//get address by account
+		addressList, addrErr := assetMgr.GetAddressesByLabel(account)
+		if addrErr == nil {
+			for _, addr := range addressList {
+				//check address exist on DB
+				checkAddr, checkErr := s.H.GetAddress(addr)
+				if checkErr != nil && checkErr != gorm.ErrRecordNotFound {
+					continue
+				}
+				//if not exist, create new
+				if checkAddr == nil && checkErr == gorm.ErrRecordNotFound {
+					checkAddr = &models.Addresses{
+						AssetId:       asset.Id,
+						Address:       addr,
+						LocalReceived: 0,
+						ChainReceived: 0,
+						Label:         account,
+						Createdt:      time.Now().Unix(),
+					}
+				}
+				addressArray = append(addressArray, checkAddr)
+			}
+		}
+		accountAssetMap[account] = asset
+	}
+	//get all transactions
+	allTransactions, err := assetMgr.GetAllTransactions()
+	if err != nil {
+		tx.Commit()
+		return
+	}
+	receivedTransactions := make([]assets.ListTransactionsResult, 0)
+	for _, transaction := range allTransactions {
+		if transaction.Category == assets.CategoryReceive {
+			//check account exist on map
+			_, accountExist := accountAssetMap[transaction.Account]
+			if accountExist {
+				receivedTransactions = append(receivedTransactions, transaction)
+			}
+		}
+	}
+	//with dcr, only check received transactions
+	for _, receivedTransaction := range receivedTransactions {
+		asset, exist := accountAssetMap[receivedTransaction.Account]
+		if !exist {
+			continue
+		}
 
-	// 	addrExistOnArray := false
-	// 	var existAddressOnArray *models.Addresses
-	// 	var existIndex int
-	// 	//check from addressArray
-	// 	for index, addr := range addressArray {
-	// 		if addr.Address == receivedTransaction.Address {
-	// 			addrExistOnArray = true
-	// 			existAddressOnArray = addr
-	// 			existIndex = index
-	// 			break
-	// 		}
-	// 	}
+		addrExistOnArray := false
+		var existAddressOnArray *models.Addresses
+		var existIndex int
+		//check from addressArray
+		for index, addr := range addressArray {
+			if addr.Address == receivedTransaction.Address {
+				addrExistOnArray = true
+				existAddressOnArray = addr
+				existIndex = index
+				break
+			}
+		}
 
-	// 	//if not exist on array
-	// 	if !addrExistOnArray {
-	// 		//check on DB
-	// 		//check address exist on DB
-	// 		addressObj, addrErr := utils.GetAddress(receivedTransaction.Address)
-	// 		//if get address error
-	// 		if addrErr != nil && addrErr != orm.ErrNoRows {
-	// 			continue
-	// 		}
-	// 		if addrErr == orm.ErrNoRows {
-	// 			addressObj = &models.Addresses{
-	// 				AssetId:       asset.Id,
-	// 				Address:       receivedTransaction.Address,
-	// 				ChainReceived: receivedTransaction.Amount,
-	// 				Transactions:  1,
-	// 				Createdt:      time.Now().Unix(),
-	// 			}
-	// 			addressArray = append(addressArray, addressObj)
-	// 		} else {
-	// 			existAddressOnArray = addressObj
-	// 		}
-	// 	}
-	// 	if existAddressOnArray != nil {
-	// 		//if assetid on address not match with assetId, re update address
-	// 		if existAddressOnArray.AssetId != asset.Id {
-	// 			existAddressOnArray.AssetId = asset.Id
-	// 		}
-	// 		existAddressOnArray.ChainReceived += receivedTransaction.Amount
-	// 		existAddressOnArray.Transactions++
-	// 		if !addrExistOnArray {
-	// 			addressArray = append(addressArray, existAddressOnArray)
-	// 		} else {
-	// 			addressArray[existIndex] = existAddressOnArray
-	// 		}
-	// 	}
-	// 	//update received of asset
-	// 	asset.ChainReceived += receivedTransaction.Amount
-	// 	accountAssetMap[receivedTransaction.Account] = asset
-	// }
+		//if not exist on array
+		if !addrExistOnArray {
+			//check on DB
+			//check address exist on DB
+			addressObj, addrErr := s.H.GetAddress(receivedTransaction.Address)
+			//if get address error
+			if addrErr != nil && addrErr != gorm.ErrRecordNotFound {
+				continue
+			}
+			if addrErr == gorm.ErrRecordNotFound {
+				addressObj = &models.Addresses{
+					AssetId:       asset.Id,
+					Address:       receivedTransaction.Address,
+					ChainReceived: receivedTransaction.Amount,
+					Transactions:  1,
+					Createdt:      time.Now().Unix(),
+				}
+				addressArray = append(addressArray, addressObj)
+			} else {
+				existAddressOnArray = addressObj
+			}
+		}
+		if existAddressOnArray != nil {
+			//if assetid on address not match with assetId, re update address
+			if existAddressOnArray.AssetId != asset.Id {
+				existAddressOnArray.AssetId = asset.Id
+			}
+			existAddressOnArray.ChainReceived += receivedTransaction.Amount
+			existAddressOnArray.Transactions++
+			if !addrExistOnArray {
+				addressArray = append(addressArray, existAddressOnArray)
+			} else {
+				addressArray[existIndex] = existAddressOnArray
+			}
+		}
+		//update received of asset
+		asset.ChainReceived += receivedTransaction.Amount
+		accountAssetMap[receivedTransaction.Account] = asset
+	}
 
-	// //update assets
-	// for _, updateAsset := range accountAssetMap {
-	// 	if updateAsset.Id > 0 {
-	// 		//get received
-	// 		receivedAmount, receivedErr := assetMgr.GetReceivedByAccount(updateAsset.UserName)
-	// 		if receivedErr == nil {
-	// 			updateAsset.ChainReceived = receivedAmount
-	// 		}
-	// 		//update onchain sent amount
-	// 		updateAsset.ChainSent = updateAsset.ChainReceived - updateAsset.OnChainBalance
-	// 		updateAsset.Balance = updateAsset.LocalReceived - updateAsset.LocalSent + updateAsset.OnChainBalance
-	// 		updateAsset.Updatedt = time.Now().Unix()
-	// 		//update
-	// 		_, assetUpdateErr := tx.Update(updateAsset)
-	// 		if assetUpdateErr != nil {
-	// 			tx.Rollback()
-	// 			continue
-	// 		}
-	// 	}
-	// }
-	// //update or insert address
-	// for _, updateAddress := range addressArray {
-	// 	//if update
-	// 	if updateAddress.Id > 0 {
-	// 		_, addrUpdateErr := tx.Update(updateAddress)
-	// 		if addrUpdateErr != nil {
-	// 			tx.Rollback()
-	// 			continue
-	// 		}
-	// 	} else {
-	// 		//if create
-	// 		_, addrInsertErr := tx.Insert(updateAddress)
-	// 		if addrInsertErr != nil {
-	// 			tx.Rollback()
-	// 			continue
-	// 		}
-	// 	}
-	// }
+	//update assets
+	for _, updateAsset := range accountAssetMap {
+		if updateAsset.Id > 0 {
+			//get received
+			receivedAmount, receivedErr := assetMgr.GetReceivedByAccount(updateAsset.UserName)
+			if receivedErr == nil {
+				updateAsset.ChainReceived = receivedAmount
+			}
+			//update onchain sent amount
+			updateAsset.ChainSent = updateAsset.ChainReceived - updateAsset.OnChainBalance
+			updateAsset.Balance = updateAsset.LocalReceived - updateAsset.LocalSent + updateAsset.OnChainBalance
+			updateAsset.Updatedt = time.Now().Unix()
+			//update
+			assetUpdateErr := tx.Save(updateAsset).Error
+			if assetUpdateErr != nil {
+				continue
+			}
+		}
+	}
+	//update or insert address
+	for _, updateAddress := range addressArray {
+		//if update
+		if updateAddress.Id > 0 {
+			addrUpdateErr := tx.Save(updateAddress).Error
+			if addrUpdateErr != nil {
+				continue
+			}
+		} else {
+			//if create
+			addrInsertErr := tx.Create(updateAddress).Error
+			if addrInsertErr != nil {
+				continue
+			}
+		}
+	}
+	tx.Commit()
 }
 
 func CheckAssetExistOnArray(assetList []*models.Asset, username string, assetType string) *models.Asset {

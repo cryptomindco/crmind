@@ -3,6 +3,7 @@ import BaseController from "./base_controller";
 export default class extends BaseController {
   static values = {
     userId: Number,
+    username: String,
     currentAction: String,
     activeBtnId: String,
     activeType: String,
@@ -17,87 +18,12 @@ export default class extends BaseController {
   async initialize() {
     const _this = this;
     this.userId = parseInt(this.data.get("userId"));
+    this.username = this.data.get("userName")
     const successFlg = this.data.get("successFlg");
     const successMsg = this.data.get("successfullyMsg");
     if (successFlg == "true") {
       this.showSuccessToast(successMsg);
     }
-    
-    this.passwordFormTarget.addEventListener("submit", (e) => {
-      e.preventDefault();
-      if (_this.cpasswordTarget.value == "") {
-        return false;
-      }
-      if (_this.cpasswordTarget.value != _this.passwordTarget.value) {
-        $("#passworderr_msg").removeClass("d-none");
-        $("#updateButton").prop("disabled", true);
-        return false;
-      }
-      $.ajax({
-        data: {
-          role: "admin",
-          userId: this.userId,
-          password: _this.passwordTarget.value,
-        },
-        type: "POST", //OR GET
-        url: "/UpdateUserPassword", //The same form's action URL
-        success: function (data) {
-          if (data["error"] == "") {
-            _this.passwordTarget.value = "";
-            _this.cpasswordTarget.value = "";
-            $("#changePassword").modal("toggle");
-            _this.showSuccessToast("Password changed successfully");
-            return;
-          }
-          if (data["error"] != "") {
-            $("#updateErr").removeClass("d-none");
-            $("#updateErr").text(data["error_msg"]);
-            if ($("#updateErr").hasClass("succefully")) {
-              $("#updateErr").removeClass("succefully");
-            }
-            $("#updateErr").addClass("error");
-          }
-        },
-      });
-      return false;
-    });
-    $("#cpassword").on("input", function () {
-      if ($("#cpassword").val() == $("#password").val()) {
-        $("#passworderr_msg").addClass("d-none");
-        $("#updateButton").prop("disabled", false);
-      } else {
-        $("#passworderr_msg").removeClass("d-none");
-        $("#updateButton").prop("disabled", true);
-      }
-    });
-    $("#dataForm").validate({
-      rules: {
-        password: {
-          required: true,
-          minlength: 6,
-        },
-        cpassword: {
-          required: true,
-        },
-      },
-      messages: {
-        password: {
-          required: "Please enter your new password",
-          minlength: "Password must have a minimum of 6 characters",
-        },
-        cpassword: {
-          required: "Confirm password is required",
-        },
-      },
-      errorPlacement: function ($error, $element) {
-        var name = $element.attr("name");
-        $("#" + name + "Error").append($error);
-      },
-    });
-  }
-
-  showUpdatePasswordDialog() {
-    $("#changePassword").on("shown.bs.modal", function () {}).modal('show');
   }
 
   changeBalance(e) {
@@ -272,7 +198,7 @@ export default class extends BaseController {
         input: $("#" + _this.activeType + "Input").val(),
         action: _this.currentAction,
         type: _this.activeType,
-        userId: _this.userId
+        username: _this.username
       },
       type: "POST", //OR GET
       url: '/adminUpdateBalance', //The same form's action URL

@@ -191,8 +191,10 @@ export default class extends BaseController {
     _this.amountTradingChange()
     _this.updateRateToDisplay()
   });
-  this.handlerPaymentTypeInfo()
-  this.loadAddressList()
+  if (this.assetType !== 'usd') {
+    this.handlerPaymentTypeInfo()
+    this.loadAddressList()
+  }
   // //init host name
   // $("#host1").text(window.location.origin)
   // $("#host2").text(window.location.origin)
@@ -464,12 +466,12 @@ export default class extends BaseController {
         type: "GET", //OR GET
         url: '/check-contact-user', //The same form's action URL
         success: function (res) {
-          if (!res.error) {
-            const isExist = res.data
+          if (!res.error && res.data.exist) {
+            const contactExist = res.data.contactExist
             _this.usernameError = false
             $("#addToContactArea").removeClass("d-none")
             //check result
-            $("#addToContactCheckbox").prop('checked', isExist)
+            $("#addToContactCheckbox").prop('checked', contactExist)
           } else {
             $("#usernameErrMsg").removeClass("d-none")
             $("#usernameErrMsg").text(res.msg)
@@ -501,12 +503,12 @@ export default class extends BaseController {
         type: "GET", //OR GET
         url: '/check-contact-user', //The same form's action URL
         success: function (res) {
-          if (!res.error) {
+          if (!res.error && res.data.exist) {
+            const contactExist = res.data.contactExist
             _this.usernameError = false
-            const isExist = res.data
             $("#addToContactArea").removeClass("d-none")
             //check result
-            $("#addToContactCheckbox").prop('checked', isExist)
+            $("#addToContactCheckbox").prop('checked', contactExist)
           } else {
             $("#usernameErrMsg").removeClass("d-none")
             $("#usernameErrMsg").text(res.msg)
@@ -589,8 +591,8 @@ export default class extends BaseController {
         const diff = _this.getRoundNumber(_this.assetType)
         if (!res.error) {
           $("#amounterr_msg").addClass("d-none")
-          const result = res.data
-          _this.btcFee = parseFloat(result)
+          const result = JSON.parse(res.data)
+          _this.btcFee = Number(result.fee)
           _this.confirmed = true
           _this.checkValidTransferButton()
           let balanceAfterDisp = ''
@@ -610,14 +612,14 @@ export default class extends BaseController {
             $("#urlcodeFeeNotify").text("*You'll not be charged fee if the recipient chooses to withdraw using system username")
           }
         }
-        if (res.error && res.errorCode == "exist") {
+        if (res.error && res.code == "exist") {
           _this.btcFee = 0.0
           _this.confirmed = true
           $("#existAddressSystem").removeClass('d-none')
           $("#existAddressSystem").html(res.msg)
         }
 
-        if (!res.error || (res.error && res.errorCode == "exist")) {
+        if (!res.error || (res.error && res.code == "exist")) {
           $("#btcFee").text(formatToLocalString(Number(_this.btcFee), diff, diff))
           $("#btcCost").text(formatToLocalString(Number(_this.btcFee) + amount, diff, diff))
           $("#feeExchange").text(formatToLocalString(Number(_this.btcFee) * _this.rate, 3, 3))

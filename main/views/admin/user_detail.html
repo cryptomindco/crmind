@@ -4,7 +4,8 @@
 <div class="pb-2">
   <h5 class="fw-600 d-inline">User Detail</h5>
 </div>
-<div class="content pt-2" data-controller="userdetail" data-userdetail-user-id="{{.User.Id}}">
+<div class="content pt-2" data-controller="userdetail" data-userdetail-user-id="{{.User.Id}}"
+  data-userdetail-user-name="{{.User.Username}}">
   <div class="row">
     <p>Username: <strong>{{.User.Username}}</strong></p>
   </div>
@@ -14,6 +15,118 @@
       data-action="change->userdetail#onActiveChange" {{if ne .User.Status 0}}checked{{end}} />
     <label class="form-check-label" id="activeText" for="userActiveSwitch">{{if eq .User.Status 0}}Deactive
       {{else}}Active{{end}}</label>
+  </div>
+  {{if .AssetsActive}}
+  <h5 class="mb-2 form-title fw-600 mt-4">Assets</h5>
+  <div class="row">
+    <div class="col-12 col-md-8">
+      <table class="table mt-3 mb-0">
+        <thead>
+          <tr>
+            <th class="fw-600">Name</th>
+            <th class="text-center" scope="col">Balance</th>
+            <th class="text-center" scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range $index,$elem := .Assets}}
+          <tr role="alert" style="background-color: {{assetColor $elem.Type}};">
+            <td>
+              <span class="fs-16 fw-600">{{$elem.DisplayName}}</span>
+            </td>
+            <td class="text-center fs-17">{{if eq $elem.Type "usd"}}${{end}}<span id="{{$elem.Type}}Value"
+                class="d-none">{{$elem.Balance}}</span><span
+                class="{{roundDecimalClassWithAsset $elem.Type}}">{{$elem.Balance}}</span>
+              {{if ne $elem.Type "usd"}}{{toUppercase $elem.Type}}{{end}}</td>
+            <td class="text-center fs-17">
+              <div>
+                <a data-action="click->userdetail#changeBalance" id="{{$elem.Type}}Change"
+                  data-userdetail-type-param="{{$elem.Type}}" data-userdetail-balance-param="{{$elem.Balance}}"
+                  class="btn btn-primary small-btn">Change</a>
+                <a data-action="click->userdetail#depositBalance" id="{{$elem.Type}}Deposit"
+                  data-userdetail-type-param="{{$elem.Type}}" data-userdetail-balance-param="{{$elem.Balance}}"
+                  class="btn btn-primary small-btn">Deposit</a>
+                <a data-action="click->userdetail#withdrawalBalance" id="{{$elem.Type}}Withdrawal"
+                  data-userdetail-type-param="{{$elem.Type}}" data-userdetail-balance-param="{{$elem.Balance}}"
+                  class="btn btn-primary small-btn">Withdraw</a>
+              </div>
+              <div id="{{$elem.Type}}InputArea" class="mt-2 d-none admin-asset-action-area">
+                <input name="{{$elem.Type}}Input" step="{{stepByType $elem.Type}}" id="{{$elem.Type}}Input"
+                  autocomplete="off" type="number" class="form-control w-25 d-inline"
+                  data-action="input->userdetail#inputChange">
+                <button class="btn btn-fb small-btn" id="{{$elem.Type}}UpdateBtn"
+                  data-action="click->userdetail#updateAction">Update</button>
+              </div>
+              <div>
+                <span class="error d-none type-error-msg" id="{{$elem.Type}}Inputerr_msg"></span>
+              </div>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {{end}}
+  <!-- Modal -->
+  <div class="modal fade" id="confirmDialog" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="staticBackdropLabel">Confirm Update</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <span id="dialogNotice">Are you sure you want to change this user's balance?</span>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="confirmButton" data-action="click->userdetail#submitUpdateBalance"
+            class="btn btn-linkedin">Confirm</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="changePassword" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="passwordModalLabel">
+            Update Password
+          </h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-1">
+          <!-- Trigger the modal with a button -->
+          <form class="dataForm" id="dataForm" action="" data-userdetail-target="passwordForm" method="post">
+            <span class="error d-none" id="updateErr">Update password failed</span>
+            <div class="kinput required vBubble mb-0">
+              <input type="password" class="w-100" autocomplete="off" data-userdetail-target="password"
+                autocomplete="off" name="password" id='password'>
+              <label>New Password</label>
+            </div>
+            <span class="error" id="passwordError"></span>
+            <div class="kinput required vBubble mb-0 mt-4">
+              <input type="password" class="w-100" autocomplete="off" data-userdetail-target="cpassword"
+                autocomplete="off" name="cpassword" id='cpassword'>
+              <label>Confirmation Password</label>
+            </div>
+            <span class="error" id="cpasswordError"></span>
+            <span class="error d-none" id="passworderr_msg">Confirmation password does not match</span>
+            <div class="modal-footer border-none">
+              <button type="submit" id="updateButton" class="btn btn-primary btn-flat">
+                Update
+              </button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                Close
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 {{template "common/foot.html" .}}

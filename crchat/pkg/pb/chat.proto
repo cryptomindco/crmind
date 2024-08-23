@@ -11,9 +11,22 @@ service ChatService{
   rpc SendChatMessage(SendChatMessageRequest) returns (ResponseData);
   rpc CheckChatExist(CheckChatExistRequest) returns (ResponseData);
   rpc GetChatMsgDisplayList(CommonRequest) returns (ResponseData);
+  rpc GetChatMsg(GetChatMsgRequest) returns (ResponseData);
+  rpc CreateHelloChat(CreateHelloChatRequest) returns (ResponseData);
 }
 
 message DeleteChatRequest {
+  CommonRequest common = 1;
+  int64 chatId = 2;
+}
+
+message CreateHelloChatRequest {
+  CommonRequest common = 1;
+  string fromName = 2;
+  string toName = 3;
+}
+
+message GetChatMsgRequest {
   CommonRequest common = 1;
   int64 chatId = 2;
 }

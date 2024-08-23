@@ -34,6 +34,12 @@ var InitSetFilterUrl = func() {
 }
 
 var FilterCryptomind = func(ctx *context.Context) {
+	okService := utils.CheckServiceValidUrl(ctx.Request.URL.Path)
+	if !okService {
+		ctx.Redirect(403, "/403")
+		return
+	}
+	//check service and
 	//Determine whether the URL is excluded
 	if _, ok := filterExcludeURLMap[ctx.Request.URL.Path]; ok {
 		return

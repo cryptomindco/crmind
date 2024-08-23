@@ -19,35 +19,41 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AssetsService_CreateNewAddress_FullMethodName             = "/assets.AssetsService/CreateNewAddress"
-	AssetsService_SyncTransactions_FullMethodName             = "/assets.AssetsService/SyncTransactions"
-	AssetsService_SendTradingRequest_FullMethodName           = "/assets.AssetsService/SendTradingRequest"
-	AssetsService_TransferAmount_FullMethodName               = "/assets.AssetsService/TransferAmount"
-	AssetsService_AddToContact_FullMethodName                 = "/assets.AssetsService/AddToContact"
-	AssetsService_FilterTxHistory_FullMethodName              = "/assets.AssetsService/FilterTxHistory"
-	AssetsService_GetCodeListData_FullMethodName              = "/assets.AssetsService/GetCodeListData"
-	AssetsService_GetAddressListDataWithStatus_FullMethodName = "/assets.AssetsService/GetAddressListDataWithStatus"
-	AssetsService_ConfirmAmount_FullMethodName                = "/assets.AssetsService/ConfirmAmount"
-	AssetsService_ConfirmWithdrawal_FullMethodName            = "/assets.AssetsService/ConfirmWithdrawal"
-	AssetsService_UpdateNewLabel_FullMethodName               = "/assets.AssetsService/UpdateNewLabel"
-	AssetsService_GetBalanceSummary_FullMethodName            = "/assets.AssetsService/GetBalanceSummary"
-	AssetsService_GetAssetDBList_FullMethodName               = "/assets.AssetsService/GetAssetDBList"
-	AssetsService_GetUserAssetDB_FullMethodName               = "/assets.AssetsService/GetUserAssetDB"
-	AssetsService_GetAddressList_FullMethodName               = "/assets.AssetsService/GetAddressList"
-	AssetsService_CountAddress_FullMethodName                 = "/assets.AssetsService/CountAddress"
-	AssetsService_CheckHasCodeList_FullMethodName             = "/assets.AssetsService/CheckHasCodeList"
-	AssetsService_GetContactList_FullMethodName               = "/assets.AssetsService/GetContactList"
-	AssetsService_FilterTxCode_FullMethodName                 = "/assets.AssetsService/FilterTxCode"
-	AssetsService_GetTxHistory_FullMethodName                 = "/assets.AssetsService/GetTxHistory"
-	AssetsService_FilterAddressList_FullMethodName            = "/assets.AssetsService/FilterAddressList"
-	AssetsService_CheckAndCreateAccountToken_FullMethodName   = "/assets.AssetsService/CheckAndCreateAccountToken"
-	AssetsService_FetchRate_FullMethodName                    = "/assets.AssetsService/FetchRate"
-	AssetsService_CheckAssetMatchWithUser_FullMethodName      = "/assets.AssetsService/CheckAssetMatchWithUser"
-	AssetsService_CheckAddressMatchWithUser_FullMethodName    = "/assets.AssetsService/CheckAddressMatchWithUser"
-	AssetsService_GetAddress_FullMethodName                   = "/assets.AssetsService/GetAddress"
-	AssetsService_ConfirmAddressAction_FullMethodName         = "/assets.AssetsService/ConfirmAddressAction"
-	AssetsService_CancelUrlCode_FullMethodName                = "/assets.AssetsService/CancelUrlCode"
-	AssetsService_CheckContactUser_FullMethodName             = "/assets.AssetsService/CheckContactUser"
+	AssetsService_CreateNewAddress_FullMethodName                   = "/assets.AssetsService/CreateNewAddress"
+	AssetsService_SyncTransactions_FullMethodName                   = "/assets.AssetsService/SyncTransactions"
+	AssetsService_SendTradingRequest_FullMethodName                 = "/assets.AssetsService/SendTradingRequest"
+	AssetsService_TransferAmount_FullMethodName                     = "/assets.AssetsService/TransferAmount"
+	AssetsService_AddToContact_FullMethodName                       = "/assets.AssetsService/AddToContact"
+	AssetsService_FilterTxHistory_FullMethodName                    = "/assets.AssetsService/FilterTxHistory"
+	AssetsService_GetCodeListData_FullMethodName                    = "/assets.AssetsService/GetCodeListData"
+	AssetsService_GetAddressListDataWithStatus_FullMethodName       = "/assets.AssetsService/GetAddressListDataWithStatus"
+	AssetsService_ConfirmAmount_FullMethodName                      = "/assets.AssetsService/ConfirmAmount"
+	AssetsService_ConfirmWithdrawal_FullMethodName                  = "/assets.AssetsService/ConfirmWithdrawal"
+	AssetsService_UpdateNewLabel_FullMethodName                     = "/assets.AssetsService/UpdateNewLabel"
+	AssetsService_GetBalanceSummary_FullMethodName                  = "/assets.AssetsService/GetBalanceSummary"
+	AssetsService_GetAssetDBList_FullMethodName                     = "/assets.AssetsService/GetAssetDBList"
+	AssetsService_GetUserAssetDB_FullMethodName                     = "/assets.AssetsService/GetUserAssetDB"
+	AssetsService_GetAddressList_FullMethodName                     = "/assets.AssetsService/GetAddressList"
+	AssetsService_CountAddress_FullMethodName                       = "/assets.AssetsService/CountAddress"
+	AssetsService_CheckHasCodeList_FullMethodName                   = "/assets.AssetsService/CheckHasCodeList"
+	AssetsService_GetContactList_FullMethodName                     = "/assets.AssetsService/GetContactList"
+	AssetsService_FilterTxCode_FullMethodName                       = "/assets.AssetsService/FilterTxCode"
+	AssetsService_GetTxHistory_FullMethodName                       = "/assets.AssetsService/GetTxHistory"
+	AssetsService_FilterAddressList_FullMethodName                  = "/assets.AssetsService/FilterAddressList"
+	AssetsService_CheckAndCreateAccountToken_FullMethodName         = "/assets.AssetsService/CheckAndCreateAccountToken"
+	AssetsService_FetchRate_FullMethodName                          = "/assets.AssetsService/FetchRate"
+	AssetsService_CheckAssetMatchWithUser_FullMethodName            = "/assets.AssetsService/CheckAssetMatchWithUser"
+	AssetsService_CheckAddressMatchWithUser_FullMethodName          = "/assets.AssetsService/CheckAddressMatchWithUser"
+	AssetsService_GetAddress_FullMethodName                         = "/assets.AssetsService/GetAddress"
+	AssetsService_ConfirmAddressAction_FullMethodName               = "/assets.AssetsService/ConfirmAddressAction"
+	AssetsService_CancelUrlCode_FullMethodName                      = "/assets.AssetsService/CancelUrlCode"
+	AssetsService_CheckContactUser_FullMethodName                   = "/assets.AssetsService/CheckContactUser"
+	AssetsService_TransactionDetail_FullMethodName                  = "/assets.AssetsService/TransactionDetail"
+	AssetsService_AdminUpdateBalance_FullMethodName                 = "/assets.AssetsService/AdminUpdateBalance"
+	AssetsService_GetTxCode_FullMethodName                          = "/assets.AssetsService/GetTxCode"
+	AssetsService_HandlerURLCodeWithdrawlWithAccount_FullMethodName = "/assets.AssetsService/HandlerURLCodeWithdrawlWithAccount"
+	AssetsService_CreateNewAsset_FullMethodName                     = "/assets.AssetsService/CreateNewAsset"
+	AssetsService_WalletSocket_FullMethodName                       = "/assets.AssetsService/WalletSocket"
 )
 
 // AssetsServiceClient is the client API for AssetsService service.
@@ -66,7 +72,7 @@ type AssetsServiceClient interface {
 	ConfirmWithdrawal(ctx context.Context, in *ConfirmWithdrawalRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	UpdateNewLabel(ctx context.Context, in *UpdateLabelRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	GetBalanceSummary(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error)
-	GetAssetDBList(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	GetAssetDBList(ctx context.Context, in *GetAssetDBListRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	GetUserAssetDB(ctx context.Context, in *GetUserAssetDBRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	GetAddressList(ctx context.Context, in *OneIntegerRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	CountAddress(ctx context.Context, in *CountAddressRequest, opts ...grpc.CallOption) (*ResponseData, error)
@@ -83,6 +89,12 @@ type AssetsServiceClient interface {
 	ConfirmAddressAction(ctx context.Context, in *ConfirmAddressActionRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	CancelUrlCode(ctx context.Context, in *OneIntegerRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	CheckContactUser(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	TransactionDetail(ctx context.Context, in *OneIntegerRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	AdminUpdateBalance(ctx context.Context, in *AdminBalanceUpdateRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	GetTxCode(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	HandlerURLCodeWithdrawlWithAccount(ctx context.Context, in *URLCodeWithdrawWithAccountRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	CreateNewAsset(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	WalletSocket(ctx context.Context, in *WalletNotifyRequest, opts ...grpc.CallOption) (*ResponseData, error)
 }
 
 type assetsServiceClient struct {
@@ -213,7 +225,7 @@ func (c *assetsServiceClient) GetBalanceSummary(ctx context.Context, in *OneStri
 	return out, nil
 }
 
-func (c *assetsServiceClient) GetAssetDBList(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+func (c *assetsServiceClient) GetAssetDBList(ctx context.Context, in *GetAssetDBListRequest, opts ...grpc.CallOption) (*ResponseData, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResponseData)
 	err := c.cc.Invoke(ctx, AssetsService_GetAssetDBList_FullMethodName, in, out, cOpts...)
@@ -383,6 +395,66 @@ func (c *assetsServiceClient) CheckContactUser(ctx context.Context, in *OneStrin
 	return out, nil
 }
 
+func (c *assetsServiceClient) TransactionDetail(ctx context.Context, in *OneIntegerRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResponseData)
+	err := c.cc.Invoke(ctx, AssetsService_TransactionDetail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *assetsServiceClient) AdminUpdateBalance(ctx context.Context, in *AdminBalanceUpdateRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResponseData)
+	err := c.cc.Invoke(ctx, AssetsService_AdminUpdateBalance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *assetsServiceClient) GetTxCode(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResponseData)
+	err := c.cc.Invoke(ctx, AssetsService_GetTxCode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *assetsServiceClient) HandlerURLCodeWithdrawlWithAccount(ctx context.Context, in *URLCodeWithdrawWithAccountRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResponseData)
+	err := c.cc.Invoke(ctx, AssetsService_HandlerURLCodeWithdrawlWithAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *assetsServiceClient) CreateNewAsset(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResponseData)
+	err := c.cc.Invoke(ctx, AssetsService_CreateNewAsset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *assetsServiceClient) WalletSocket(ctx context.Context, in *WalletNotifyRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResponseData)
+	err := c.cc.Invoke(ctx, AssetsService_WalletSocket_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AssetsServiceServer is the server API for AssetsService service.
 // All implementations must embed UnimplementedAssetsServiceServer
 // for forward compatibility.
@@ -399,7 +471,7 @@ type AssetsServiceServer interface {
 	ConfirmWithdrawal(context.Context, *ConfirmWithdrawalRequest) (*ResponseData, error)
 	UpdateNewLabel(context.Context, *UpdateLabelRequest) (*ResponseData, error)
 	GetBalanceSummary(context.Context, *OneStringRequest) (*ResponseData, error)
-	GetAssetDBList(context.Context, *OneStringRequest) (*ResponseData, error)
+	GetAssetDBList(context.Context, *GetAssetDBListRequest) (*ResponseData, error)
 	GetUserAssetDB(context.Context, *GetUserAssetDBRequest) (*ResponseData, error)
 	GetAddressList(context.Context, *OneIntegerRequest) (*ResponseData, error)
 	CountAddress(context.Context, *CountAddressRequest) (*ResponseData, error)
@@ -416,6 +488,12 @@ type AssetsServiceServer interface {
 	ConfirmAddressAction(context.Context, *ConfirmAddressActionRequest) (*ResponseData, error)
 	CancelUrlCode(context.Context, *OneIntegerRequest) (*ResponseData, error)
 	CheckContactUser(context.Context, *OneStringRequest) (*ResponseData, error)
+	TransactionDetail(context.Context, *OneIntegerRequest) (*ResponseData, error)
+	AdminUpdateBalance(context.Context, *AdminBalanceUpdateRequest) (*ResponseData, error)
+	GetTxCode(context.Context, *OneStringRequest) (*ResponseData, error)
+	HandlerURLCodeWithdrawlWithAccount(context.Context, *URLCodeWithdrawWithAccountRequest) (*ResponseData, error)
+	CreateNewAsset(context.Context, *OneStringRequest) (*ResponseData, error)
+	WalletSocket(context.Context, *WalletNotifyRequest) (*ResponseData, error)
 	mustEmbedUnimplementedAssetsServiceServer()
 }
 
@@ -462,7 +540,7 @@ func (UnimplementedAssetsServiceServer) UpdateNewLabel(context.Context, *UpdateL
 func (UnimplementedAssetsServiceServer) GetBalanceSummary(context.Context, *OneStringRequest) (*ResponseData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBalanceSummary not implemented")
 }
-func (UnimplementedAssetsServiceServer) GetAssetDBList(context.Context, *OneStringRequest) (*ResponseData, error) {
+func (UnimplementedAssetsServiceServer) GetAssetDBList(context.Context, *GetAssetDBListRequest) (*ResponseData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAssetDBList not implemented")
 }
 func (UnimplementedAssetsServiceServer) GetUserAssetDB(context.Context, *GetUserAssetDBRequest) (*ResponseData, error) {
@@ -512,6 +590,24 @@ func (UnimplementedAssetsServiceServer) CancelUrlCode(context.Context, *OneInteg
 }
 func (UnimplementedAssetsServiceServer) CheckContactUser(context.Context, *OneStringRequest) (*ResponseData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckContactUser not implemented")
+}
+func (UnimplementedAssetsServiceServer) TransactionDetail(context.Context, *OneIntegerRequest) (*ResponseData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TransactionDetail not implemented")
+}
+func (UnimplementedAssetsServiceServer) AdminUpdateBalance(context.Context, *AdminBalanceUpdateRequest) (*ResponseData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminUpdateBalance not implemented")
+}
+func (UnimplementedAssetsServiceServer) GetTxCode(context.Context, *OneStringRequest) (*ResponseData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTxCode not implemented")
+}
+func (UnimplementedAssetsServiceServer) HandlerURLCodeWithdrawlWithAccount(context.Context, *URLCodeWithdrawWithAccountRequest) (*ResponseData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HandlerURLCodeWithdrawlWithAccount not implemented")
+}
+func (UnimplementedAssetsServiceServer) CreateNewAsset(context.Context, *OneStringRequest) (*ResponseData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateNewAsset not implemented")
+}
+func (UnimplementedAssetsServiceServer) WalletSocket(context.Context, *WalletNotifyRequest) (*ResponseData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WalletSocket not implemented")
 }
 func (UnimplementedAssetsServiceServer) mustEmbedUnimplementedAssetsServiceServer() {}
 func (UnimplementedAssetsServiceServer) testEmbeddedByValue()                       {}
@@ -751,7 +847,7 @@ func _AssetsService_GetBalanceSummary_Handler(srv interface{}, ctx context.Conte
 }
 
 func _AssetsService_GetAssetDBList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OneStringRequest)
+	in := new(GetAssetDBListRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -763,7 +859,7 @@ func _AssetsService_GetAssetDBList_Handler(srv interface{}, ctx context.Context,
 		FullMethod: AssetsService_GetAssetDBList_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AssetsServiceServer).GetAssetDBList(ctx, req.(*OneStringRequest))
+		return srv.(AssetsServiceServer).GetAssetDBList(ctx, req.(*GetAssetDBListRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1056,6 +1152,114 @@ func _AssetsService_CheckContactUser_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AssetsService_TransactionDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OneIntegerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssetsServiceServer).TransactionDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssetsService_TransactionDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssetsServiceServer).TransactionDetail(ctx, req.(*OneIntegerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AssetsService_AdminUpdateBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminBalanceUpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssetsServiceServer).AdminUpdateBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssetsService_AdminUpdateBalance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssetsServiceServer).AdminUpdateBalance(ctx, req.(*AdminBalanceUpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AssetsService_GetTxCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OneStringRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssetsServiceServer).GetTxCode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssetsService_GetTxCode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssetsServiceServer).GetTxCode(ctx, req.(*OneStringRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AssetsService_HandlerURLCodeWithdrawlWithAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(URLCodeWithdrawWithAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssetsServiceServer).HandlerURLCodeWithdrawlWithAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssetsService_HandlerURLCodeWithdrawlWithAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssetsServiceServer).HandlerURLCodeWithdrawlWithAccount(ctx, req.(*URLCodeWithdrawWithAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AssetsService_CreateNewAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OneStringRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssetsServiceServer).CreateNewAsset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssetsService_CreateNewAsset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssetsServiceServer).CreateNewAsset(ctx, req.(*OneStringRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AssetsService_WalletSocket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WalletNotifyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssetsServiceServer).WalletSocket(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssetsService_WalletSocket_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssetsServiceServer).WalletSocket(ctx, req.(*WalletNotifyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AssetsService_ServiceDesc is the grpc.ServiceDesc for AssetsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1178,6 +1382,30 @@ var AssetsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckContactUser",
 			Handler:    _AssetsService_CheckContactUser_Handler,
+		},
+		{
+			MethodName: "TransactionDetail",
+			Handler:    _AssetsService_TransactionDetail_Handler,
+		},
+		{
+			MethodName: "AdminUpdateBalance",
+			Handler:    _AssetsService_AdminUpdateBalance_Handler,
+		},
+		{
+			MethodName: "GetTxCode",
+			Handler:    _AssetsService_GetTxCode_Handler,
+		},
+		{
+			MethodName: "HandlerURLCodeWithdrawlWithAccount",
+			Handler:    _AssetsService_HandlerURLCodeWithdrawlWithAccount_Handler,
+		},
+		{
+			MethodName: "CreateNewAsset",
+			Handler:    _AssetsService_CreateNewAsset_Handler,
+		},
+		{
+			MethodName: "WalletSocket",
+			Handler:    _AssetsService_WalletSocket_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

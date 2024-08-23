@@ -3,24 +3,35 @@ package utils
 import "crmind/models"
 
 type AssetType string
+type ServiceType string
 
 const (
-	Tokenkey                     = "Token"
-	LoginUserKey                 = "AuthClaims"
-	UserListSessionKey           = "userList"
-	NilAsset           AssetType = ""
-	BTCWalletAsset     AssetType = "btc"
-	DCRWalletAsset     AssetType = "dcr"
-	LTCWalletAsset     AssetType = "ltc"
-	USDWalletAsset     AssetType = "usd"
+	Tokenkey                       = "Token"
+	LoginUserKey                   = "AuthClaims"
+	UserListSessionKey             = "userList"
+	NilAsset           AssetType   = ""
+	BTCWalletAsset     AssetType   = "btc"
+	DCRWalletAsset     AssetType   = "dcr"
+	LTCWalletAsset     AssetType   = "ltc"
+	USDWalletAsset     AssetType   = "usd"
+	AuthService        ServiceType = "auth"
+	ChatService        ServiceType = "chat"
+	AssetsService      ServiceType = "assets"
 )
 
 var AuthHost, AssetsHost, ChatHost string
 
+var ServiceList = []string{"auth", "chat", "assets"}
 var LoginExcludeUrl = []string{"/404", "/exit", "/login", "/LoginSubmit", "/checkLogin", "/register", "/RegisterSubmit", "/walletSocket", "/withdrawl",
 	"/confirmWithdraw", "/passkey/registerStart", "/passkey/registerFinish", "/assertion/options",
 	"/assertion/result", "/passkey/cancelRegister", "/assertion/withdrawConfirmLoginResult", "/passkey/withdrawWithNewAccountFinish", "/gen-random-username",
 	"/check-user"}
+
+var AssetUrl = []string{"/walletSocket", "/withdrawl", "/confirmWithdraw", "/assertion/withdrawConfirmLoginResult", "/passkey/withdrawWithNewAccountFinish",
+	"/adminUpdateBalance", "/transfer/GetHistoryList", "/check-contact-user", "/confirmAmount", "/transfer-amount", "/updateNewLabel", "/send-trading-request",
+	"/fetch-rate", "/assets/detail", "/GetCodeListData", "/GetAddressListData", "/confirmAddressAction", "/cancelUrlCode", "/transaction/detail", "/createNewAddress"}
+
+var ChatUrl = []string{"/updateUnread", "/deleteChat", "/sendChatMessage"}
 
 type ResponseData struct {
 	IsError   bool        `json:"error"`
@@ -36,6 +47,7 @@ type TempoRes struct {
 
 type UserRole int
 type UrlCodeStatus int
+type TransType int
 
 const (
 	UrlCodeStatusCreated UrlCodeStatus = iota
@@ -46,6 +58,12 @@ const (
 const (
 	RoleSuperAdmin UserRole = iota
 	RoleRegular
+)
+
+const (
+	TransTypeLocal TransType = iota
+	TransTypeChainSend
+	TransTypeChainReceive
 )
 
 func GetAssetColor(assetType string) string {

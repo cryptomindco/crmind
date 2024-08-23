@@ -184,7 +184,7 @@ func GetBalanceSummaryHandler(ctx context.Context, req *assetspb.OneStringReques
 	return res, nil
 }
 
-func GetAssetDBListHandler(ctx context.Context, req *assetspb.OneStringRequest) (*assetspb.ResponseData, error) {
+func GetAssetDBListHandler(ctx context.Context, req *assetspb.GetAssetDBListRequest) (*assetspb.ResponseData, error) {
 	err := CheckAndInitAssetsClient()
 	if err != nil {
 		return nil, err
@@ -382,6 +382,78 @@ func CheckContactUserHandler(ctx context.Context, req *assetspb.OneStringRequest
 		return nil, err
 	}
 	res, err := (*AssetsCli.Client).CheckContactUser(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+func WalletSocketHandler(ctx context.Context, req *assetspb.WalletNotifyRequest) (*assetspb.ResponseData, error) {
+	err := CheckAndInitAssetsClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AssetsCli.Client).WalletSocket(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+func GetTxCodeHandler(ctx context.Context, req *assetspb.OneStringRequest) (*assetspb.ResponseData, error) {
+	err := CheckAndInitAssetsClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AssetsCli.Client).GetTxCode(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+func AdminUpdateBalanceHandler(ctx context.Context, req *assetspb.AdminBalanceUpdateRequest) (*assetspb.ResponseData, error) {
+	err := CheckAndInitAssetsClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AssetsCli.Client).AdminUpdateBalance(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+func TransactionDetailHandler(ctx context.Context, req *assetspb.OneIntegerRequest) (*assetspb.ResponseData, error) {
+	err := CheckAndInitAssetsClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AssetsCli.Client).TransactionDetail(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+func HandlerURLCodeWithdrawlWithAccountHandler(ctx context.Context, req *assetspb.URLCodeWithdrawWithAccountRequest) (*assetspb.ResponseData, error) {
+	err := CheckAndInitAssetsClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AssetsCli.Client).HandlerURLCodeWithdrawlWithAccount(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+func CreateNewAssetHandler(ctx context.Context, req *assetspb.OneStringRequest) (*assetspb.ResponseData, error) {
+	err := CheckAndInitAssetsClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AssetsCli.Client).CreateNewAsset(ctx, req)
 	if err != nil {
 		return res, err
 	}

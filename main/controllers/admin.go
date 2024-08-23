@@ -56,8 +56,30 @@ func (this *AdminController) UserDetail() {
 	})
 	var targetUser models.User
 	if err == nil && !res.Error {
-		utils.JsonStringToObject(res.Data, &targetUser)
+		parseErr := utils.JsonStringToObject(res.Data, &targetUser)
+		if parseErr != nil {
+			this.TplName = "err_403.html"
+			return
+		}
 	}
+	//get asset list
+	assetRes, err := services.GetAssetDBListHandler(this.Ctx.Request.Context(), &assetspb.GetAssetDBListRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: authClaim.Username,
+		},
+		Allowassets: utils.GetAllowAssets(),
+		Username:    targetUser.Username,
+	})
+	if err != nil {
+		this.TplName = "err_403.html"
+		return
+	}
+	var assets []models.Asset
+	parseAssetErr := utils.JsonStringToObject(assetRes.Data, &assets)
+	if parseAssetErr != nil {
+		assets = make([]models.Asset, 0)
+	}
+	this.Data["Assets"] = assets
 	this.Data["User"] = targetUser
 	logpack.Info(fmt.Sprintf("User Detail, Useid: %d", userId), utils.GetFuncName())
 	this.TplName = "admin/user_detail.html"
@@ -85,6 +107,7 @@ func (this *AdminController) ChangeUserStatus() {
 	})
 	if err != nil {
 		this.ResponseError("Request change user status failed", utils.GetFuncName(), err)
+		return
 	}
 	this.Data["json"] = res
 	this.ServeJSON()
@@ -99,12 +122,15 @@ func (this *AdminController) GetSettings() {
 	}
 
 	allows, err := utils.GetAllowAssetFromSettings()
-	if err != nil {
+	activeServices, serviceErr := utils.GetActiveServicesFromSettings()
+	if err != nil || serviceErr != nil {
 		logpack.Error(err.Error(), utils.GetFuncName(), nil)
 		this.TplName = "err_403.html"
 		return
 	}
+
 	this.Data["AllowAssets"] = allows
+	this.Data["ActiveServices"] = activeServices
 	this.TplName = "admin/settings.html"
 }
 
@@ -116,6 +142,7 @@ func (this *AdminController) UpdateSettings() {
 	}
 
 	selectedAssetStr := this.GetString("selectedAsset")
+	selectedServicesStr := this.GetString("selectedServices")
 	//Get Settings
 	settings, settingErr := this.CheckSettingsExist()
 	//if get settings has DB error
@@ -133,10 +160,14 @@ func (this *AdminController) UpdateSettings() {
 	if utils.IsEmpty(selectedAssetStr) {
 		selectedAssetStr = "usd"
 	}
+	if utils.IsEmpty(selectedServicesStr) {
+		selectedServicesStr = "auth"
+	}
 	//if creating new settings
 	if isCreate {
 		newSettings := models.Settings{
-			ActiveAssets: selectedAssetStr,
+			ActiveAssets:   selectedAssetStr,
+			ActiveServices: selectedServicesStr,
 		}
 		//insert to DB
 		_, insertErr := tx.Insert(&newSettings)
@@ -146,6 +177,7 @@ func (this *AdminController) UpdateSettings() {
 		}
 	} else {
 		settings.ActiveAssets = selectedAssetStr
+		settings.ActiveServices = selectedServicesStr
 		//update DB
 		_, updateErr := tx.Update(settings)
 		if updateErr != nil {
@@ -157,6 +189,7 @@ func (this *AdminController) UpdateSettings() {
 	tx.Commit()
 	//set to global allow assets
 	utils.AllowAssets = selectedAssetStr
+	utils.ActiveServices = selectedServicesStr
 	this.ResponseSuccessfully(loginUser.Id, "Update settings successfully!", utils.GetFuncName())
 }
 
@@ -177,4 +210,43 @@ func (this *AdminController) SyncTransactions() {
 		return
 	}
 	this.ResponseSuccessfully(loginUser.Id, "Synchronized transaction successfully", utils.GetFuncName())
+}
+
+func (this *AdminController) AdminUpdateBalance() {
+	loginUser, err := this.GetLoginUser()
+	if err != nil || loginUser.Role != int(utils.RoleSuperAdmin) {
+		this.ResponseError("There is no permission to access this feature", utils.GetFuncName(), nil)
+		return
+	}
+
+	inputValue, inputErr := this.GetFloat("input")
+	username := this.GetString("username")
+	if inputErr != nil || utils.IsEmpty(username) {
+		this.ResponseError("Get params failed", utils.GetFuncName(), nil)
+		return
+	}
+	typeStr := this.GetString("type")
+	action := this.GetString("action")
+	//get user from username
+	userInfo, err := this.GetUserByUsername(username)
+	if err != nil {
+		this.ResponseError("Get user info failed", utils.GetFuncName(), err)
+		return
+	}
+	res, err := services.AdminUpdateBalanceHandler(this.Ctx.Request.Context(), &assetspb.AdminBalanceUpdateRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginUser.Username,
+			Role:      int64(loginUser.Role),
+		},
+		Input:    inputValue,
+		Username: username,
+		UserRole: int64(userInfo.Role),
+		Type:     typeStr,
+		Action:   action,
+	})
+	if err != nil {
+		this.ResponseError("Update user balance failed", utils.GetFuncName(), err)
+		return
+	}
+	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Update user balance successfully", utils.GetFuncName(), res.Data)
 }

@@ -14,7 +14,6 @@ type AssetDisplay struct {
 type Asset struct {
 	Id             int64   `orm:"column(id);auto;size(11)" json:"id"`
 	DisplayName    string  `json:"displayName"`
-	UserId         int64   `json:"userId"`
 	UserName       string  `json:"userName"`
 	IsAdmin        bool    `json:"isAdmin"`
 	Type           string  `json:"type"`
@@ -93,10 +92,9 @@ type GetTransactionDetailsResult struct {
 
 // Assets for wallets
 type TxCode struct {
-	Id        int64   `orm:"column(id);auto;size(11)" json:"id"`
+	Id        int64   `json:"id" gorm:"primaryKey"`
 	Asset     string  `json:"asset"`
 	Code      string  `json:"code"`
-	OwnerId   int64   `json:"ownerId"`
 	OwnerName string  `json:"ownerName"`
 	Amount    float64 `json:"amount"`
 	Txid      string  `json:"txid"` //save when confirm

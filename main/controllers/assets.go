@@ -7,6 +7,7 @@ import (
 	"crmind/services"
 	"crmind/utils"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -152,9 +153,10 @@ func (this *AssetsController) AssetsDetail() {
 		this.TplName = "err_403.html"
 		return
 	}
+	//check exist
 	var asset *models.Asset
 	if !tempRes.Exist {
-		asset = utils.CreateNewAsset(assetType, loginUser.Id, loginUser.Username)
+		asset = utils.CreateNewAsset(assetType, loginUser.Username)
 	} else {
 		asset = tempRes.Asset
 	}
@@ -168,7 +170,7 @@ func (this *AssetsController) AssetsDetail() {
 			return
 		}
 	}
-	assetList, err := this.GetUserAssetList(loginUser.Username)
+	assetList, err := this.GetUserAssetList(loginUser.Username, loginUser.Username)
 	if err != nil {
 		logpack.FError("Get Asset List for user failed", loginUser.Id, utils.GetFuncName(), err)
 		this.TplName = "err_403.html"
@@ -255,4 +257,37 @@ func (this *AssetsController) CancelUrlCode() {
 		return
 	}
 	this.ResponseSuccessfully(loginUser.Id, "Cancel url code successfully", utils.GetFuncName())
+}
+
+func (this *AssetsController) TransactionDetail() {
+	loginUser, check := this.AuthCheck()
+	if check != nil {
+		this.TplName = "err_403.html"
+		return
+	}
+	var historyId int64
+	if err := this.Ctx.Input.Bind(&historyId, "id"); err != nil {
+		this.Redirect("/", http.StatusFound)
+	}
+
+	res, err := services.TransactionDetailHandler(this.Ctx.Request.Context(), &assetspb.OneIntegerRequest{
+		Common: &assetspb.CommonRequest{
+			LoginName: loginUser.Username,
+		},
+		Data: historyId,
+	})
+	if err != nil {
+		logpack.Error("Get Transaction history failed", utils.GetFuncName(), err)
+		this.TplName = "err_403.html"
+		return
+	}
+	var txHistoryDisp models.TxHistoryDisplay
+	parseErr := utils.JsonStringToObject(res.Data, &txHistoryDisp)
+	if parseErr != nil {
+		logpack.Error("Parse tx history data failed", utils.GetFuncName(), err)
+		this.TplName = "err_403.html"
+		return
+	}
+	this.Data["TransactionHistory"] = txHistoryDisp
+	this.TplName = "transactions/detail.html"
 }

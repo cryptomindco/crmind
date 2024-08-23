@@ -15,10 +15,13 @@ export default class extends BaseController {
   async initialize() {
     const successFlg = this.data.get("successFlg");
     const successMsg = this.data.get("successfullyMsg");
+    const assetsActive = this.data.get("assetActive")
     if (successFlg == "true") {
       this.showSuccessToast(successMsg);
     }
-
+    if (assetsActive != "true") {
+      return
+    }
     const _this = this;
     let typeJson = _this.data.get("types");
     this.typeList = JSON.parse(typeJson);
@@ -188,7 +191,7 @@ export default class extends BaseController {
         if (res.error) {
           return;
         }
-        const data = res.data;
+        const data = JSON.parse(res.data);
         const pageCount = data.pageCount;
         //handler pagination
         _this.paginationTopBarTarget.innerHTML =

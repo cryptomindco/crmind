@@ -25,6 +25,8 @@ const (
 	ChatService_SendChatMessage_FullMethodName       = "/crchat.ChatService/SendChatMessage"
 	ChatService_CheckChatExist_FullMethodName        = "/crchat.ChatService/CheckChatExist"
 	ChatService_GetChatMsgDisplayList_FullMethodName = "/crchat.ChatService/GetChatMsgDisplayList"
+	ChatService_GetChatMsg_FullMethodName            = "/crchat.ChatService/GetChatMsg"
+	ChatService_CreateHelloChat_FullMethodName       = "/crchat.ChatService/CreateHelloChat"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -37,6 +39,8 @@ type ChatServiceClient interface {
 	SendChatMessage(ctx context.Context, in *SendChatMessageRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	CheckChatExist(ctx context.Context, in *CheckChatExistRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	GetChatMsgDisplayList(ctx context.Context, in *CommonRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	GetChatMsg(ctx context.Context, in *GetChatMsgRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	CreateHelloChat(ctx context.Context, in *CreateHelloChatRequest, opts ...grpc.CallOption) (*ResponseData, error)
 }
 
 type chatServiceClient struct {
@@ -107,6 +111,26 @@ func (c *chatServiceClient) GetChatMsgDisplayList(ctx context.Context, in *Commo
 	return out, nil
 }
 
+func (c *chatServiceClient) GetChatMsg(ctx context.Context, in *GetChatMsgRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResponseData)
+	err := c.cc.Invoke(ctx, ChatService_GetChatMsg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) CreateHelloChat(ctx context.Context, in *CreateHelloChatRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResponseData)
+	err := c.cc.Invoke(ctx, ChatService_CreateHelloChat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
@@ -117,6 +141,8 @@ type ChatServiceServer interface {
 	SendChatMessage(context.Context, *SendChatMessageRequest) (*ResponseData, error)
 	CheckChatExist(context.Context, *CheckChatExistRequest) (*ResponseData, error)
 	GetChatMsgDisplayList(context.Context, *CommonRequest) (*ResponseData, error)
+	GetChatMsg(context.Context, *GetChatMsgRequest) (*ResponseData, error)
+	CreateHelloChat(context.Context, *CreateHelloChatRequest) (*ResponseData, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -144,6 +170,12 @@ func (UnimplementedChatServiceServer) CheckChatExist(context.Context, *CheckChat
 }
 func (UnimplementedChatServiceServer) GetChatMsgDisplayList(context.Context, *CommonRequest) (*ResponseData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetChatMsgDisplayList not implemented")
+}
+func (UnimplementedChatServiceServer) GetChatMsg(context.Context, *GetChatMsgRequest) (*ResponseData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetChatMsg not implemented")
+}
+func (UnimplementedChatServiceServer) CreateHelloChat(context.Context, *CreateHelloChatRequest) (*ResponseData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateHelloChat not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -274,6 +306,42 @@ func _ChatService_GetChatMsgDisplayList_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_GetChatMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChatMsgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetChatMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_GetChatMsg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetChatMsg(ctx, req.(*GetChatMsgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_CreateHelloChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateHelloChatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).CreateHelloChat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_CreateHelloChat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).CreateHelloChat(ctx, req.(*CreateHelloChatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +372,14 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetChatMsgDisplayList",
 			Handler:    _ChatService_GetChatMsgDisplayList_Handler,
+		},
+		{
+			MethodName: "GetChatMsg",
+			Handler:    _ChatService_GetChatMsg_Handler,
+		},
+		{
+			MethodName: "CreateHelloChat",
+			Handler:    _ChatService_CreateHelloChat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

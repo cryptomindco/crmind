@@ -12,7 +12,7 @@ import (
 
 func (s *Server) GetBalanceSummary(ctx context.Context, reqData *pb.OneStringRequest) (*pb.ResponseData, error) {
 	allowassets := reqData.Data
-	if !utils.IsEmpty(allowassets) {
+	if utils.IsEmpty(allowassets) {
 		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
 	//only superadmin has permission access this feature
@@ -216,18 +216,19 @@ func (s *Server) GetTxHistory(ctx context.Context, reqData *pb.OneIntegerRequest
 	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Get transaction history successfully", utils.GetFuncName(), txHistory)
 }
 
-func (s *Server) GetAssetDBList(ctx context.Context, reqData *pb.OneStringRequest) (*pb.ResponseData, error) {
-	allowAssets := reqData.Data
-	if utils.IsEmpty(allowAssets) {
+func (s *Server) GetAssetDBList(ctx context.Context, reqData *pb.GetAssetDBListRequest) (*pb.ResponseData, error) {
+	allowAssets := reqData.Allowassets
+	username := reqData.Username
+	if utils.IsEmpty(allowAssets) || utils.IsEmpty(username) {
 		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
 
 	allowList := utils.GetAssetsNameFromStr(allowAssets)
-	assetList, err := s.H.GetAssetList(reqData.Common.LoginName, allowList)
+	assetList, err := s.H.GetAssetList(username, allowList)
 	if err != nil {
 		return ResponseLoginError(reqData.Common.LoginName, err.Error(), utils.GetFuncName(), err)
 	}
-	assetList = s.H.SyncAssetList(reqData.Common.LoginName, assetList, allowList)
+	assetList = s.H.SyncAssetList(username, assetList, allowList)
 	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Get Asset list successfully", utils.GetFuncName(), assetList)
 }
 
@@ -236,7 +237,7 @@ func (s *Server) FetchRate(ctx context.Context, reqData *pb.CommonRequest) (*pb.
 	if err != nil {
 		return ResponseError(err.Error(), utils.GetFuncName(), err)
 	}
-	return ResponseSuccessfullyWithAnyDataNoLog(utils.ObjectToJsonString(rateMap))
+	return ResponseSuccessfullyWithAnyDataNoLog(rateMap)
 }
 
 func (s *Server) ConfirmAddressAction(ctx context.Context, reqData *pb.ConfirmAddressActionRequest) (*pb.ResponseData, error) {
@@ -287,13 +288,13 @@ func (s *Server) CheckContactUser(ctx context.Context, reqData *pb.OneStringRequ
 		return ResponseLoginError(reqData.Common.LoginName, "The recipient cannot be you", utils.GetFuncName(), nil)
 	}
 	var userCount int64
-	err := s.H.DB.Where(&models.Accounts{Username: username}).Count(&userCount).Error
+	err := s.H.DB.Model(&models.Accounts{}).Where("username = ?", username).Count(&userCount).Error
 	if err != nil {
 		return ResponseLoginError(reqData.Common.LoginName, "Count contact user failed", utils.GetFuncName(), err)
 	}
 	if userCount > 0 {
 		//check if user is setted on loginUser contacts
-		contactList, contactErr := s.H.GetContactListFromUser(username)
+		contactList, contactErr := s.H.GetContactListFromUser(reqData.Common.LoginName)
 		if contactErr != nil {
 			return ResponseLoginError(reqData.Common.LoginName, "Parse Contact list failed", utils.GetFuncName(), contactErr)
 		}
@@ -304,4 +305,40 @@ func (s *Server) CheckContactUser(ctx context.Context, reqData *pb.OneStringRequ
 	}
 	//user not exist
 	return ResponseLoginError(reqData.Common.LoginName, "Username does not exist", utils.GetFuncName(), nil)
+}
+
+func (s *Server) HandlerURLCodeWithdrawlWithAccount(ctx context.Context, reqData *pb.URLCodeWithdrawWithAccountRequest) (*pb.ResponseData, error) {
+	code := reqData.Code
+	username := reqData.Common.LoginName
+	role := reqData.Common.Role
+	//Check valid token and get user of token
+	txCode, exist := s.H.GetTxcode(code)
+	if !exist {
+		return ResponseError("Retrieve TxCode data error", utils.GetFuncName(), nil)
+	}
+	//current rate
+	rateSend := s.H.GetRateFromDBByAsset(txCode.Asset)
+	txCode.Note = fmt.Sprintf("%s: Withdraw with URL Code", txCode.Note)
+	completed := s.H.HandlerInternalWithdrawl(txCode, models.UserInfo{
+		Username: username,
+		Role:     int(role),
+	}, rateSend)
+	if !completed {
+		return ResponseError(fmt.Sprintf("Withdraw failed. Username: %s", username), utils.GetFuncName(), nil)
+	}
+	return ResponseSuccessfully(username, "Withdraw successfully", utils.GetFuncName())
+}
+
+func (s *Server) CreateNewAsset(ctx context.Context, reqData *pb.OneStringRequest) (*pb.ResponseData, error) {
+	assetType := reqData.Data
+	if utils.IsEmpty(assetType) {
+		return ResponseError("Get asset type failed", utils.GetFuncName(), nil)
+	}
+	assets := s.H.CreateNewAsset(assetType, int(reqData.Common.Role), reqData.Common.LoginName)
+	tx := s.H.DB.Begin()
+	createErr := tx.Create(assets).Error
+	if createErr != nil {
+		return ResponseError("Create new asset failed", utils.GetFuncName(), createErr)
+	}
+	return ResponseSuccessfully(reqData.Common.LoginName, "Create new asset successfully", utils.GetFuncName())
 }

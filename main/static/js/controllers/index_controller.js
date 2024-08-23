@@ -96,8 +96,11 @@ export default class extends BaseController {
     $.ajax({
       type: "GET", //OR GET
       url: '/fetch-rate', //The same form's action URL
-      success: function (data) {
-        const rateStr = data["rateMap"]
+      success: function (res) {
+        if (res.error) {
+          return
+        }
+        const rateStr = JSON.parse(res.data)
         const rateObject = JSON.parse(rateStr)
         const rateMapJson = rateObject.usdRates
         if (!rateMapJson) {

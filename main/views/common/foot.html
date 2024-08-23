@@ -1,6 +1,7 @@
 </div>
 </main>
-<div class="floatingButtonWrap" data-controller="chat" data-chat-chat-list="{{.ChatMsgList}}" data-chat-user-token="{{.LoginToken}}"
+{{if .ChatActive}}
+<div class="floatingButtonWrap" data-controller="chat" data-chat-chat-active="{{.ChatActive}}" data-chat-chat-list="{{.ChatMsgList}}" data-chat-user-token="{{.LoginToken}}"
   data-chat-login-name="{{.LoginUser.Username}}" data-chat-login-id="{{.LoginUser.Id}}" data-chat-unread-count="{{.ItemUnreadChatCount}}">
   <div class="floatingButtonInner">
     <a class="floatingButton cursor-pointer" {{if gt .ItemUnreadChatCount 0}}data-after-type="red badge top right"
@@ -96,6 +97,7 @@
     </div>
   </div>
 </div>
+{{end}}
 <!-- <script>
   $(document).mouseup(function(e) 
 {

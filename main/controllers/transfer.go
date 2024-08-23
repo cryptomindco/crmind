@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"crmind/logpack"
 	"crmind/pb/assetspb"
+	"crmind/pb/chatpb"
 	"crmind/services"
 	"crmind/utils"
 	"fmt"
@@ -24,11 +26,17 @@ func (this *TransferController) TransferAmount() {
 		this.ResponseError("Get amount param failed. Please try again!", utils.GetFuncName(), amountErr)
 		return
 	}
+	addToContact, _ := this.GetBool("addToContact", false)
 	receiverName := this.GetString("receiver")
-	receiverUser, receiverErr := this.GetUserByUsername(receiverName)
-	if receiverErr != nil {
-		this.ResponseError(receiverErr.Error(), utils.GetFuncName(), receiverErr)
-		return
+	receiverRole := 0
+	sendBy := this.GetString("sendBy")
+	if !utils.IsEmpty(receiverName) && sendBy != "urlcode" {
+		receiverUser, receiverErr := this.GetUserByUsername(receiverName)
+		if receiverErr != nil {
+			this.ResponseError(receiverErr.Error(), utils.GetFuncName(), receiverErr)
+			return
+		}
+		receiverRole = receiverUser.Role
 	}
 	//Transfer amount
 	res, err := services.TransferAmountHandler(this.Ctx.Request.Context(), &assetspb.TransferAmountRequest{
@@ -36,17 +44,39 @@ func (this *TransferController) TransferAmount() {
 			LoginName: loginUser.Username,
 		},
 		Currency:     this.GetString("currency"),
-		Receiver:     this.GetString("receiver"),
+		Receiver:     receiverName,
 		Note:         this.GetString("note"),
 		Address:      this.GetString("address"),
-		SendBy:       this.GetString("sendBy"),
+		SendBy:       sendBy,
 		Amount:       amount,
 		Rate:         rate,
-		ReceiverRole: int64(receiverUser.Role),
+		ReceiverRole: int64(receiverRole),
+		AddToContact: addToContact,
 	})
 
 	if err != nil {
 		this.ResponseError("Transfer amount failed", utils.GetFuncName(), err)
+		return
+	}
+	//check added to contact
+	if addToContact {
+		var resMap map[string]bool
+		parseErr := utils.JsonStringToObject(res.Data, &resMap)
+		if parseErr == nil {
+			addedContacts := resMap["addedContact"]
+			if addedContacts {
+				_, err := services.CreateHelloChatHandler(this.Ctx.Request.Context(), &chatpb.CreateHelloChatRequest{
+					Common: &chatpb.CommonRequest{
+						LoginName: loginUser.Username,
+					},
+					FromName: loginUser.Username,
+					ToName:   receiverName,
+				})
+				if err != nil {
+					logpack.Warn("Create hello chat with new contact failed", utils.GetFuncName())
+				}
+			}
+		}
 	}
 	this.Data["json"] = res
 	this.ServeJSON()
@@ -126,23 +156,38 @@ func (this *TransferController) CheckContactUser() {
 		this.ResponseLoginError(loginUser.Id, "The recipient cannot be you", utils.GetFuncName(), nil)
 		return
 	}
-	res, err := services.CheckContactUserHandler(this.Ctx.Request.Context(), &assetspb.OneStringRequest{
-		Common: &assetspb.CommonRequest{
-			LoginName: loginUser.Username,
-		},
-		Data: username,
-	})
+
+	userExist, err := this.CheckUserExist(username)
 	if err != nil {
-		this.ResponseError(err.Error(), utils.GetFuncName(), err)
+		this.ResponseLoginError(loginUser.Id, "Check user exist failed", utils.GetFuncName(), nil)
 		return
 	}
-	var resMap map[string]bool
-	parseErr := utils.JsonStringToObject(res.Data, &resMap)
-	if parseErr != nil {
-		this.ResponseError(parseErr.Error(), utils.GetFuncName(), parseErr)
+	var contactExist bool
+	if userExist {
+		res, err := services.CheckContactUserHandler(this.Ctx.Request.Context(), &assetspb.OneStringRequest{
+			Common: &assetspb.CommonRequest{
+				LoginName: loginUser.Username,
+			},
+			Data: username,
+		})
+		if err != nil {
+			this.ResponseError(err.Error(), utils.GetFuncName(), err)
+			return
+		}
+		var resMap map[string]bool
+		parseErr := utils.JsonStringToObject(res.Data, &resMap)
+		if parseErr == nil {
+			contactExist = resMap["exist"]
+		}
+	} else {
+		this.ResponseError("Username does not exist", utils.GetFuncName(), nil)
 		return
 	}
-	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Check contact user successfully", utils.GetFuncName(), resMap["exist"])
+
+	this.ResponseSuccessfullyWithAnyData(loginUser.Id, "Check contact user successfully", utils.GetFuncName(), map[string]bool{
+		"exist":        userExist,
+		"contactExist": contactExist,
+	})
 }
 
 func (this *TransferController) ConfirmAmount() {
@@ -170,8 +215,7 @@ func (this *TransferController) ConfirmAmount() {
 	})
 
 	if err != nil {
-		this.ResponseLoginError(loginUser.Id, err.Error(), utils.GetFuncName(), err)
-		return
+		logpack.Error(err.Error(), utils.GetFuncName(), err)
 	}
 	this.Data["json"] = res
 	this.ServeJSON()

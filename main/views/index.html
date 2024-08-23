@@ -1,17 +1,18 @@
 {{template "common/head.html" .}}
 {{template "common/top.html" .}}
 {{$AdminAssets := .AssetList}}
-<div class="content" data-controller="assets" data-assets-types="{{.TypeJson}}">
+<div class="content" data-controller="assets" data-assets-types="{{.TypeJson}}" data-assets-asset-active="{{.AssetsActive}}">
+    {{if .AssetsActive}}
     {{if .IsSuperAdmin}}
-    <div class="d-flex justify-content-center">
-        <div class="main-company-table">
+    <div class="row d-flex justify-content-center">
+        <div class="main-company-table px-0">
             <div class="justify-content-center d-flex">
                 <div class="{{if .IsSuperAdmin}}p-3 main-shadow border-radius-10 {{end}} w-100">
                     <div class="align-items-center">
                         <p class="mb-0 fs-22 fw-600">System Summary</p>
                         <div class="row">
                             {{range $index,$elem := $AdminAssets}}
-                            <div class="col-12 p-2 col-sm-6 col-lg-3 mt-2 d-table-cell">
+                            <div class="col-12 p-2 col-sm-6 col-lg-3 d-table-cell">
                                 <div class="card border-0 h-100">
                                     <div class="card-body">
                                         <p class="card-title">{{$elem.TypeDisplay}}</p>
@@ -37,7 +38,7 @@
         </div>
     </div>
     {{end}}
-    <div>
+    <div class="mt-3">
         <h4 class="fw-600 d-inline">Assets</h4>
     </div>
     <div class="row mt-2">
@@ -140,6 +141,11 @@
             </div>
         </div>
     </div>
+    {{else}}
+    <div class="d-flex justify-content-center">
+        <p>Assets service is not activated</p>
+    </div>
+    {{end}}
 </div>
 </div>
 </div>

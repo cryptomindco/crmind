@@ -39,12 +39,12 @@ func (h *Handler) CheckUserExist(username string) (bool, error) {
 // Check user exist with username and status active
 func (h *Handler) GetUserByUsername(username string) (*models.User, error) {
 	var user models.User
-	result := h.DB.Where(&models.User{Username: username, Status: int(utils.StatusActive)}).First(&user)
+	result := h.DB.Where("username = ? AND status = ?", username, int(utils.StatusActive)).First(&user)
 	return &user, result.Error
 }
 
 func (h *Handler) GetHasCredUserList() ([]models.User, error) {
-	queryBuilder := "SELECT * FROM public.user WHERE creds_arr_json <> ''"
+	queryBuilder := "SELECT * FROM public.users WHERE creds_arr_json <> ''"
 	var res []models.User
 	err := h.DB.Raw(queryBuilder).Scan(&res).Error
 	return res, err
@@ -52,7 +52,7 @@ func (h *Handler) GetHasCredUserList() ([]models.User, error) {
 
 func (h *Handler) GetUserFromId(userId int64) (*models.User, error) {
 	user := models.User{}
-	result := h.DB.Where(&models.User{Id: userId, Status: int(utils.StatusActive)}).First(&user)
+	result := h.DB.Where(&models.User{Id: userId}).First(&user)
 	return &user, result.Error
 }
 
@@ -61,11 +61,9 @@ func (h *Handler) GetNewRandomUsername() (string, error) {
 	//Try up to 10 times if username creations failed
 	for breakLoop < 10 {
 		newUsername := utils.RandSeq(8)
-		fmt.Println("Check hreere", newUsername)
 		breakLoop++
 		//check token exist on user table
 		exist, err := h.CheckUserExist(newUsername)
-		fmt.Println("Check err : ", err)
 		if err != nil || exist {
 			continue
 		}
@@ -76,7 +74,7 @@ func (h *Handler) GetNewRandomUsername() (string, error) {
 
 func (h *Handler) GetSystemUser() (*models.User, error) {
 	user := models.User{}
-	result := h.DB.Where(&models.User{Role: int(utils.RoleSuperAdmin), Status: int(utils.StatusActive)}).First(&user)
+	result := h.DB.Where("role = ? AND status = ?", int(utils.RoleSuperAdmin), int(utils.StatusActive)).First(&user)
 	return &user, result.Error
 }
 

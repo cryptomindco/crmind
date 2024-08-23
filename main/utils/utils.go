@@ -50,7 +50,6 @@ func RequestBodyToString(body io.ReadCloser) string {
 
 func ObjectToJsonString(obj interface{}) string {
 	b, err := json.Marshal(obj)
-	fmt.Println("err: ", err)
 	if err != nil {
 		return "{}"
 	}
@@ -158,11 +157,10 @@ func GetAssetsNameFromStr(input string) []string {
 	return assetArr
 }
 
-func CreateNewAsset(assetType string, userId int64, username string) *models.Asset {
+func CreateNewAsset(assetType string, username string) *models.Asset {
 	return &models.Asset{
 		Sort:          AssetSortInt(assetType),
 		DisplayName:   GetAssetFullName(assetType),
-		UserId:        userId,
 		UserName:      username,
 		Type:          assetType,
 		Balance:       0,
@@ -187,4 +185,63 @@ func GetAllowAssets() string {
 
 func GetDateTimeDisplay(unixTime int64) string {
 	return time.Unix(unixTime, 0).Format("2006/01/02, 15:04:05")
+}
+
+func CheckActiveService(checkService string) bool {
+	if IsEmpty(ActiveServices) {
+		ActiveServices, _ = GetServicesStrFromSettings()
+	}
+	services, err := HandlerActiveServiceStr(ActiveServices)
+	if err != nil {
+		return false
+	}
+	for _, service := range services {
+		if service == checkService {
+			return true
+		}
+	}
+	return false
+}
+
+func IsAuthActive() bool {
+	return CheckActiveService(string(AuthService))
+}
+
+func IsChatActive() bool {
+	return CheckActiveService(string(ChatService))
+}
+
+func IsAssetsActive() bool {
+	return CheckActiveService(string(AssetsService))
+}
+
+func GetServiceUrl(service string) []string {
+	switch service {
+	case string(ChatService):
+		return ChatUrl
+	case string(AssetsService):
+		return AssetUrl
+	default:
+		return []string{}
+	}
+}
+
+func CheckServiceValidUrl(url string) bool {
+	for _, service := range ServiceList {
+		urlList := GetServiceUrl(service)
+		if len(urlList) == 0 {
+			continue
+		}
+		isUrl := false
+		for _, tmpUrl := range urlList {
+			if tmpUrl == url {
+				isUrl = true
+				break
+			}
+		}
+		if isUrl {
+			return CheckActiveService(service)
+		}
+	}
+	return true
 }

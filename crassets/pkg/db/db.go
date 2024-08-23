@@ -72,7 +72,7 @@ func (h *Handler) GetSuperadminSystemAddress(assetType string) (string, error) {
 
 func (h *Handler) GetLastestAddressOfAsset(assetId int64) (*models.Addresses, error) {
 	address := models.Addresses{}
-	queryErr := h.DB.Where(&models.Addresses{AssetId: assetId}).Limit(1).Find(&address).Error
+	queryErr := h.DB.Where(&models.Addresses{AssetId: assetId}).First(&address).Error
 	if queryErr != nil {
 		if queryErr != gorm.ErrRecordNotFound {
 			return nil, queryErr
@@ -84,7 +84,7 @@ func (h *Handler) GetLastestAddressOfAsset(assetId int64) (*models.Addresses, er
 
 func (h *Handler) GetSuperAdminAsset(assetType string) (*models.Asset, error) {
 	asset := models.Asset{}
-	queryErr := h.DB.Where(&models.Asset{IsAdmin: true, Type: assetType}).Limit(1).Find(&asset).Error
+	queryErr := h.DB.Where("is_admin = true AND type = ?", assetType).First(&asset).Error
 	if queryErr != nil {
 		if queryErr == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -114,7 +114,7 @@ func (h *Handler) ReadRateFromDB() (*models.RateObject, error) {
 // return: usdRate, allRate, error
 func (h *Handler) ReadRateJsonStrFromDB() (string, string, error) {
 	var settings models.Rates
-	settingsErr := h.DB.Limit(1).Find(&settings).Error
+	settingsErr := h.DB.First(&settings).Error
 	if settingsErr != nil {
 		return "", "", settingsErr
 	}
@@ -123,7 +123,7 @@ func (h *Handler) ReadRateJsonStrFromDB() (string, string, error) {
 
 func (h *Handler) GetUnconfirmedTxHistoryList() ([]models.TxHistory, error) {
 	result := make([]models.TxHistory, 0)
-	listErr := h.DB.Where("confirmed AND currency <> ?", assets.USDWalletAsset.String()).Find(&result).Error
+	listErr := h.DB.Where("confirmed = false AND currency <> ?", assets.USDWalletAsset.String()).Find(&result).Error
 	return result, listErr
 }
 
@@ -138,7 +138,7 @@ func (h *Handler) GetAddress(address string) (*models.Addresses, error) {
 
 func (h *Handler) GetAssetById(assetId int64) (*models.Asset, error) {
 	asset := models.Asset{}
-	queryErr := h.DB.Where(&models.Asset{Id: assetId, Status: int(utils.AssetStatusActive)}).First(&asset).Error
+	queryErr := h.DB.Where("id = ? AND status = ?", assetId, int(utils.AssetStatusActive)).First(&asset).Error
 	if queryErr != nil {
 		return nil, queryErr
 	}
@@ -147,7 +147,7 @@ func (h *Handler) GetAssetById(assetId int64) (*models.Asset, error) {
 
 func (h *Handler) GetUserAsset(username string, assetType string) (*models.Asset, error) {
 	asset := models.Asset{}
-	queryErr := h.DB.Where(&models.Asset{UserName: username, Type: assetType}).First(&asset).Error
+	queryErr := h.DB.Where("user_name = ? AND type = ?", username, assetType).First(&asset).Error
 	if queryErr != nil {
 		if queryErr == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -208,16 +208,13 @@ func (h *Handler) GetAccountFromUsername(username string) (*models.Accounts, err
 }
 
 func (h *Handler) GetTotalUserBalance(asset string) float64 {
-	var totalBalance float64
-	totalBalance = 0
-	//TODO: handler on services
-	// queryBuilder := fmt.Sprintf("SELECT SUM(balance) FROM (SELECT * FROM public.%sasset WHERE type = '%s') ats "+
-	// 	"INNER JOIN "+
-	// 	"(SELECT * FROM public.user WHERE status = %d) us ON ats.user_id = us.id;", utils.GetAssetRelatedTablePrefix(), asset, int(utils.StatusActive))
-	// queryErr := h.DB.Raw(queryBuilder).Scan(&totalBalance).Error
-	// if queryErr != nil {
-	// 	return 0
-	// }
+	totalBalance := float64(0)
+	//handler on services
+	queryBuilder := fmt.Sprintf("SELECT COALESCE(SUM(ts.balance), 0) FROM (SELECT * FROM public.%sassets WHERE type = '%s') ts;", utils.GetAssetRelatedTablePrefix(), asset)
+	queryErr := h.DB.Raw(queryBuilder).Scan(&totalBalance).Error
+	if queryErr != nil {
+		return 0
+	}
 	return totalBalance
 }
 
@@ -230,7 +227,7 @@ func (h *Handler) CreateNewUserToken() (string, bool) {
 		breakLoop++
 		//check token exist on user table
 		var userCount int64
-		queryErr := h.DB.Where(&models.Accounts{Token: newToken}).Count(&userCount).Error
+		queryErr := h.DB.Model(&models.Accounts{}).Where("token = ?", newToken).Count(&userCount).Error
 		if queryErr != nil {
 			continue
 		}
@@ -325,8 +322,8 @@ func (h *Handler) GetTxcode(code string) (*models.TxCode, bool) {
 	//Try up to 10 times if code fails
 	for breakLoop < 10 {
 		breakLoop++
+		queryErr := h.DB.Where("code = ? AND status = ?", code, int(utils.UrlCodeStatusCreated)).First(&txCode).Error
 		//check code exist on txcode table
-		queryErr := h.DB.Where(&models.TxCode{Code: code, Status: int(utils.UrlCodeStatusCreated)}).First(&txCode).Error
 		if queryErr != nil {
 			continue
 		}
@@ -338,7 +335,7 @@ func (h *Handler) GetTxcode(code string) (*models.TxCode, bool) {
 
 func (h *Handler) GetRateFromDBByAsset(assetType string) float64 {
 	rates := models.Rates{}
-	queryBuilder := fmt.Sprintf("SELECT * from rates")
+	queryBuilder := fmt.Sprintf("SELECT * from %srates", utils.GetAssetRelatedTablePrefix())
 	settingsErr := h.DB.Raw(queryBuilder).Scan(&rates).Error
 	if settingsErr != nil {
 		return 0
@@ -355,7 +352,7 @@ func (h *Handler) GetRateFromDBByAsset(assetType string) float64 {
 }
 
 func (h *Handler) CheckMatchAddressWithUser(assetId, addressId int64, username string, archived bool) bool {
-	queryBuilder := fmt.Sprintf("SELECT count(*) from %sassets as aet where id = %d AND user_name = %s AND EXISTS(SELECT 1 FROM %saddresses WHERE id = %d AND asset_id = aet.id AND archived=%v)", utils.GetAssetRelatedTablePrefix(),
+	queryBuilder := fmt.Sprintf("SELECT count(*) from %sassets as aet where id = %d AND user_name = '%s' AND EXISTS(SELECT 1 FROM %saddresses WHERE id = %d AND asset_id = aet.id AND archived=%v)", utils.GetAssetRelatedTablePrefix(),
 		assetId, username, utils.GetAssetRelatedTablePrefix(), addressId, archived)
 	var count int64
 	countErr := h.DB.Raw(queryBuilder).Scan(&count).Error
@@ -373,7 +370,7 @@ func (h *Handler) GetAddressById(addressId int64) (*models.Addresses, error) {
 
 func (h *Handler) CheckAssetMatchWithUser(assetId int64, username string) bool {
 	var count int64
-	queryErr := h.DB.Where(&models.Asset{UserName: username, Id: assetId}).Count(&count).Error
+	queryErr := h.DB.Model(&models.Asset{}).Where("user_name = ? AND id = ?", username, assetId).Count(&count).Error
 	return queryErr == nil && count > 0
 }
 
@@ -395,7 +392,7 @@ func (h *Handler) FilterAddressList(assetId int64, status string) ([]models.Addr
 	result := make([]models.Addresses, 0)
 	var listErr error
 	if checkArchived {
-		listErr = h.DB.Where(&models.Addresses{AssetId: assetId, Archived: archived}).Order("createdt desc").Find(&result).Error
+		listErr = h.DB.Where("asset_id = ? AND archived = ?", assetId, archived).Order("createdt desc").Find(&result).Error
 	} else {
 		listErr = h.DB.Where(&models.Addresses{AssetId: assetId}).Order("createdt desc").Find(&result).Error
 	}
@@ -420,9 +417,9 @@ func (h *Handler) FilterUrlCodeList(assetType string, status string, username st
 	result := make([]models.TxCode, 0)
 	var listErr error
 	if statusInt >= 0 {
-		listErr = h.DB.Where(&models.TxCode{Asset: assetType, OwnerName: username, Status: statusInt}).Find(&result).Error
+		listErr = h.DB.Where("asset = ? AND owner_name = ? AND status = ?", assetType, username, statusInt).Find(&result).Error
 	} else {
-		listErr = h.DB.Where(&models.TxCode{Asset: assetType, OwnerName: username}).Find(&result).Error
+		listErr = h.DB.Where("asset = ? AND owner_name = ?", assetType, username).Find(&result).Error
 	}
 	if listErr != nil && listErr != gorm.ErrRecordNotFound {
 		return nil, listErr
@@ -468,7 +465,7 @@ func (h *Handler) CreateNewUrlCode() (string, bool) {
 		breakLoop++
 		//check token exist on user table
 		var codeCount int64
-		queryErr := h.DB.Where(&models.TxCode{Code: newCode}).Count(&codeCount).Error
+		queryErr := h.DB.Model(&models.TxCode{}).Where("code = ?", newCode).Count(&codeCount).Error
 		if queryErr != nil {
 			continue
 		}
@@ -481,7 +478,7 @@ func (h *Handler) CreateNewUrlCode() (string, bool) {
 
 func (h *Handler) GetRates() (*models.Rates, error) {
 	var rates models.Rates
-	settingsErr := h.DB.Limit(1).Find(&rates).Error
+	settingsErr := h.DB.First(&rates).Error
 	if settingsErr != nil {
 		return nil, settingsErr
 	}
@@ -572,14 +569,14 @@ func (h *Handler) GetUserFromLabel(label string) (*models.Accounts, bool) {
 
 func (h *Handler) GetSystemUserAsset(assetType string) (*models.Asset, error) {
 	asset := models.Asset{}
-	queryErr := h.DB.Where(&models.Asset{IsAdmin: true, Type: assetType, Status: int(utils.AssetStatusActive)}).First(&asset).Error
+	queryErr := h.DB.Where("is_admin = true AND type = ? AND status = ?", assetType, int(utils.AssetStatusActive)).First(&asset).Error
 	return &asset, queryErr
 }
 
 // Check user exist with username and status active
 func (h *Handler) CountAddressesWithStatus(assetId int64, activeFlg bool) int64 {
 	var count int64
-	queryErr := h.DB.Where(&models.Addresses{AssetId: assetId, Archived: !activeFlg}).Count(&count).Error
+	queryErr := h.DB.Model(&models.Addresses{}).Where("asset_id = ? AND archived = ?", assetId, !activeFlg).Count(&count).Error
 	if queryErr != nil {
 		return 0
 	}
@@ -588,7 +585,7 @@ func (h *Handler) CountAddressesWithStatus(assetId int64, activeFlg bool) int64 
 
 func (h *Handler) CheckHasCodeList(assetType string, username string) bool {
 	var count int64
-	queryErr := h.DB.Where(&models.TxCode{Asset: assetType, OwnerName: username}).Count(&count).Error
+	queryErr := h.DB.Model(&models.TxCode{}).Where("asset = ? AND owner_name = ?", assetType, username).Count(&count).Error
 	var exist = queryErr == nil && count > 0
 	return exist
 }
@@ -722,7 +719,7 @@ func (h *Handler) HandlerTransferOnchainCryptocurrency(senderName string, curren
 
 func (h *Handler) GetAddressListByAssetId(assetId int64) ([]string, error) {
 	addressList := make([]*models.Addresses, 0)
-	queryErr := h.DB.Where(&models.Addresses{AssetId: assetId, Archived: false}).Order("createdt desc").Find(&addressList).Error
+	queryErr := h.DB.Where("asset_id = ? AND archived = false", assetId).Order("createdt desc").Find(&addressList).Error
 	if queryErr != nil {
 		return make([]string, 0), queryErr
 	}
@@ -830,6 +827,42 @@ func (h *Handler) HandlerInternalWithdrawl(txCode *models.TxCode, user models.Us
 	return true
 }
 
+func (h *Handler) CreateNewUSDAsset(username string, isAdmin bool, assetObject assets.AssetType) (*models.Asset, error) {
+	//Get asset from DB
+	userAsset, err := h.GetUserAsset(username, assetObject.String())
+	if err != nil {
+		return nil, fmt.Errorf("check Asset from DB failed. Please try again!")
+	}
+
+	if userAsset != nil {
+		return userAsset, nil
+	}
+	//if user asset is nil, insert new asset to DB
+	tx := h.DB.Begin()
+	if userAsset == nil {
+		asset := models.Asset{
+			DisplayName: assetObject.ToFullName(),
+			UserName:    username,
+			Type:        assetObject.String(),
+			Sort:        assetObject.AssetSortInt(),
+			Status:      int(utils.AssetStatusActive),
+			IsAdmin:     isAdmin,
+			Createdt:    time.Now().Unix(),
+			Updatedt:    time.Now().Unix(),
+		}
+		//update user
+		insertErr := tx.Create(&asset).Error
+		if insertErr != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("Insert new asset failed. Please try again!")
+		}
+		userAsset = &asset
+	}
+	//Insert to asset table
+	tx.Commit()
+	return userAsset, nil
+}
+
 func (h *Handler) CreateNewAddressForAsset(username string, isAdmin bool, assetObject assets.AssetType) (*models.Addresses, *models.Asset, error) {
 	assetObj, assetMgrExist := utils.GlobalItem.AssetMgrMap[assetObject.String()]
 	if !assetMgrExist {
@@ -922,24 +955,24 @@ func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetTy
 	if !utils.IsEmpty(direction) {
 		switch direction {
 		case "buy":
-			directionFilter = fmt.Sprintf("sender = %s AND is_trading = %v AND trading_type = '%s'", loginUser.Username, true, utils.TradingTypeBuy)
+			directionFilter = fmt.Sprintf("sender = '%s' AND is_trading = %v AND trading_type = '%s'", loginUser.Username, true, utils.TradingTypeBuy)
 		case "sell":
-			directionFilter = fmt.Sprintf("sender = %s AND is_trading = %v AND trading_type = '%s'", loginUser.Username, true, utils.TradingTypeSell)
+			directionFilter = fmt.Sprintf("sender = '%s' AND is_trading = %v AND trading_type = '%s'", loginUser.Username, true, utils.TradingTypeSell)
 		case "sent":
-			directionFilter = fmt.Sprintf("sender = %s AND is_trading = %v", loginUser.Username, false)
+			directionFilter = fmt.Sprintf("sender = '%s' AND is_trading = %v", loginUser.Username, false)
 		case "received":
-			directionFilter = fmt.Sprintf("receiver = %s", loginUser.Username)
+			directionFilter = fmt.Sprintf("receiver = '%s'", loginUser.Username)
 		case "offchainsent":
-			directionFilter = fmt.Sprintf("sender = %s AND trans_type= %d AND is_trading = %v", loginUser.Username, int(utils.TransTypeLocal), false)
+			directionFilter = fmt.Sprintf("sender = '%s' AND trans_type= %d AND is_trading = %v", loginUser.Username, int(utils.TransTypeLocal), false)
 		case "offchainreceived":
-			directionFilter = fmt.Sprintf("receiver = %s AND trans_type= %d", loginUser.Username, int(utils.TransTypeLocal))
+			directionFilter = fmt.Sprintf("receiver = '%s' AND trans_type= %d", loginUser.Username, int(utils.TransTypeLocal))
 		case "onchainsent":
-			directionFilter = fmt.Sprintf("sender = %s AND trans_type= %d", loginUser.Username, int(utils.TransTypeChainSend))
+			directionFilter = fmt.Sprintf("sender = '%s' AND trans_type= %d", loginUser.Username, int(utils.TransTypeChainSend))
 		case "onchainreceived":
-			directionFilter = fmt.Sprintf("receiver = %s AND trans_type= %d", loginUser.Username, int(utils.TransTypeChainReceive))
+			directionFilter = fmt.Sprintf("receiver = '%s' AND trans_type= %d", loginUser.Username, int(utils.TransTypeChainReceive))
 		}
 	} else {
-		directionFilter = fmt.Sprintf("(sender_id = %d OR receiver_id = %d)", loginUser.Username, loginUser.Username)
+		directionFilter = fmt.Sprintf("(sender = '%s' OR receiver = '%s')", loginUser.Username, loginUser.Username)
 	}
 
 	queryCount := fmt.Sprintf("SELECT COUNT(*) from %stx_histories WHERE %s%s", utils.GetAssetRelatedTablePrefix(), directionFilter, filterStr)
@@ -1007,7 +1040,7 @@ func (h *Handler) GetAssetList(username string, allowAsset []string) ([]*models.
 	for _, asset := range allowAsset {
 		tempAllowAssets = append(tempAllowAssets, fmt.Sprintf("'%s'", asset))
 	}
-	builderSQL := fmt.Sprintf("SELECT * from %sassets WHERE user_name=%s AND status = %d AND type IN (%s) ORDER BY sort", utils.GetAssetRelatedTablePrefix(), username, int(utils.AssetStatusActive), strings.Join(tempAllowAssets, ","))
+	builderSQL := fmt.Sprintf("SELECT * from %sassets WHERE user_name='%s' AND status = %d AND type IN (%s) ORDER BY sort", utils.GetAssetRelatedTablePrefix(), username, int(utils.AssetStatusActive), strings.Join(tempAllowAssets, ","))
 	err := h.DB.Raw(builderSQL).Scan(&assetList).Error
 	if err != nil {
 		return nil, err
@@ -1094,20 +1127,21 @@ func (h *Handler) SyncAssetList(username string, summaryList []*models.Asset, al
 			}
 		}
 		if !exist {
-			summary := h.CreateNewAsset(allowAsset, username)
+			summary := h.CreateNewAsset(allowAsset, int(utils.RoleRegular), username)
 			result = append(result, summary)
 		}
 	}
 	return result
 }
 
-func (h *Handler) CreateNewAsset(assetType string, username string) *models.Asset {
+func (h *Handler) CreateNewAsset(assetType string, role int, username string) *models.Asset {
 	assetObject := assets.StringToAssetType(assetType)
 	return &models.Asset{
 		Sort:          assetObject.AssetSortInt(),
 		DisplayName:   assetObject.ToFullName(),
 		UserName:      username,
 		Type:          assetType,
+		IsAdmin:       utils.IsSuperAdmin(role),
 		Balance:       0,
 		LocalReceived: 0,
 		LocalSent:     0,

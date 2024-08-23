@@ -226,3 +226,11 @@ func IsCryptoCurrency(assetType string) bool {
 	var lowercaseType = strings.ToLower(assetType)
 	return lowercaseType == assets.BTCWalletAsset.String() || lowercaseType == assets.DCRWalletAsset.String() || lowercaseType == assets.LTCWalletAsset.String()
 }
+
+func JsonStringToObject(jsonString string, to interface{}) error {
+	err := json.Unmarshal([]byte(jsonString), &to)
+	if err != nil {
+		return err
+	}
+	return nil
+}

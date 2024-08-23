@@ -4,7 +4,9 @@ go 1.21.6
 
 require (
 	github.com/beego/beego/v2 v2.0.5
+	github.com/gorilla/websocket v1.5.3
 	github.com/lib/pq v1.10.5
+	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.1
 )
@@ -26,7 +28,6 @@ require (
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
-	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

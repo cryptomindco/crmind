@@ -44,7 +44,7 @@ export default class extends BaseController {
       url: "/assertion/options", //The same form's action URL
       success: function (res) {
         if (!res.error) {
-          const resultData = res.data;
+          const resultData = JSON.parse(res.data);
           if (!resultData || !resultData.options) {
             return;
           }

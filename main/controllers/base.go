@@ -124,16 +124,23 @@ func (this *BaseController) AuthCheck() (*models.AuthClaims, error) {
 		}
 	}
 	this.Data["UserInfoList"] = userInfoList
-	//user chat list initialization
-	chatMsgList, hasUnreadChatCount := this.GetChatMsgDisplayList(authClaim.Username)
-	//content chatMsgList data to json
-	chatMsgJsonStr, chatJsonErr := utils.ConvertToJsonString(chatMsgList)
-	if chatJsonErr != nil {
-		chatMsgJsonStr = "[]"
+	isChatActive := utils.IsChatActive()
+	if isChatActive {
+		//user chat list initialization
+		chatMsgList, hasUnreadChatCount := this.GetChatMsgDisplayList(authClaim.Username)
+		//content chatMsgList data to json
+		chatMsgJsonStr, chatJsonErr := utils.ConvertToJsonString(chatMsgList)
+		if chatJsonErr != nil {
+			chatMsgJsonStr = "[]"
+		}
+		this.Data["ChatMsgList"] = chatMsgJsonStr
+		this.Data["ItemUnreadChatCount"] = hasUnreadChatCount
+
 	}
-	this.Data["ChatMsgList"] = chatMsgJsonStr
 	this.Data["LoginToken"] = this.GetLoginToken()
-	this.Data["ItemUnreadChatCount"] = hasUnreadChatCount
+	this.Data["AuthActive"] = utils.IsAuthActive()
+	this.Data["ChatActive"] = utils.IsChatActive()
+	this.Data["AssetsActive"] = utils.IsAssetsActive()
 	return authClaim, nil
 }
 
@@ -439,12 +446,13 @@ func (this *BaseController) GetUserByUsername(username string) (*models.UserInfo
 	return &result, nil
 }
 
-func (this *BaseController) GetUserAssetList(loginName string) ([]*models.Asset, error) {
-	res, err := services.GetAssetDBListHandler(this.Ctx.Request.Context(), &assetspb.OneStringRequest{
+func (this *BaseController) GetUserAssetList(loginName, username string) ([]*models.Asset, error) {
+	res, err := services.GetAssetDBListHandler(this.Ctx.Request.Context(), &assetspb.GetAssetDBListRequest{
 		Common: &assetspb.CommonRequest{
 			LoginName: loginName,
 		},
-		Data: utils.GetAllowAssets(),
+		Allowassets: utils.GetAllowAssets(),
+		Username:    username,
 	})
 	var result []*models.Asset
 	if err != nil {
@@ -542,4 +550,20 @@ func (this *BaseController) GetAssetNamesFromAssetList(assetList []*models.Asset
 		result = append(result, asset.Type)
 	}
 	return result
+}
+
+func (this *BaseController) CheckUserExist(username string) (bool, error) {
+	res, err := services.CheckUserHandler(this.Ctx.Request.Context(), &authpb.WithUsernameRequest{
+		Username: username,
+	})
+	if err != nil {
+		return false, fmt.Errorf("check user exist failed")
+	}
+	var resData map[string]bool
+	err = utils.JsonStringToObject(res.Data, &resData)
+	if err != nil {
+		return false, fmt.Errorf("parse res data failed")
+	}
+	exist := resData["exist"]
+	return exist, nil
 }

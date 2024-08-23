@@ -40,6 +40,186 @@ func (s *Server) CreateNewAddress(ctx context.Context, reqData *pb.OneStringRequ
 	})
 }
 
+func (s *Server) GetTxCode(ctx context.Context, reqData *pb.OneStringRequest) (*pb.ResponseData, error) {
+	code := reqData.Data
+	if utils.IsEmpty(code) {
+		return ResponseError("Get code param failed", utils.GetFuncName(), nil)
+	}
+	txCode, exist := s.H.GetTxcode(code)
+	if !exist {
+		return ResponseError("TxCode does not exist", utils.GetFuncName(), nil)
+	}
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Get Tx Code successfully", utils.GetFuncName(), txCode)
+}
+
+func (s *Server) AdminUpdateBalance(ctx context.Context, reqData *pb.AdminBalanceUpdateRequest) (*pb.ResponseData, error) {
+	inputValue := reqData.Input
+	username := reqData.Username
+	typeStr := reqData.Type
+	action := reqData.Action
+	if inputValue == 0 || utils.IsEmpty(username) || utils.IsEmpty(typeStr) {
+		return ResponseLoginError(reqData.Common.LoginName, "Get param value failed! Please try again", utils.GetFuncName(), nil)
+	}
+	if !utils.IsSuperAdmin(int(reqData.Common.Role)) {
+		return ResponseLoginError(reqData.Common.LoginName, "No access to this feature", utils.GetFuncName(), nil)
+	}
+	//get balance of asset
+	asset, assetErr := s.H.GetUserAsset(username, typeStr)
+	if assetErr != nil {
+		return ResponseLoginError(reqData.Common.LoginName, "Get asset of user failed. Please check asset table on DB", utils.GetFuncName(), assetErr)
+	}
+	//if asset is nil, create new asset for user
+	assetObj := assets.StringToAssetType(typeStr)
+	tx := s.H.DB.Begin()
+	if asset == nil {
+		if assetObj == assets.USDWalletAsset {
+			asset = &models.Asset{
+				DisplayName: assetObj.ToFullName(),
+				UserName:    username,
+				Type:        assetObj.String(),
+				Sort:        assetObj.AssetSortInt(),
+				Status:      int(utils.AssetStatusActive),
+				Createdt:    time.Now().Unix(),
+				Updatedt:    time.Now().Unix(),
+			}
+			//insert asset
+			assetInsertErr := tx.Create(asset).Error
+			if assetInsertErr != nil {
+				tx.Rollback()
+				return ResponseLoginError(reqData.Common.LoginName, "Insert new asset error", utils.GetFuncName(), assetInsertErr)
+			}
+		} else {
+			//create new address and asset
+			_, asset, assetErr = s.H.CreateNewAddressForAsset(username, utils.IsSuperAdmin(int(reqData.UserRole)), assetObj)
+			if assetErr != nil {
+				tx.Rollback()
+				return ResponseLoginError(reqData.Common.LoginName, "Create new asset and address failed. Please try again!", utils.GetFuncName(), assetErr)
+			}
+		}
+	}
+	//if withdraw and inputvalue more than balance
+	if action == utils.AdminActionWithdraw && inputValue > asset.Balance {
+		tx.Rollback()
+		return ResponseLoginError(reqData.Common.LoginName, "The balance is not enough to withdraw", utils.GetFuncName(), nil)
+	}
+	//if action type is update
+	if action == utils.AdminActionUpdate {
+		if inputValue == asset.Balance {
+			tx.Rollback()
+			return ResponseLoginError(reqData.Common.LoginName, "The balance does not change. Please try again!", utils.GetFuncName(), nil)
+		}
+		//if input value is greater than the balance, is deposit type
+		if inputValue > asset.Balance {
+			action = utils.AdminActionDeposit
+			inputValue = inputValue - asset.Balance
+		} else {
+			//else, is withdraw type
+			action = utils.AdminActionWithdraw
+			inputValue = asset.Balance - inputValue
+		}
+	}
+
+	//if deposit, add to balance
+	if action == utils.AdminActionDeposit {
+		asset.Balance += inputValue
+		asset.LocalReceived += inputValue
+	} else if action == utils.AdminActionWithdraw {
+		asset.Balance -= inputValue
+		asset.LocalSent += inputValue
+	}
+	asset.Updatedt = time.Now().Unix()
+	//update
+	assetUpdateErr := tx.Save(asset).Error
+	if assetUpdateErr != nil {
+		tx.Rollback()
+		return ResponseLoginError(reqData.Common.LoginName, "Update asset of user failed!", utils.GetFuncName(), assetUpdateErr)
+	}
+	//insert to txhistory
+	txHistory := models.TxHistory{}
+	note := ""
+	//create rate for cryptocurrency
+	rate := float64(0)
+	isCryptoCurrency := utils.IsCryptoCurrency(typeStr)
+	if isCryptoCurrency {
+		price, err := s.GetExchangePrice(typeStr)
+		if err != nil {
+			price = 0
+		}
+		rate = price
+	}
+	if action == utils.AdminActionDeposit {
+		txHistory.Sender = reqData.Common.LoginName
+		txHistory.Receiver = username
+		if typeStr == assets.USDWalletAsset.String() {
+			note = fmt.Sprintf("Deposited $%.2f by superadmin", inputValue)
+		} else {
+			note = fmt.Sprintf("Deposited $%.8f by superadmin", inputValue)
+		}
+	} else if action == utils.AdminActionWithdraw {
+		txHistory.Sender = username
+		txHistory.Receiver = reqData.Common.LoginName
+		if typeStr == assets.USDWalletAsset.String() {
+			note = fmt.Sprintf("$%.2f withdrawn by superadmin", inputValue)
+		} else {
+			note = fmt.Sprintf("$%.8f withdrawn by superadmin", inputValue)
+		}
+	}
+	txHistory.Rate = rate
+	txHistory.Currency = typeStr
+	txHistory.Amount = inputValue
+	txHistory.Status = 1
+	txHistory.Description = note
+	txHistory.Createdt = time.Now().UnixNano() / 1e9
+	txHistory.TransType = int(utils.TransTypeLocal)
+	HistoryErr := tx.Create(&txHistory).Error
+	if HistoryErr != nil {
+		tx.Rollback()
+		return ResponseLoginError(reqData.Common.LoginName, "Insert transaction history failed!", utils.GetFuncName(), HistoryErr)
+	}
+	tx.Commit()
+	return ResponseSuccessfully(reqData.Common.LoginName, "Updated the user's balance successfully", utils.GetFuncName())
+}
+
+func (s *Server) TransactionDetail(ctx context.Context, reqData *pb.OneIntegerRequest) (*pb.ResponseData, error) {
+	historyId := reqData.Data
+	if historyId < 1 {
+		return ResponseLoginError(reqData.Common.LoginName, "History ID param error", utils.GetFuncName(), nil)
+	}
+	history, err := s.H.GetTxHistoryById(historyId)
+	if err != nil {
+		return ResponseLoginError(reqData.Common.LoginName, err.Error(), utils.GetFuncName(), err)
+	}
+	var transaction *assets.TransactionResult
+	var neededConfirmation int
+	if history.TransType != int(utils.TransTypeLocal) {
+		s.UpdateAssetManagerByType(history.Currency)
+		assetObj, assetMgrExist := utils.GlobalItem.AssetMgrMap[history.Currency]
+		//get confirm count
+		if !utils.IsEmpty(history.Txid) && assetMgrExist {
+			transaction, _ = assetObj.GetTransactionByTxhash(history.Txid)
+			if history.Currency == assets.DCRWalletAsset.String() {
+				neededConfirmation = 2
+			} else {
+				neededConfirmation = 6
+			}
+		}
+	}
+	createDt := time.Unix(history.Createdt, 0)
+	historyDisp := models.TxHistoryDisplay{
+		TxHistory:            *history,
+		IsSender:             reqData.Common.LoginName == history.Sender,
+		RateValue:            history.Rate * history.Amount,
+		CreatedtDisp:         createDt.Format("2006/01/02, 15:04:05"),
+		Transaction:          transaction,
+		ConfirmationNeed:     neededConfirmation,
+		IsOffChain:           history.TransType == int(utils.TransTypeLocal),
+		TypeDisplay:          utils.GetTransTypeFromValue(history.TransType).ToString(),
+		TradingPaymentAmount: history.Rate * history.Amount,
+	}
+
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Get Transaction detail successfully", utils.GetFuncName(), historyDisp)
+}
+
 func (s *Server) SyncTransactions(ctx context.Context, reqData *pb.CommonRequest) (*pb.ResponseData, error) {
 	if reqData.Role != int64(utils.RoleSuperAdmin) {
 		return ResponseError("Check admin login failed", utils.GetFuncName(), nil)
@@ -512,7 +692,7 @@ func (s *Server) ConfirmAmount(ctx context.Context, reqData *pb.ConfirmAmountReq
 	if err != nil {
 		return ResponseLoginError(reqData.Common.LoginName, "Get Estimate fee and size failed!", utils.GetFuncName(), err)
 	}
-	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Confirm amount successfully", utils.GetFuncName(), fmt.Sprintf("%f", feeAndSize.Fee.CoinValue))
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Confirm amount successfully", utils.GetFuncName(), map[string]float64{"fee": feeAndSize.Fee.CoinValue})
 }
 
 func (s *Server) AddToContact(ctx context.Context, reqData *pb.OneStringRequest) (*pb.ResponseData, error) {
@@ -556,12 +736,63 @@ func (s *Server) TransferAmount(ctx context.Context, reqData *pb.TransferAmountR
 	sendBy := reqData.SendBy
 	address := reqData.Address
 	receiverRole := reqData.ReceiverRole
-	if utils.IsEmpty(currency) || amountToSend == 0 || rateSend == 0 || utils.IsEmpty(sendBy) {
+	addToContact := reqData.AddToContact
+	addedContacts := false
+	if utils.IsEmpty(currency) || amountToSend == 0 || utils.IsEmpty(sendBy) {
 		return ResponseLoginError(reqData.Common.LoginName, "Param failed. Please try again!", utils.GetFuncName(), nil)
 	}
+	tx := s.H.DB.Begin()
 	if currency == assets.USDWalletAsset.String() || (currency != assets.USDWalletAsset.String() && sendBy == "username") {
 		if utils.IsEmpty(receiverUsername) {
-			return ResponseLoginError(reqData.Common.LoginName, "Recipient information cannot be left blank. Please try again!", utils.GetFuncName(), nil)
+			return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Recipient information cannot be left blank. Please try again!", utils.GetFuncName(), nil)
+		}
+		// check and get contact
+		if addToContact {
+			//get account from username
+			account, err := s.H.GetAccountFromUsername(reqData.Common.LoginName)
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Check account from DB failed", utils.GetFuncName(), err)
+			}
+			currentContacts := make([]models.ContactItem, 0)
+			isCreate := err == gorm.ErrRecordNotFound
+			if account != nil && err != gorm.ErrRecordNotFound && !utils.IsEmpty(account.Contacts) {
+				parseErr := utils.JsonStringToObject(account.Contacts, &currentContacts)
+				if parseErr != nil {
+					return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Get account contacts failed", utils.GetFuncName(), parseErr)
+				}
+			}
+			//check receiveruser exist on contact
+			isExist := utils.CheckUserExistOnContactList(receiverUsername, currentContacts)
+			if isExist {
+				logpack.Warn("The recipient already exists in contact", utils.GetFuncName())
+			} else {
+				//add to contact
+				currentContacts = append(currentContacts, models.ContactItem{
+					UserName: receiverUsername,
+					Addeddt:  time.Now().Unix(),
+				})
+				jsonByte, err := json.Marshal(currentContacts)
+				if err == nil {
+					var saveContactErr error
+					if isCreate {
+						account = &models.Accounts{
+							Username: reqData.Common.LoginName,
+							Role:     int(reqData.Common.Role),
+							Contacts: string(jsonByte),
+						}
+						saveContactErr = tx.Create(account).Error
+					} else {
+						account.Contacts = string(jsonByte)
+						//update loginUser
+						saveContactErr = tx.Save(account).Error
+					}
+
+					if saveContactErr != nil {
+						logpack.Warn("Save to contact failed. Transfer is continue", utils.GetFuncName())
+					}
+				}
+				addedContacts = true
+			}
 		}
 	}
 	//if transfer is cryptocurrency
@@ -570,28 +801,29 @@ func (s *Server) TransferAmount(ctx context.Context, reqData *pb.TransferAmountR
 			//if is urlcode, create new code and create data in DB
 			urlCodeErr := s.H.HanlderWithdrawWithUrlCode(reqData.Common.LoginName, currency, amountToSend, note)
 			if urlCodeErr != nil {
+				tx.Rollback()
 				return ResponseError(urlCodeErr.Error(), utils.GetFuncName(), urlCodeErr)
 			} else {
-				return ResponseSuccessfully(reqData.Common.LoginName, "Create url code successfully", utils.GetFuncName())
+				return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Create url code successfully", utils.GetFuncName(), map[string]bool{"addedContact": addedContacts})
 			}
 		}
 		//if sendBy address, check address
 		if sendBy == "address" {
 			if utils.IsEmpty(address) {
-				return ResponseLoginError(reqData.Common.LoginName, "Address param failed. Please try again!", utils.GetFuncName(), nil)
+				return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Address param failed. Please try again!", utils.GetFuncName(), nil)
 			}
 			isSystemAddress := false
 			//check to address is of system address
 			addressObj, addrErr := s.H.GetAddress(address)
 			if addrErr != nil && addrErr != gorm.ErrRecordNotFound {
-				return ResponseLoginError(reqData.Common.LoginName, "DB error. Please try again!", utils.GetFuncName(), addrErr)
+				return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "DB error. Please try again!", utils.GetFuncName(), addrErr)
 			}
 			var existAsset *models.Asset
 			if addressObj != nil {
 				var assetErr error
 				existAsset, assetErr = s.H.GetAssetById(addressObj.AssetId)
 				if assetErr != nil && assetErr != gorm.ErrRecordNotFound {
-					return ResponseLoginError(reqData.Common.LoginName, "DB error. Please try again!", utils.GetFuncName(), assetErr)
+					return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "DB error. Please try again!", utils.GetFuncName(), assetErr)
 				}
 				//if exist user for address
 				if existAsset != nil {
@@ -601,9 +833,10 @@ func (s *Server) TransferAmount(ctx context.Context, reqData *pb.TransferAmountR
 			if !isSystemAddress {
 				_, btcHandlerErr := s.H.HandlerTransferOnchainCryptocurrency(reqData.Common.LoginName, currency, address, amountToSend, rateSend, note)
 				if btcHandlerErr != nil {
-					return ResponseLoginError(reqData.Common.LoginName, btcHandlerErr.Error(), utils.GetFuncName(), btcHandlerErr)
+					return ResponseLoginRollbackError(reqData.Common.LoginName, tx, btcHandlerErr.Error(), utils.GetFuncName(), btcHandlerErr)
 				} else {
-					return ResponseSuccessfully(reqData.Common.LoginName, "Successfully performed transfer", utils.GetFuncName())
+					tx.Commit()
+					return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Successfully performed transfer", utils.GetFuncName(), map[string]bool{"addedContact": addedContacts})
 				}
 			} else {
 				sendBy = "username"
@@ -616,11 +849,11 @@ func (s *Server) TransferAmount(ctx context.Context, reqData *pb.TransferAmountR
 	assetObj := assets.StringToAssetType(currency)
 	senderAsset, senderAssetErr := s.H.GetUserAsset(reqData.Common.LoginName, currency)
 	if senderAssetErr != nil || senderAsset == nil {
-		return ResponseLoginError(reqData.Common.LoginName, "Error getting Asset data from DB or sender asset does not exist. Please try again!", utils.GetFuncName(), nil)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Error getting Asset data from DB or sender asset does not exist. Please try again!", utils.GetFuncName(), nil)
 	}
 	//if balance less than amount to send, return error
 	if senderAsset.Balance < amountToSend {
-		return ResponseLoginError(reqData.Common.LoginName, "Insufficient balance. Please check again or deposit more balance", utils.GetFuncName(), nil)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Insufficient balance. Please check again or deposit more balance", utils.GetFuncName(), nil)
 	}
 	//Deduct money from balance and update local transfer total
 	senderAsset.Balance -= amountToSend
@@ -629,10 +862,9 @@ func (s *Server) TransferAmount(ctx context.Context, reqData *pb.TransferAmountR
 	//get assets of receiver
 	receiverAsset, receiverAssetErr := s.H.GetUserAsset(receiverUsername, currency)
 	if receiverAssetErr != nil {
-		return ResponseLoginError(reqData.Common.LoginName, "Retrieve recipient asset data failed. Please try again!", utils.GetFuncName(), receiverAssetErr)
+		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Retrieve recipient asset data failed. Please try again!", utils.GetFuncName(), receiverAssetErr)
 	}
 	//update sender asset
-	tx := s.H.DB.Begin()
 	senderAssetUpdateErr := tx.Save(senderAsset).Error
 	if senderAssetUpdateErr != nil {
 		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Update Sender failed. Please try again!", utils.GetFuncName(), senderAssetUpdateErr)
@@ -641,11 +873,20 @@ func (s *Server) TransferAmount(ctx context.Context, reqData *pb.TransferAmountR
 
 	//if receiver create asset
 	if receiverAssetCreate {
-		_, newReceiverAsset, newErr := s.H.CreateNewAddressForAsset(receiverUsername, utils.IsSuperAdmin(int(receiverRole)), assetObj)
-		if newErr != nil {
-			tx.Rollback()
-			return ResponseLoginError(reqData.Common.LoginName, "Create new asset and address failed. Please check again!", utils.GetFuncName(), newErr)
+		var newReceiverAsset *models.Asset
+		var newErr error
+		if currency == assets.USDWalletAsset.String() {
+			newReceiverAsset, newErr = s.H.CreateNewUSDAsset(receiverUsername, utils.IsSuperAdmin(int(receiverRole)), assetObj)
+			if newErr != nil {
+				return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Create new USD asset and address failed. Please check again!", utils.GetFuncName(), newErr)
+			}
+		} else {
+			_, newReceiverAsset, newErr = s.H.CreateNewAddressForAsset(receiverUsername, utils.IsSuperAdmin(int(receiverRole)), assetObj)
+			if newErr != nil {
+				return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Create new asset and address failed. Please check again!", utils.GetFuncName(), newErr)
+			}
 		}
+
 		newReceiverAsset.Balance = amountToSend
 		newReceiverAsset.LocalReceived = amountToSend
 		newReceiverAsset.Updatedt = time.Now().Unix()
@@ -681,5 +922,5 @@ func (s *Server) TransferAmount(ctx context.Context, reqData *pb.TransferAmountR
 		return ResponseLoginRollbackError(reqData.Common.LoginName, tx, "Recorded history is corrupted. Please check your balance again!", utils.GetFuncName(), HistoryErr)
 	}
 	tx.Commit()
-	return ResponseSuccessfully(reqData.Common.LoginName, "Money transfer successful", utils.GetFuncName())
+	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Money transfer successful", utils.GetFuncName(), map[string]bool{"addedContact": addedContacts})
 }

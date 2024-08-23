@@ -3,18 +3,28 @@ import BaseController from "./base_controller";
 export default class extends BaseController {
   updateSettings() {
     const assetStr = 'usd,btc,dcr,ltc'
+    const serviceStr = 'auth,chat,assets'
     const assetArr = assetStr.split(',')
+    const serviceArr = serviceStr.split(',')
     const selected = []
+    const serviceSelected = []
     assetArr.forEach((asset) => {
       if($("#" + asset + "Select").is(':checked')) {
         selected.push(asset)
       }
     })
+    serviceArr.forEach((service) => {
+      if($("#" + service + "Select").is(':checked')) {
+        serviceSelected.push(service)
+      }
+    })
     const selectedAssetStr = selected.join(',')
+    const selectedServicesStr = serviceSelected.join(',')
     const _this = this
     $.ajax({
       data: {
-        selectedAsset: selectedAssetStr
+        selectedAsset: selectedAssetStr,
+        selectedServices: selectedServicesStr,
       },
       type: "POST", //OR GET
       url: '/updateSettings', //The same form's action URL

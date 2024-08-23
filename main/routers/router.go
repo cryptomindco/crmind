@@ -23,6 +23,10 @@ func init() {
 	beego.Router("/gen-random-username", &controllers.AuthController{}, "get:GenRandomUsername")
 	beego.Router("/check-user", &controllers.AuthController{}, "get:CheckUser")
 	beego.Router("/login", &controllers.AuthController{})
+	beego.Router("/404", &controllers.AuthController{}, "get:ErrorPage")
+	beego.Router("/403", &controllers.AuthController{}, "get:Error403Page")
+	beego.Router("/assertion/withdrawConfirmLoginResult", &controllers.AuthController{}, "post:WithdrawConfirmLoginResult")
+	beego.Router("/passkey/withdrawWithNewAccountFinish", &controllers.AuthController{}, "post:WithdrawWithNewAccountFinish")
 	//Profile router
 	beego.Router("/profile", &controllers.ProfileController{})
 
@@ -33,6 +37,7 @@ func init() {
 	beego.Router("/settings", &controllers.AdminController{}, "get:GetSettings")
 	beego.Router("/updateSettings", &controllers.AdminController{}, "post:UpdateSettings")
 	beego.Router("/syncTransactions", &controllers.AdminController{}, "post:SyncTransactions")
+	beego.Router("/adminUpdateBalance", &controllers.AdminController{}, "post:AdminUpdateBalance")
 
 	//chat router
 	beego.Router("/updateUnread", &controllers.ChatController{}, "post:UpdateUnreadForChat")
@@ -54,9 +59,15 @@ func init() {
 	beego.Router("/GetAddressListData", &controllers.AssetsController{}, "get:GetAddressListData")
 	beego.Router("/confirmAddressAction", &controllers.AssetsController{}, "post:ConfirmAddressAction")
 	beego.Router("/cancelUrlCode", &controllers.AssetsController{}, "post:CancelUrlCode")
+	beego.Router("/transaction/detail", &controllers.AssetsController{}, "get:TransactionDetail")
 
 	beego.Router("/createNewAddress", &controllers.WalletController{}, "post:CreateNewAddress")
+	beego.Router("/walletSocket", &controllers.WalletController{}, "post:WalletNotify")
+	beego.Router("/withdrawl", &controllers.WalletController{}, "get:GetWithdrawlAPI")
+	beego.Router("/confirmWithdraw", &controllers.WalletController{}, "post:ConfirmWithdrawal")
 
+	//Websocket
+	beego.Router("/ws/connect", &controllers.WebSocketController{}, "get:Connect")
 	//Configure URLs with and without login authentication
 	InitSetFilterUrl()
 	//Filter, intercept all requests

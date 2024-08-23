@@ -111,3 +111,27 @@ func GetChatMsgDisplayListHandler(ctx context.Context, req *chatpb.CommonRequest
 	}
 	return res, nil
 }
+
+func GetChatMsgHandler(ctx context.Context, req *chatpb.GetChatMsgRequest) (*chatpb.ResponseData, error) {
+	err := CheckAndInitChatClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*ChatCli.Client).GetChatMsg(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+func CreateHelloChatHandler(ctx context.Context, req *chatpb.CreateHelloChatRequest) (*chatpb.ResponseData, error) {
+	err := CheckAndInitChatClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*ChatCli.Client).CreateHelloChat(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}

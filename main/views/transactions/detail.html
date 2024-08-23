@@ -1,0 +1,78 @@
+{{template "common/head.html" .}}
+{{template "common/top.html" .}}
+<div class="p-3 main-shadow" data-controller="txdetail">
+<div class="pb-2 main-border-bottom d-flex justify-content-between">
+    <h4 class="fw-600 d-inline">Transaction Detail</h4>
+    <a href="/" class="btn btn-outline-light ms-2 d-flex ai-center px-2"><i class="fa fa-arrow-left"></i>&nbsp;Back</a>
+</div>
+<div class="content">
+  <p class="fw-600">Type: <span class="fw-400">
+    {{if .TransactionHistory.IsTrading}}
+     {{upperFirstLetter .TransactionHistory.TradingType}}
+    {{else}}
+    {{if .TransactionHistory.IsSender}}Sent {{else}}Received {{end}}
+    {{end}}
+  </span></p>
+  <p class="fw-600">Classify: <span class="fw-400">{{.TransactionHistory.TypeDisplay}}</span></p>
+  <p class="fw-600">Wallet: <span class="fw-400">{{assetName .TransactionHistory.Currency}} ({{toUppercase .TransactionHistory.Currency}})</span></p>
+  <p class="fw-600">Amount: <span class="fw-400">
+    {{if eq .TransactionHistory.Currency "usd"}}${{end}}<span class="{{if ne .TransactionHistory.Currency "usd"}}{{.TransactionHistory.Currency}}-{{end}}amount-number">{{.TransactionHistory.Amount}}</span>
+      {{if ne .TransactionHistory.Currency "usd"}}{{toUppercase .TransactionHistory.Currency}}{{end}}
+      {{if and (ne .TransactionHistory.IsTrading true) (ne .TransactionHistory.Currency "usd")}}($<span class="amount-number">{{.TransactionHistory.RateValue}}</span>){{end}}
+    </span></p>
+    {{if ne .TransactionHistory.IsTrading true}}
+    {{if or (eq .TransactionHistory.Currency "usd") (gt .TransactionHistory.ReceiverId 0)}}
+     {{if gt .TransactionHistory.SenderId 0}}
+    <p class="fw-600">{{if .TransactionHistory.IsSender}} To {{else}} From {{end}}: 
+      <span class="fw-400">
+      {{if .TransactionHistory.IsSender}}{{.TransactionHistory.Receiver}}{{else}}{{.TransactionHistory.Sender}}{{end}}
+    </span>
+  </p>
+    {{end}}
+    {{else}}
+      <p class="fw-600">{{if .TransactionHistory.IsSender}} To Address {{else}} From Address {{end}}: 
+        <span class="fw-400">
+          {{.TransactionHistory.ToAddress}}
+      </span>
+      </p>
+    {{end}}
+    <!-- Display for Trading history -->
+    {{else}}
+    <p class="fw-600">{{if eq .TransactionHistory.TradingType "buy"}} Paid by {{else}} Received by {{end}}: 
+      <span class="fw-400">
+        {{assetName .TransactionHistory.PaymentType}} ({{toUppercase .TransactionHistory.PaymentType}})
+    </span>
+    </p>
+    <p class="fw-600">{{if eq .TransactionHistory.TradingType "buy"}} Paid Amount{{else}} Received {{end}}: 
+      <span class="fw-400">
+        <span class="{{.TransactionHistory.PaymentType}}-amount-number">{{.TransactionHistory.TradingPaymentAmount}}</span> ({{toUppercase .TransactionHistory.PaymentType}})
+    </span>
+    </p>
+    <p class="fw-600">Rate: 
+      <span class="fw-400">
+        <span class="{{.TransactionHistory.PaymentType}}-amount-number">{{.TransactionHistory.Rate}}</span> ({{toUppercase .TransactionHistory.PaymentType}}/{{toUppercase .TransactionHistory.Currency}})
+    </span>
+    </p>
+    {{end}}
+    <p class="fw-600">Created At: <span class="fw-400">{{.TransactionHistory.CreatedtDisp}}</span></p>
+    <p class="fw-600">Note: <span class="fw-400">{{.TransactionHistory.Description}}</span></p>
+    {{if and (ne .TransactionHistory.Currency "usd") (eq .TransactionHistory.IsOffChain false)}}
+    <p class="fw-600 fs-22 mt-3">Txhash Information<span class="fs-18" style="color:{{if .TransactionHistory.Confirmed}}green{{else}}#a8184f{{end}};">
+      ({{if .TransactionHistory.Confirmed}}Confirmed{{else}}Unconfirmed{{end}}: {{if eq .TransactionHistory.Confirmed false}}{{.TransactionHistory.Confirmations}}/{{end}}{{.TransactionHistory.ConfirmationNeed}}{{if eq .TransactionHistory.Confirmed true}}+{{end}}
+    <span class="material-symbols-outlined fs-18i">{{if .TransactionHistory.Confirmed}}lock{{else}}lock_open_right{{end}}</span>)
+    </span></p>
+    <p class="fw-600">Txid: <span class="fw-400 c-primary cursor-pointer" data-txdetail-txid-param="{{.TransactionHistory.Txid}}" data-action="click->txdetail#copyTxid">{{.TransactionHistory.Txid}}</span>
+    <span class="material-symbols-outlined fs-18i cursor-pointer" id="txCopyBtn" data-txdetail-txid-param="{{.TransactionHistory.Txid}}" data-action="click->txdetail#copyTxid">content_copy</span>
+    <span class="c-green fs-15 d-none" id="copiedSpan">Copied</span>
+    </p>
+    {{if gt .TransactionHistory.SenderId 0}}
+    <p class="fw-600">Fees: <span class="fw-400">{{disp8FloatAsString .TransactionHistory.Transaction.Fee}} BTC</span></p>
+    {{end}}
+    <p class="fw-600">Time: <span class="fw-400">{{dispDateTime .TransactionHistory.Transaction.Time}}</span></p>
+    <p class="fw-600">Block Hash: <span class="fw-400">{{.TransactionHistory.Transaction.BlockHash}}</span></p>
+  {{end}}
+</div>
+</div>
+</div>
+</div>
+{{template "common/foot.html" .}}
