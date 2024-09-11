@@ -26,15 +26,30 @@ func GetAllowAssetFromSettings() ([]string, error) {
 	return result, nil
 }
 
+func HanlderAllowAssetStr(allowAssets string) []string {
+	result := make([]string, 0)
+	assetArr := strings.Split(allowAssets, ",")
+	for _, asset := range assetArr {
+		if IsEmpty(asset) {
+			continue
+		}
+		result = append(result, asset)
+	}
+	if len(result) == 0 {
+		result = append(result, "usd")
+	}
+	return result
+}
+
 func GetActiveServicesFromSettings() ([]string, error) {
 	activeServices, err := GetServicesStrFromSettings()
 	if err != nil {
 		return []string{"auth"}, nil
 	}
-	return HandlerActiveServiceStr(activeServices)
+	return HandlerActiveServiceStr(activeServices), nil
 }
 
-func HandlerActiveServiceStr(activeServices string) ([]string, error) {
+func HandlerActiveServiceStr(activeServices string) []string {
 	result := make([]string, 0)
 	serviceArr := strings.Split(activeServices, ",")
 	for _, service := range serviceArr {
@@ -46,7 +61,7 @@ func HandlerActiveServiceStr(activeServices string) ([]string, error) {
 	if len(result) == 0 {
 		result = append(result, "auth")
 	}
-	return result, nil
+	return result
 }
 
 func GetServicesStrFromSettings() (string, error) {
@@ -79,4 +94,14 @@ func GetAssetStrFromSettings() (string, error) {
 		return "usd", nil
 	}
 	return settings.ActiveAssets, nil
+}
+
+func GetSettings() (*models.Settings, error) {
+	settings := models.Settings{}
+	o := orm.NewOrm()
+	queryErr := o.QueryTable(new(models.Settings)).Limit(1).One(&settings)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	return &settings, nil
 }

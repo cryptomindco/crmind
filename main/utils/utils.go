@@ -191,10 +191,7 @@ func CheckActiveService(checkService string) bool {
 	if IsEmpty(ActiveServices) {
 		ActiveServices, _ = GetServicesStrFromSettings()
 	}
-	services, err := HandlerActiveServiceStr(ActiveServices)
-	if err != nil {
-		return false
-	}
+	services := HandlerActiveServiceStr(ActiveServices)
 	for _, service := range services {
 		if service == checkService {
 			return true

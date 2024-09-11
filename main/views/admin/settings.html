@@ -7,7 +7,7 @@
   <div class="row">
     <div>
       <div>
-        <p>The assets are allowed</p>
+        <p class="fw-600">The assets are allowed</p>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="checkbox" id="usdSelect" value="usd" checked disabled>
           <label class="form-check-label" for="usdSelect">US Dollar (USD)</label>
@@ -30,7 +30,7 @@
       </div>
     </div>
     <div class="mt-3">
-      <p>MicroServices Management</p>
+      <p class="fw-600">MicroServices Management</p>
       <div class="form-check form-check-inline">
         <input class="form-check-input" type="checkbox" id="authSelect" value="auth" checked disabled>
         <label class="form-check-label" for="authSelect">Authentication</label>
@@ -44,6 +44,24 @@
         <input class="form-check-input cursor-pointer" {{if includeStringArray .ActiveServices "assets" }}checked{{end}}
           type="checkbox" id="assetsSelect" value="assets">
         <label class="form-check-label cursor-pointer" for="assetsSelect">Assets</label>
+      </div>
+    </div>
+    <div class="mt-3">
+      <p class="fw-600">Exchange Rate Server</p>
+      <select class="form-select w-auto" data-settings-target="rateServer">
+        <option value="kucoin" {{if eq .Exchange "kucoin" }}selected{{end}}>Kucoin</option>
+        <option value="binance" {{if eq .Exchange "binance" }}selected{{end}}>Binance</option>
+        <option value="mexc" {{if eq .Exchange "mexc" }}selected{{end}}>Mexc</option>
+      </select>
+    </div>
+    <div class="mt-3">
+      <p class="fw-600"> % Price Spread</p>
+      <div class="row">
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+          <input autocomplete="off" type="text" data-action="input->settings#priceSpreadChange" value="{{.PriceSpread}}" class="form-control"
+            data-settings-target="priceSpread">
+          <p class="error fs-13 d-none" id="priceSpreadErr"></p>
+        </div>
       </div>
     </div>
   </div>

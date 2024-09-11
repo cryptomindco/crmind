@@ -120,17 +120,30 @@ func (this *AdminController) GetSettings() {
 		logpack.Error(err.Error(), utils.GetFuncName(), err)
 		return
 	}
-
-	allows, err := utils.GetAllowAssetFromSettings()
-	activeServices, serviceErr := utils.GetActiveServicesFromSettings()
-	if err != nil || serviceErr != nil {
-		logpack.Error(err.Error(), utils.GetFuncName(), nil)
+	settings, err := utils.GetSettings()
+	if err != nil && err != orm.ErrNoRows {
 		this.TplName = "err_403.html"
+		logpack.Error(err.Error(), utils.GetFuncName(), err)
 		return
 	}
+	allowAssetStr := ""
+	activeServicesStr := ""
+	exchange := ""
+	priceSpread := float64(0)
+	if err == nil {
+		allowAssetStr = settings.ActiveAssets
+		activeServicesStr = settings.ActiveServices
+		exchange = settings.RateServer
+		priceSpread = settings.PriceSpread
+	}
+	allows := utils.HanlderAllowAssetStr(allowAssetStr)
+	activeServices := utils.HandlerActiveServiceStr(activeServicesStr)
 
+	//exchange
 	this.Data["AllowAssets"] = allows
 	this.Data["ActiveServices"] = activeServices
+	this.Data["Exchange"] = exchange
+	this.Data["PriceSpread"] = priceSpread
 	this.TplName = "admin/settings.html"
 }
 
@@ -143,6 +156,12 @@ func (this *AdminController) UpdateSettings() {
 
 	selectedAssetStr := this.GetString("selectedAsset")
 	selectedServicesStr := this.GetString("selectedServices")
+	exchange := this.GetString("exchange")
+	priceSpread, pSpreadErr := this.GetFloat("priceSpread", 0)
+	if pSpreadErr != nil {
+		this.ResponseError("Price Spread param failed", utils.GetFuncName(), nil)
+		return
+	}
 	//Get Settings
 	settings, settingErr := this.CheckSettingsExist()
 	//if get settings has DB error
@@ -168,6 +187,8 @@ func (this *AdminController) UpdateSettings() {
 		newSettings := models.Settings{
 			ActiveAssets:   selectedAssetStr,
 			ActiveServices: selectedServicesStr,
+			RateServer:     exchange,
+			PriceSpread:    priceSpread,
 		}
 		//insert to DB
 		_, insertErr := tx.Insert(&newSettings)
@@ -178,6 +199,8 @@ func (this *AdminController) UpdateSettings() {
 	} else {
 		settings.ActiveAssets = selectedAssetStr
 		settings.ActiveServices = selectedServicesStr
+		settings.RateServer = exchange
+		settings.PriceSpread = priceSpread
 		//update DB
 		_, updateErr := tx.Update(settings)
 		if updateErr != nil {

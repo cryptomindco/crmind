@@ -1,6 +1,13 @@
 import BaseController from "./base_controller";
 
 export default class extends BaseController {
+  static get targets() {
+    return [
+      "rateServer",
+      "priceSpread",
+    ];
+  }
+
   updateSettings() {
     const assetStr = 'usd,btc,dcr,ltc'
     const serviceStr = 'auth,chat,assets'
@@ -20,11 +27,15 @@ export default class extends BaseController {
     })
     const selectedAssetStr = selected.join(',')
     const selectedServicesStr = serviceSelected.join(',')
+    const exchange = this.rateServerTarget.value
+    const priceSpread = this.priceSpreadTarget.value
     const _this = this
     $.ajax({
       data: {
         selectedAsset: selectedAssetStr,
         selectedServices: selectedServicesStr,
+        exchange: exchange,
+        priceSpread: priceSpread,
       },
       type: "POST", //OR GET
       url: '/updateSettings', //The same form's action URL
@@ -54,5 +65,15 @@ export default class extends BaseController {
         }
       },
     });
+  }
+
+  priceSpreadChange() {
+    const value = this.priceSpreadTarget.value
+    if (value < 0 || value > 100) {
+      $("#priceSpreadErr").text(value > 100 ? "Spread cannot exceed 100%" : "Spread cannot be less than 0")
+      $("#priceSpreadErr").removeClass('d-none')
+      return
+    }
+    $("#priceSpreadErr").addClass('d-none')
   }
 }
