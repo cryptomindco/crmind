@@ -942,7 +942,7 @@ func (h *Handler) CreateNewAddressForAsset(username string, isAdmin bool, assetO
 	return &insertAddress, userAsset, nil
 }
 
-func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetType string, direction string, perpage int64, pageNum int64, allowAssets []string) ([]models.TxHistoryDisplay, int64) {
+func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetType string, direction string, perpage int64, pageNum int64, allowAssets []string) ([]models.TxHistoryDisplay, int64, int64) {
 	historyDispList := make([]models.TxHistoryDisplay, 0)
 	var txHistoryList []*models.TxHistory
 	var filterStr = ""
@@ -979,7 +979,7 @@ func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetTy
 	var totalRowCount int64
 	countErr := h.DB.Raw(queryCount).Scan(&totalRowCount).Error
 	if countErr != nil {
-		return historyDispList, 0
+		return historyDispList, 0, 0
 	}
 
 	//page number
@@ -992,13 +992,13 @@ func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetTy
 	queryBuilder := fmt.Sprintf("SELECT * from %stx_histories WHERE %s%s ORDER BY createdt DESC OFFSET %d LIMIT %d", utils.GetAssetRelatedTablePrefix(), directionFilter, filterStr, offset, perpage)
 	listErr := h.DB.Raw(queryBuilder).Scan(&txHistoryList).Error
 	if listErr != nil {
-		return historyDispList, 0
+		return historyDispList, 0, 0
 	}
 
 	//get assetlist of user
 	assetList, assetErr := h.GetAssetList(loginUser.Username, allowAssets)
 	if assetErr != nil {
-		return historyDispList, pageCount
+		return historyDispList, pageCount, totalRowCount
 	}
 	rpcClientMap := make(map[string]assets.Asset)
 	for _, asset := range assetList {
@@ -1031,7 +1031,7 @@ func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetTy
 		}
 		historyDispList = append(historyDispList, historyDisp)
 	}
-	return historyDispList, pageCount
+	return historyDispList, pageCount, totalRowCount
 }
 
 func (h *Handler) GetAssetList(username string, allowAsset []string) ([]*models.Asset, error) {

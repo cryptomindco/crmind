@@ -9,18 +9,25 @@ export default class extends BaseController {
   };
 
   static get targets() {
-    return ["historyTable", "paginationTopBar", "paginationBottomBar"];
+    return [
+      "historyTable",
+      "paginationTopBar",
+      "paginationBottomBar",
+      "showingRecord",
+      "topRowsPerpage",
+      "bottomRowsPerpage",
+    ];
   }
 
   async initialize() {
     const successFlg = this.data.get("successFlg");
     const successMsg = this.data.get("successfullyMsg");
-    const assetsActive = this.data.get("assetActive")
+    const assetsActive = this.data.get("assetActive");
     if (successFlg == "true") {
       this.showSuccessToast(successMsg);
     }
     if (assetsActive != "true") {
-      return
+      return;
     }
     const _this = this;
     let typeJson = _this.data.get("types");
@@ -88,9 +95,9 @@ export default class extends BaseController {
       url: "/fetch-rate", //The same form's action URL
       success: function (res) {
         if (res.error) {
-          return
+          return;
         }
-        const rateStr = res.data
+        const rateStr = res.data;
         const rateObject = JSON.parse(rateStr);
         const rateMapJson = rateObject.usdRates;
         if (!rateMapJson) {
@@ -193,6 +200,7 @@ export default class extends BaseController {
         }
         const data = JSON.parse(res.data);
         const pageCount = data.pageCount;
+        const totalRows = data.rowsCount;
         //handler pagination
         _this.paginationTopBarTarget.innerHTML =
           _this.createPaginationBar(pageCount);
@@ -201,10 +209,52 @@ export default class extends BaseController {
         const dataList = data.list;
         //create history list
         _this.historyTableTarget.innerHTML = _this.createHistoryTable(dataList);
+        const rowOptionsSource = [10, 15, 20, 50, 100];
+        let rowOptions = "";
+        let end = false
+        rowOptionsSource.forEach((rSource) => {
+          if (!end) {
+            rowOptions += `<option value="${rSource}">${rSource}</option>`;
+          }
+          if (rSource > totalRows) {
+            end = true
+            return
+          }
+        });
+        let perpage = _this.queryParams.perpage;
+        if (perpage < 1) {
+          perpage = 15;
+        }
+        _this.topRowsPerpageTarget.innerHTML = rowOptions;
+        _this.bottomRowsPerpageTarget.innerHTML = rowOptions;
+        _this.topRowsPerpageTarget.value = perpage;
+        _this.bottomRowsPerpageTarget.value = perpage;
         if (!dataList || dataList.length < 1) {
           _this.historyTableTarget.classList.remove("history-table");
+          _this.showingRecordTarget.classList.add("d-none");
+          $("#topPaginationRow").addClass("d-none");
+          $("#bottomPaginationRow").addClass("d-none");
         } else {
           _this.historyTableTarget.classList.add("history-table");
+          _this.showingRecordTarget.classList.remove("d-none");
+          $("#topPaginationRow").removeClass("d-none");
+          $("#bottomPaginationRow").removeClass("d-none");
+          let pageNum = _this.queryParams.pageNum;
+          if (pageNum < 1) {
+            pageNum = 1;
+          }
+          let perpage = _this.queryParams.perpage;
+          if (perpage < 1) {
+            perpage = 15;
+          }
+          const startRecord = perpage * (pageNum - 1);
+          let toRecord = Number(startRecord) + Number(perpage);
+          if (toRecord > Number(totalRows)) {
+            toRecord = Number(totalRows);
+          }
+          _this.showingRecordTarget.textContent = `Showing ${
+            startRecord + 1
+          } to ${toRecord} of ${totalRows} records`;
         }
       },
     });

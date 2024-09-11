@@ -104,10 +104,10 @@
                     <option value="ltc">Litecoin</option>
                 </select>
             </div>
-            <div class="pagination-row">
+            <div class="pagination-row" id="topPaginationRow">
                 <div class="d-flex">
                     <p class="fs-15">Rows per page</p>
-                    <select id="numperpage" data-action="change->assets#numPerPageChange"
+                    <select id="numperpage" data-assets-target="topRowsPerpage" data-action="change->assets#numPerPageChange"
                         class="form-select w-auto ms-2 row-per-page-selector">
                         <option value="10">10</option>
                         <option value="15">15</option>
@@ -120,14 +120,15 @@
                 </div>
             </div>
         </div>
+        <p class="fs-15 mb-0" data-assets-target="showingRecord">Showing 30 to 50 of 150 records</p>
         <hr class="hr mt-0" />
         <div data-assets-target="historyTable" class="history-table">
         </div>
-        <div class="mt-2">
+        <div class="mt-2" id="bottomPaginationRow">
             <div class="pagination-row botton-paging">
                 <div class="d-flex">
                     <p class="fs-15">Rows per page</p>
-                    <select id="numperpageBottom" data-action="change->assets#numPerBottomPageChange"
+                    <select id="numperpageBottom" data-assets-target="bottomRowsPerpage" data-action="change->assets#numPerBottomPageChange"
                         class="form-select w-auto ms-2 row-per-page-selector">
                         <option value="10">10</option>
                         <option value="15">15</option>

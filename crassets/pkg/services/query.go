@@ -614,12 +614,13 @@ func (s *Server) FilterTxHistory(ctx context.Context, reqData *pb.FilterTxHistor
 		direction = ""
 	}
 
-	txHistoryList, pageCount := s.H.InitTransactionHistoryList(&models.UserInfo{
+	txHistoryList, pageCount, totalRowCount := s.H.InitTransactionHistoryList(&models.UserInfo{
 		Username: reqData.Common.LoginName,
 	}, assetType, direction, perpage, pageNum, allowAssets)
 	resultMap := make(map[string]any)
 	resultMap["pageCount"] = pageCount
 	resultMap["list"] = txHistoryList
+	resultMap["rowsCount"] = totalRowCount
 	return ResponseSuccessfullyWithAnyData(reqData.Common.LoginName, "Get Tx History List successfully", utils.GetFuncName(), resultMap)
 }
 
