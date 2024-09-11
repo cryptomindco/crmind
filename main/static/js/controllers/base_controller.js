@@ -174,4 +174,8 @@ export default class BaseController extends Controller {
     }
     return input[0].toUpperCase() + input.slice(1)
   }
+  
+  toHomepage() {
+    window.location.href = '/'
+  }
 }

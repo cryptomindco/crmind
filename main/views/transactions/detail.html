@@ -2,7 +2,14 @@
 {{template "common/top.html" .}}
 <div class="p-3 main-shadow" data-controller="txdetail">
   <div class="d-flex">
-    <a href="/" class="btn btn-outline-light d-flex ai-center px-2"><i class="fa fa-arrow-left"></i>&nbsp;Back</a>
+    <div class="bcca-breadcrumb">
+      <div class="bcca-breadcrumb-item">Transaction Detail</div>
+      <div class="bcca-breadcrumb-item d-flex ai-center c-primary" data-action="click->txdetail#toHomepage">
+         <span class="material-symbols-outlined">
+            home
+          </span>&nbsp;
+         <span class="link-underline">Assets</span></div>
+    </div>
  </div>
 <div class="pb-2 mt-2 main-border-bottom d-flex justify-content-between">
     <h4 class="fw-600 d-inline">Transaction Detail</h4>

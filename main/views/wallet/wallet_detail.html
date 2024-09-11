@@ -1,12 +1,6 @@
 {{template "common/head.html" .}}
 {{template "common/top.html" .}}
 {{$Asset := .Asset}}
-<div class="d-flex">
-   <a href="/" class="btn btn-outline-light d-flex ai-center px-2"><i class="fa fa-arrow-left"></i>&nbsp;Back</a>
-</div>
-<div class="pb-2 mt-2 d-flex">
-   <h4 class="fw-600 d-inline">{{.Asset.DisplayName}}</h4>
-</div>
 <div class="content pt-0"
    data-controller="wallet"
    data-wallet-asset-type="{{.Asset.Type}}"
@@ -16,7 +10,17 @@
    data-wallet-payment-firsttype="{{.FirstType}}"
    data-wallet-payment-firstbalance="{{.FirstBalance}}"
    >
-   <p class="fw-600 fs-18">Balance: <span class="fw-400 fs-20">{{if eq .Asset.Type "usd"}} ${{end}}<span class="{{if ne .Asset.Type "usd"}}{{.Asset.Type}}-{{end}}amount-number">{{.Asset.Balance}}</span> {{if ne .Asset.Type "usd"}}{{toUppercase .Asset.Type}}{{end}}</span>  {{if ne .Asset.Type "usd"}}<span class="fw-400 exchange-rate-display fs-17">(~$</span><span class="exchange-rate-display fw-400" id="exchangeRate"></span><span class="exchange-rate-display">)</span>{{end}}</p>
+   <div class="d-flex">
+      <div class="bcca-breadcrumb">
+         <div class="bcca-breadcrumb-item">{{.Asset.DisplayName}}</div>
+         <div class="bcca-breadcrumb-item d-flex ai-center c-primary" data-action="click->wallet#toHomepage">
+            <span class="material-symbols-outlined">
+               home
+             </span>&nbsp;
+            <span class="link-underline">Assets</span></div>
+       </div>
+   </div>
+   <p class="fw-600 fs-18 mt-3">Balance: <span class="fw-400 fs-20">{{if eq .Asset.Type "usd"}} ${{end}}<span class="{{if ne .Asset.Type "usd"}}{{.Asset.Type}}-{{end}}amount-number">{{.Asset.Balance}}</span> {{if ne .Asset.Type "usd"}}{{toUppercase .Asset.Type}}{{end}}</span>  {{if ne .Asset.Type "usd"}}<span class="fw-400 exchange-rate-display fs-17">(~$</span><span class="exchange-rate-display fw-400" id="exchangeRate"></span><span class="exchange-rate-display">)</span>{{end}}</p>
    <div class="tab-wrap">
       <!-- active tab on page load gets checked attribute -->
       <input type="radio" id="info-tab" data-action="click->wallet#tabChange" name="tabGroup" class="tab" checked>
