@@ -6,6 +6,7 @@ export default class extends BaseController {
     queryParams: Object,
     typeList: Object,
     balanceMap: Object,
+    isAdmin: Boolean,
   };
 
   static get targets() {
@@ -23,6 +24,7 @@ export default class extends BaseController {
     const successFlg = this.data.get("successFlg");
     const successMsg = this.data.get("successfullyMsg");
     const assetsActive = this.data.get("assetActive");
+    this.isAdmin = this.data.get("isAdmin") == "true";
     if (successFlg == "true") {
       this.showSuccessToast(successMsg);
     }
@@ -211,14 +213,14 @@ export default class extends BaseController {
         _this.historyTableTarget.innerHTML = _this.createHistoryTable(dataList);
         const rowOptionsSource = [10, 15, 20, 50, 100];
         let rowOptions = "";
-        let end = false
+        let end = false;
         rowOptionsSource.forEach((rSource) => {
           if (!end) {
             rowOptions += `<option value="${rSource}">${rSource}</option>`;
           }
           if (rSource > totalRows) {
-            end = true
-            return
+            end = true;
+            return;
           }
         });
         let perpage = _this.queryParams.perpage;
@@ -315,6 +317,7 @@ export default class extends BaseController {
     const _this = this;
 
     data.forEach((element) => {
+      const tradingType = this.getTradingType(element.tradingType)
       inner +=
         `<div class="row p-2 transaction-history-row border-bottom-lblue" onclick="toTransactionDetail(${element.id})">` +
         `<p class="mb-0 ps-0 d-flex ai-center">` +
@@ -324,13 +327,13 @@ export default class extends BaseController {
         `<span class="ms-2 w-95">` +
         `<span class="fs-15 sent-receive-label ${
           element.isTrading
-            ? element.tradingType
+            ? tradingType
             : element.isSender
             ? "send"
             : "receive"
         }-label">${
           element.isTrading
-            ? _this.toUpperFirstCase(element.tradingType)
+            ? _this.toUpperFirstCase(tradingType)
             : element.isSender
             ? "Sent "
             : "Received "
@@ -371,9 +374,13 @@ export default class extends BaseController {
         inner += ".";
         const paymentRoundNumber = this.getRoundNumber(element.paymentType);
         inner += `<span class="fs-15">${
-          element.tradingType == "buy" ? " Paid by " : " Received by "
+          tradingType == "buy" ? " Paid by " : " Received by "
         }</span>`;
-        inner += `<span class="fw-600 fs-17">${element.paymentType.toUpperCase()}</span><span class="fs-15"> with </span>`;
+        inner += `<span class="fw-600 fs-17">${element.paymentType.toUpperCase()}</span>`
+        if (_this.isAdmin) {
+          inner += ` ${tradingType == "buy" ? "to" : "from"} ${element.sender}`
+        }
+        inner += '<span class="fs-15"> with </span>';
         inner += `<span class="fw-600 fs-17">${formatToLocalString(
           element.amount * element.rate,
           paymentRoundNumber,
@@ -405,5 +412,12 @@ export default class extends BaseController {
       inner += `</span></p></div>`;
     });
     return inner;
+  }
+
+  getTradingType(tradingType) {
+    if (!this.isAdmin) {
+      return tradingType;
+    }
+    return tradingType == "sell" ? "buy" : "sell";
   }
 }

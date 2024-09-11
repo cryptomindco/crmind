@@ -355,6 +355,7 @@ func (s *Server) SendTradingRequest(ctx context.Context, reqData *pb.SendTrading
 	txHistory := &models.TxHistory{
 		TransType:   int(utils.TransTypeLocal),
 		Sender:      reqData.Common.LoginName,
+		Receiver:    systemAsset.UserName,
 		Currency:    asset,
 		Amount:      amount,
 		Rate:        rate,

@@ -1,7 +1,7 @@
 {{template "common/head.html" .}}
 {{template "common/top.html" .}}
 {{$AdminAssets := .AssetList}}
-<div class="content" data-controller="assets" data-assets-types="{{.TypeJson}}" data-assets-asset-active="{{.AssetsActive}}">
+<div class="content" data-controller="assets" data-assets-types="{{.TypeJson}}" data-assets-asset-active="{{.AssetsActive}}" data-assets-is-admin="{{.IsSuperAdmin}}">
     {{if .AssetsActive}}
     {{if .IsSuperAdmin}}
     <div class="row d-flex justify-content-center">

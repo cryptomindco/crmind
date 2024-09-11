@@ -84,6 +84,12 @@ func (h *Handler) GetUserListWithExcludeId(excludeId int64) ([]models.User, erro
 	return userList, listErr
 }
 
+func (h *Handler) GetUserList() ([]models.User, error) {
+	userList := make([]models.User, 0)
+	listErr := h.DB.Order("createdt").Find(&userList).Error
+	return userList, listErr
+}
+
 func (h *Handler) GetUsernameListExcludeId(loginUserId int64) []*models.UserInfo {
 	result := make([]*models.UserInfo, 0)
 	userList, err := h.GetUserListWithExcludeId(loginUserId)

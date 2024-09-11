@@ -20,7 +20,7 @@ func (s *Server) GetAdminUserList(ctx context.Context, reqData *pb.CommonRequest
 	if authClaims.Role != int(utils.RoleSuperAdmin) {
 		return ResponseError("There is no permission to access this feature", utils.GetFuncName(), fmt.Errorf("There is no permission to access this feature"))
 	}
-	userList, listErr := s.H.GetUserListWithExcludeId(authClaims.Id)
+	userList, listErr := s.H.GetUserList()
 	if listErr != nil && listErr != gorm.ErrRecordNotFound {
 		return ResponseError("Get user list failed", utils.GetFuncName(), fmt.Errorf("Get user list failed"))
 	}

@@ -9,6 +9,7 @@
   <div class="row">
     <p>Username: <strong>{{.User.Username}}</strong></p>
   </div>
+  {{if ne .User.Username .LoginUser.Username}}
   <p class="mt-3 mb-1 fw-600">User Status</p>
   <div class="form-check form-switch">
     <input class="form-check-input toggle-primary" type="checkbox" role="switch" id="userActiveSwitch"
@@ -16,6 +17,7 @@
     <label class="form-check-label" id="activeText" for="userActiveSwitch">{{if eq .User.Status 0}}Deactive
       {{else}}Active{{end}}</label>
   </div>
+  {{end}}
   {{if .AssetsActive}}
   <h5 class="mb-2 form-title fw-600 mt-4">Assets</h5>
   <div class="row">

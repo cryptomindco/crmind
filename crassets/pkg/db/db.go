@@ -207,6 +207,14 @@ func (h *Handler) GetAccountFromUsername(username string) (*models.Accounts, err
 	return &account, nil
 }
 
+func (h *Handler) CheckAccountIsAdmin(username string) (bool, error) {
+	account, err := h.GetAccountFromUsername(username)
+	if err != nil {
+		return false, err
+	}
+	return utils.IsSuperAdmin(account.Role), nil
+}
+
 func (h *Handler) GetTotalUserBalance(asset string) float64 {
 	totalBalance := float64(0)
 	//handler on services
@@ -949,7 +957,6 @@ func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetTy
 	if !utils.IsEmpty(assetType) {
 		filterStr = fmt.Sprintf(" AND currency = '%s'", assetType)
 	}
-
 	//direction condition initialization
 	var directionFilter = ""
 	if !utils.IsEmpty(direction) {
@@ -972,6 +979,7 @@ func (h *Handler) InitTransactionHistoryList(loginUser *models.UserInfo, assetTy
 			directionFilter = fmt.Sprintf("receiver = '%s' AND trans_type= %d", loginUser.Username, int(utils.TransTypeChainReceive))
 		}
 	} else {
+
 		directionFilter = fmt.Sprintf("(sender = '%s' OR receiver = '%s')", loginUser.Username, loginUser.Username)
 	}
 
