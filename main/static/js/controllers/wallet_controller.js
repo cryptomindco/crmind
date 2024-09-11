@@ -65,6 +65,7 @@ export default class extends BaseController {
     confirmDialogType: String,
     currentAddressId: Number,
     addressAction: String,
+    priceSpread: Number,
   };
 
   static get targets() {
@@ -77,6 +78,7 @@ export default class extends BaseController {
     this.assetRound = this.getRoundNumber(this.assetType)
     this.assetId = Number(this.data.get("assetId"))
     this.hasAddress = this.data.get("hasAddress") == "true"
+    this.priceSpread = parseFloat(this.data.get("priceSpread"))
     this.paymentType = this.data.get("paymentFirsttype")
     this.currentPaymentBalance = parseFloat(this.data.get("paymentFirstbalance"))
     this.tradingType = "buy"
@@ -646,13 +648,14 @@ export default class extends BaseController {
       return
     }
     const amount = $("#amountTrading").val()
+    const realPaymentRate = this.getRealPaymentRate()
     $.ajax({
       data:  {
         asset: this.assetType,
         tradingType: this.tradingType,
         amount: amount,
         paymentType: this.paymentType,
-        rate: this.paymentRate },
+        rate: realPaymentRate },
       type: "POST", //OR GET
       url: "/send-trading-request", //The same form's action URL
       success: function (res) {
@@ -1130,7 +1133,8 @@ export default class extends BaseController {
       amount = 0
     }
     const roundNumber = this.getRoundNumber(this.paymentType)
-    const needAmount = Number(amount) * this.paymentRate
+    const realPaymentRate = this.getRealPaymentRate()
+    const needAmount = Number(amount) * realPaymentRate
     //check if need amount more than balance
     if(needAmount > this.currentPaymentBalance && this.tradingType == "buy") {
       $("#paymentBalanceErr_msg").removeClass("d-none")
@@ -1144,7 +1148,14 @@ export default class extends BaseController {
     const afterBalance = this.tradingType == "sell" ? needAmount + this.currentPaymentBalance : this.currentPaymentBalance - needAmount
     $("#paymentNeedAmount").text(formatToLocalString(needAmount, roundNumber, roundNumber))
     $("#paymentAfterBalance").text(formatToLocalString(afterBalance, roundNumber, roundNumber))
-    $("#paymentExchangeRate").text(formatToLocalString(this.paymentRate, roundNumber, roundNumber))
+    $("#paymentExchangeRate").text(formatToLocalString(realPaymentRate, roundNumber, roundNumber))
+  }
+
+  getRealPaymentRate() {
+    if (this.tradingType == "sell") {
+      return this.paymentRate - this.paymentRate * this.priceSpread / 100
+    }
+    return this.paymentRate + this.paymentRate * this.priceSpread / 100
   }
 
   updateRateToDisplay() {

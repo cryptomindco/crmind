@@ -105,3 +105,11 @@ func GetSettings() (*models.Settings, error) {
 	}
 	return &settings, nil
 }
+
+func GetPriceSpread() (float64, error) {
+	settings, err := GetSettings()
+	if err != nil {
+		return 0, err
+	}
+	return settings.PriceSpread, nil
+}

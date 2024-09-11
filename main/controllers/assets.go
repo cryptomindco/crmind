@@ -187,6 +187,7 @@ func (this *AssetsController) AssetsDetail() {
 	}
 	activeAddressCount := this.CountAddressesWithStatus(loginUser.Username, asset.Id, true)
 	archivedAddressCount := this.CountAddressesWithStatus(loginUser.Username, asset.Id, false)
+	priceSpread, _ := utils.GetPriceSpread()
 	//check have code list
 	hasCodeList := this.CheckHasCodeList(loginUser.Username, assetType)
 	this.Data["ContactList"] = this.GetContactList(loginUser.Username)
@@ -200,6 +201,7 @@ func (this *AssetsController) AssetsDetail() {
 	this.Data["ArchivedAddressCount"] = archivedAddressCount
 	this.Data["TotalAddressesCount"] = archivedAddressCount + activeAddressCount
 	this.Data["Asset"] = asset
+	this.Data["PriceSpread"] = priceSpread
 }
 
 func (this *AssetsController) ConfirmAddressAction() {
