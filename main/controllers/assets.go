@@ -185,8 +185,12 @@ func (this *AssetsController) AssetsDetail() {
 			break
 		}
 	}
-	activeAddressCount := this.CountAddressesWithStatus(loginUser.Username, asset.Id, true)
-	archivedAddressCount := this.CountAddressesWithStatus(loginUser.Username, asset.Id, false)
+	activeAddressCount := int64(0)
+	archivedAddressCount := int64(0)
+	if asset.Id > 0 {
+		activeAddressCount = this.CountAddressesWithStatus(loginUser.Username, asset.Id, true)
+		archivedAddressCount = this.CountAddressesWithStatus(loginUser.Username, asset.Id, false)
+	}
 	priceSpread, _ := utils.GetPriceSpread()
 	//check have code list
 	hasCodeList := this.CheckHasCodeList(loginUser.Username, assetType)

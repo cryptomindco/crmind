@@ -339,9 +339,9 @@ func (asset *Asset) GetTransactionAmount(txhash string, category string) (float6
 // Get wallet passphrase from config
 func (asset *Asset) GetWalletPassphrase() string {
 	if !utils.GlobalItem.Testnet {
-		return asset.Config.BtcWalletPassphrase
+		return asset.Config.DcrWalletPassphrase
 	}
-	return asset.Config.BtcTestnetWalletPassphrase
+	return asset.Config.DcrWalletTestnetPassphrase
 }
 
 // Get transaction status from txhash (string) (return: Transation status - Confirmed count - error)

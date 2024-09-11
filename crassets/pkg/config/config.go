@@ -19,6 +19,8 @@ type Config struct {
 	DcrTestnetPort             string  `mapstructure:"DCR_TESTNET_PORT"`
 	DcrWalletMainnetPort       string  `mapstructure:"DCR_WALLET_MAINNET_PORT"`
 	DcrWalletTestnetPort       string  `mapstructure:"DCR_WALLET_TESTNET_PORT"`
+	DcrWalletPassphrase        string  `mapstructure:"DCR_WALLET_PASSPHRASE"`
+	DcrWalletTestnetPassphrase string  `mapstructure:"DCR_WALLET_TESTNET_PASSPHRASE"`
 	DcrRpcHost                 string  `mapstructure:"DCR_RPC_HOST"`
 	DcrRpcUser                 string  `mapstructure:"DCR_RPC_USER"`
 	DcrRpcPass                 string  `mapstructure:"DCR_RPC_PASS"`

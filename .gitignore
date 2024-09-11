@@ -15,3 +15,5 @@
 */conf/app.conf
 */conf/app.conf
 */static/js/bundle
+*cmd
+*.env
