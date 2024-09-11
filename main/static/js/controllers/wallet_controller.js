@@ -180,11 +180,9 @@ export default class extends BaseController {
   $("input[type=radio][name=tradingType]").change(function () {
     _this.tradingType = this.value
     if(_this.tradingType == "sell") {
-      $("#paymentMethodTitle").text("Receive Asset")
       $("#assetSelectTitle").text("Asset")
       $("#haveToPayLabel").text("Will Receive")
     } else {
-      $("#paymentMethodTitle").text("Payment Method")
       $("#assetSelectTitle").text("Asset to payment")
       $("#haveToPayLabel").text("Have to pay")
     }
