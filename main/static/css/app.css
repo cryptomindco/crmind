@@ -15,7 +15,15 @@ p {
   margin-bottom: 0.5rem !important;
 }
 
-h1, h2, h3, h4, h5, h6, p, a, span {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+a,
+span {
   word-wrap: break-word;
 }
 
@@ -812,6 +820,10 @@ input[type="file"]::file-selector-button:active {
   color: #9f9e9e;
 }
 
+.c-black-grey {
+  color: #7a7979;
+}
+
 .border-primary {
   border-color: #1c75a8;
 }
@@ -1363,4 +1375,15 @@ input:focus {
 
 .overflow-auto {
   overflow: auto;
+}
+
+.username-input-group {
+  position: relative;
+}
+
+.name-refresh {
+  position: absolute;
+  right: 0;
+  margin-top: 25px !important;
+  margin-right: 7px;
 }

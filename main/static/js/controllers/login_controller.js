@@ -280,4 +280,27 @@ export default class extends BaseController {
       },
     });
   }
+  
+  refreshRandomUsername(e) {
+    const _this = this;
+    e.preventDefault();
+    $.ajax({
+      data: {},
+      type: "GET", //OR GET
+      url: "/gen-random-username", //The same form's action URL
+      success: function (res) {
+        if (!res.error) {
+          const result = JSON.parse(res.data);
+          _this.randomUsername = result.username;
+          _this.isConfirm = true;
+          $("#usernameInput").val(_this.randomUsername);
+          $("#loginErr_msg").addClass("d-none");
+        }
+        if (res.error) {
+          $("#loginErr_msg").removeClass("d-none");
+          $("#loginErr_msg").text(res.msg);
+        }
+      },
+    });
+  }
 }
