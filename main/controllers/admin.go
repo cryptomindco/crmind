@@ -213,6 +213,12 @@ func (this *AdminController) UpdateSettings() {
 	//set to global allow assets
 	utils.AllowAssets = selectedAssetStr
 	utils.ActiveServices = selectedServicesStr
+	//update exchange server on assets
+	if utils.IsAssetsActive() && !utils.IsEmpty(exchange) {
+		services.UpdateExchangeRateServerHandler(this.Ctx.Request.Context(), &assetspb.OneStringRequest{
+			Data: exchange,
+		})
+	}
 	this.ResponseSuccessfully(loginUser.Id, "Update settings successfully!", utils.GetFuncName())
 }
 

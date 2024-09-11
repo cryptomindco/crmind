@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"crmind/models"
+	"crmind/pb/assetspb"
 	_ "crmind/routers"
 	"crmind/services"
 	"crmind/utils"
@@ -16,6 +19,7 @@ import (
 	"time"
 
 	beego "github.com/beego/beego/v2/adapter"
+	"github.com/beego/beego/v2/client/orm"
 )
 
 func init() {
@@ -53,6 +57,17 @@ func main() {
 	initServiceConfig()
 	//TODO: Display follow settings on DB. Default if off
 	initMicroserviceClient()
+	// update assets rate fetch server
+	if utils.IsAssetsActive() {
+		settings := models.Settings{}
+		o := orm.NewOrm()
+		queryErr := o.QueryTable(new(models.Settings)).Limit(1).One(&settings)
+		if queryErr == nil && !utils.IsEmpty(settings.RateServer) {
+			services.UpdateExchangeRateServerHandler(context.Background(), &assetspb.OneStringRequest{
+				Data: settings.RateServer,
+			})
+		}
+	}
 	beego.Run()
 }
 

@@ -240,6 +240,11 @@ func (s *Server) FetchRate(ctx context.Context, reqData *pb.CommonRequest) (*pb.
 	return ResponseSuccessfullyWithAnyDataNoLog(rateMap)
 }
 
+func (s *Server) UpdateExchangeRateServer(ctx context.Context, reqData *pb.OneStringRequest) (*pb.ResponseData, error) {
+	utils.GlobalItem.ExchangeServer = reqData.Data
+	return ResponseSuccessfully("", "Update Exchange rate fetch server successfully", utils.GetFuncName())
+}
+
 func (s *Server) ConfirmAddressAction(ctx context.Context, reqData *pb.ConfirmAddressActionRequest) (*pb.ResponseData, error) {
 	assetId := reqData.AssetId
 	addressId := reqData.AddressId

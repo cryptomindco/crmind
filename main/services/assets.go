@@ -459,3 +459,15 @@ func CreateNewAssetHandler(ctx context.Context, req *assetspb.OneStringRequest) 
 	}
 	return res, nil
 }
+
+func UpdateExchangeRateServerHandler(ctx context.Context, req *assetspb.OneStringRequest) (*assetspb.ResponseData, error) {
+	err := CheckAndInitAssetsClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AssetsCli.Client).UpdateExchangeRateServer(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}

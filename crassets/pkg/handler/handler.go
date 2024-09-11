@@ -20,9 +20,11 @@ type GlobalHandler struct {
 func (gs *GlobalHandler) UpdateGlobalVariable() {
 	if utils.GlobalItem == nil {
 		utils.GlobalItem = &utils.Globals{
-			CheckedNet:  false,
-			Testnet:     false,
-			AssetMgrMap: make(map[string]assets.Asset),
+			CheckedNet:     false,
+			Testnet:        false,
+			AssetMgrMap:    make(map[string]assets.Asset),
+			ExchangeServer: gs.Server.Conf.Exchange,
+			PriceSpread:    gs.Server.Conf.PriceSpread,
 		}
 	}
 

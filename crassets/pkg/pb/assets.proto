@@ -41,6 +41,7 @@ service AssetsService {
   rpc GetTxCode(OneStringRequest) returns (ResponseData);
   rpc HandlerURLCodeWithdrawlWithAccount(URLCodeWithdrawWithAccountRequest) returns (ResponseData);
   rpc CreateNewAsset(OneStringRequest) returns (ResponseData);
+  rpc UpdateExchangeRateServer(OneStringRequest) returns (ResponseData);
   rpc WalletSocket(WalletNotifyRequest) returns (ResponseData) {
     option (google.api.http) = {
       post: "/walletSocket"

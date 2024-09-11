@@ -53,6 +53,7 @@ const (
 	AssetsService_GetTxCode_FullMethodName                          = "/assets.AssetsService/GetTxCode"
 	AssetsService_HandlerURLCodeWithdrawlWithAccount_FullMethodName = "/assets.AssetsService/HandlerURLCodeWithdrawlWithAccount"
 	AssetsService_CreateNewAsset_FullMethodName                     = "/assets.AssetsService/CreateNewAsset"
+	AssetsService_UpdateExchangeRateServer_FullMethodName           = "/assets.AssetsService/UpdateExchangeRateServer"
 	AssetsService_WalletSocket_FullMethodName                       = "/assets.AssetsService/WalletSocket"
 )
 
@@ -94,6 +95,7 @@ type AssetsServiceClient interface {
 	GetTxCode(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	HandlerURLCodeWithdrawlWithAccount(ctx context.Context, in *URLCodeWithdrawWithAccountRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	CreateNewAsset(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error)
+	UpdateExchangeRateServer(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error)
 	WalletSocket(ctx context.Context, in *WalletNotifyRequest, opts ...grpc.CallOption) (*ResponseData, error)
 }
 
@@ -445,6 +447,16 @@ func (c *assetsServiceClient) CreateNewAsset(ctx context.Context, in *OneStringR
 	return out, nil
 }
 
+func (c *assetsServiceClient) UpdateExchangeRateServer(ctx context.Context, in *OneStringRequest, opts ...grpc.CallOption) (*ResponseData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResponseData)
+	err := c.cc.Invoke(ctx, AssetsService_UpdateExchangeRateServer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *assetsServiceClient) WalletSocket(ctx context.Context, in *WalletNotifyRequest, opts ...grpc.CallOption) (*ResponseData, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResponseData)
@@ -493,6 +505,7 @@ type AssetsServiceServer interface {
 	GetTxCode(context.Context, *OneStringRequest) (*ResponseData, error)
 	HandlerURLCodeWithdrawlWithAccount(context.Context, *URLCodeWithdrawWithAccountRequest) (*ResponseData, error)
 	CreateNewAsset(context.Context, *OneStringRequest) (*ResponseData, error)
+	UpdateExchangeRateServer(context.Context, *OneStringRequest) (*ResponseData, error)
 	WalletSocket(context.Context, *WalletNotifyRequest) (*ResponseData, error)
 	mustEmbedUnimplementedAssetsServiceServer()
 }
@@ -605,6 +618,9 @@ func (UnimplementedAssetsServiceServer) HandlerURLCodeWithdrawlWithAccount(conte
 }
 func (UnimplementedAssetsServiceServer) CreateNewAsset(context.Context, *OneStringRequest) (*ResponseData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNewAsset not implemented")
+}
+func (UnimplementedAssetsServiceServer) UpdateExchangeRateServer(context.Context, *OneStringRequest) (*ResponseData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateExchangeRateServer not implemented")
 }
 func (UnimplementedAssetsServiceServer) WalletSocket(context.Context, *WalletNotifyRequest) (*ResponseData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method WalletSocket not implemented")
@@ -1242,6 +1258,24 @@ func _AssetsService_CreateNewAsset_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AssetsService_UpdateExchangeRateServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OneStringRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssetsServiceServer).UpdateExchangeRateServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssetsService_UpdateExchangeRateServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssetsServiceServer).UpdateExchangeRateServer(ctx, req.(*OneStringRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AssetsService_WalletSocket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(WalletNotifyRequest)
 	if err := dec(in); err != nil {
@@ -1402,6 +1436,10 @@ var AssetsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateNewAsset",
 			Handler:    _AssetsService_CreateNewAsset_Handler,
+		},
+		{
+			MethodName: "UpdateExchangeRateServer",
+			Handler:    _AssetsService_UpdateExchangeRateServer_Handler,
 		},
 		{
 			MethodName: "WalletSocket",

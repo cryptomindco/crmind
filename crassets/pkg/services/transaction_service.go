@@ -77,7 +77,10 @@ type KucoinResponseData struct {
 
 func (s *Server) GetExchangePrice(currency string) (float64, error) {
 	//get exchange price on config
-	exchangeConfig := s.Conf.Exchange
+	exchangeConfig := utils.GlobalItem.ExchangeServer
+	if utils.IsEmpty(exchangeConfig) {
+		exchangeConfig = s.Conf.Exchange
+	}
 	if utils.IsEmpty(exchangeConfig) {
 		return 0, fmt.Errorf("%s", "The exchange has not been established yet. Check the config file!")
 	}
@@ -95,7 +98,10 @@ func (s *Server) GetExchangePrice(currency string) (float64, error) {
 
 func (s *Server) GetExchangeMultilPrice(currencies []string) (map[string]float64, error) {
 	//get exchange price on config
-	exchangeConfig := s.Conf.Exchange
+	exchangeConfig := utils.GlobalItem.ExchangeServer
+	if utils.IsEmpty(exchangeConfig) {
+		exchangeConfig = s.Conf.Exchange
+	}
 	if utils.IsEmpty(exchangeConfig) {
 		return nil, fmt.Errorf("%s", "The exchange has not been established yet. Check the config file!")
 	}
@@ -402,7 +408,10 @@ func (s *Server) GetMexcAllMultilPrice(currencies []string) (map[string]float64,
 // Get all rate. Return : usdratemap, allratemap, error
 func (s *Server) GetAllMultilPrice(currencies []string) (map[string]float64, map[string]float64, error) {
 	//get exchange price on config
-	exchangeConfig := s.Conf.Exchange
+	exchangeConfig := utils.GlobalItem.ExchangeServer
+	if utils.IsEmpty(exchangeConfig) {
+		exchangeConfig = s.Conf.Exchange
+	}
 	if utils.IsEmpty(exchangeConfig) {
 		return nil, nil, fmt.Errorf("%s", "The exchange has not been established yet. Check the config file!")
 	}

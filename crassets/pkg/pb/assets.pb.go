@@ -1843,7 +1843,7 @@ var file_assets_proto_rawDesc = []byte{
 	0x63, 0x6f, 0x64, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65,
 	0x12, 0x10, 0x0a, 0x03, 0x6d, 0x73, 0x67, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6d,
 	0x73, 0x67, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x32, 0xff, 0x13, 0x0a, 0x0d, 0x41, 0x73, 0x73, 0x65, 0x74,
+	0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x32, 0xcb, 0x14, 0x0a, 0x0d, 0x41, 0x73, 0x73, 0x65, 0x74,
 	0x73, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x43, 0x72, 0x65, 0x61,
 	0x74, 0x65, 0x4e, 0x65, 0x77, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x18, 0x2e, 0x61,
 	0x73, 0x73, 0x65, 0x74, 0x73, 0x2e, 0x4f, 0x6e, 0x65, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x52,
@@ -1997,14 +1997,19 @@ var file_assets_proto_rawDesc = []byte{
 	0x61, 0x74, 0x65, 0x4e, 0x65, 0x77, 0x41, 0x73, 0x73, 0x65, 0x74, 0x12, 0x18, 0x2e, 0x61, 0x73,
 	0x73, 0x65, 0x74, 0x73, 0x2e, 0x4f, 0x6e, 0x65, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x52, 0x65,
 	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x14, 0x2e, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x2e, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x61, 0x74, 0x61, 0x12, 0x5b, 0x0a, 0x0c, 0x57,
-	0x61, 0x6c, 0x6c, 0x65, 0x74, 0x53, 0x6f, 0x63, 0x6b, 0x65, 0x74, 0x12, 0x1b, 0x2e, 0x61, 0x73,
-	0x73, 0x65, 0x74, 0x73, 0x2e, 0x57, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x4e, 0x6f, 0x74, 0x69, 0x66,
-	0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x14, 0x2e, 0x61, 0x73, 0x73, 0x65, 0x74,
-	0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x61, 0x74, 0x61, 0x22, 0x18,
-	0x82, 0xd3, 0xe4, 0x93, 0x02, 0x12, 0x3a, 0x01, 0x2a, 0x22, 0x0d, 0x2f, 0x77, 0x61, 0x6c, 0x6c,
-	0x65, 0x74, 0x53, 0x6f, 0x63, 0x6b, 0x65, 0x74, 0x42, 0x05, 0x5a, 0x03, 0x2f, 0x70, 0x62, 0x62,
-	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x61, 0x74, 0x61, 0x12, 0x4a, 0x0a, 0x18, 0x55,
+	0x70, 0x64, 0x61, 0x74, 0x65, 0x45, 0x78, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x52, 0x61, 0x74,
+	0x65, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x12, 0x18, 0x2e, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73,
+	0x2e, 0x4f, 0x6e, 0x65, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x14, 0x2e, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x44, 0x61, 0x74, 0x61, 0x12, 0x5b, 0x0a, 0x0c, 0x57, 0x61, 0x6c, 0x6c, 0x65,
+	0x74, 0x53, 0x6f, 0x63, 0x6b, 0x65, 0x74, 0x12, 0x1b, 0x2e, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73,
+	0x2e, 0x57, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x1a, 0x14, 0x2e, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x2e, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x61, 0x74, 0x61, 0x22, 0x18, 0x82, 0xd3, 0xe4, 0x93,
+	0x02, 0x12, 0x3a, 0x01, 0x2a, 0x22, 0x0d, 0x2f, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x53, 0x6f,
+	0x63, 0x6b, 0x65, 0x74, 0x42, 0x05, 0x5a, 0x03, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x33,
 }
 
 var (
@@ -2100,44 +2105,46 @@ var file_assets_proto_depIdxs = []int32{
 	4,  // 51: assets.AssetsService.GetTxCode:input_type -> assets.OneStringRequest
 	1,  // 52: assets.AssetsService.HandlerURLCodeWithdrawlWithAccount:input_type -> assets.URLCodeWithdrawWithAccountRequest
 	4,  // 53: assets.AssetsService.CreateNewAsset:input_type -> assets.OneStringRequest
-	2,  // 54: assets.AssetsService.WalletSocket:input_type -> assets.WalletNotifyRequest
-	22, // 55: assets.AssetsService.CreateNewAddress:output_type -> assets.ResponseData
-	22, // 56: assets.AssetsService.SyncTransactions:output_type -> assets.ResponseData
-	22, // 57: assets.AssetsService.SendTradingRequest:output_type -> assets.ResponseData
-	22, // 58: assets.AssetsService.TransferAmount:output_type -> assets.ResponseData
-	22, // 59: assets.AssetsService.AddToContact:output_type -> assets.ResponseData
-	22, // 60: assets.AssetsService.FilterTxHistory:output_type -> assets.ResponseData
-	22, // 61: assets.AssetsService.GetCodeListData:output_type -> assets.ResponseData
-	22, // 62: assets.AssetsService.GetAddressListDataWithStatus:output_type -> assets.ResponseData
-	22, // 63: assets.AssetsService.ConfirmAmount:output_type -> assets.ResponseData
-	22, // 64: assets.AssetsService.ConfirmWithdrawal:output_type -> assets.ResponseData
-	22, // 65: assets.AssetsService.UpdateNewLabel:output_type -> assets.ResponseData
-	22, // 66: assets.AssetsService.GetBalanceSummary:output_type -> assets.ResponseData
-	22, // 67: assets.AssetsService.GetAssetDBList:output_type -> assets.ResponseData
-	22, // 68: assets.AssetsService.GetUserAssetDB:output_type -> assets.ResponseData
-	22, // 69: assets.AssetsService.GetAddressList:output_type -> assets.ResponseData
-	22, // 70: assets.AssetsService.CountAddress:output_type -> assets.ResponseData
-	22, // 71: assets.AssetsService.CheckHasCodeList:output_type -> assets.ResponseData
-	22, // 72: assets.AssetsService.GetContactList:output_type -> assets.ResponseData
-	22, // 73: assets.AssetsService.FilterTxCode:output_type -> assets.ResponseData
-	22, // 74: assets.AssetsService.GetTxHistory:output_type -> assets.ResponseData
-	22, // 75: assets.AssetsService.FilterAddressList:output_type -> assets.ResponseData
-	22, // 76: assets.AssetsService.CheckAndCreateAccountToken:output_type -> assets.ResponseData
-	22, // 77: assets.AssetsService.FetchRate:output_type -> assets.ResponseData
-	22, // 78: assets.AssetsService.CheckAssetMatchWithUser:output_type -> assets.ResponseData
-	22, // 79: assets.AssetsService.CheckAddressMatchWithUser:output_type -> assets.ResponseData
-	22, // 80: assets.AssetsService.GetAddress:output_type -> assets.ResponseData
-	22, // 81: assets.AssetsService.ConfirmAddressAction:output_type -> assets.ResponseData
-	22, // 82: assets.AssetsService.CancelUrlCode:output_type -> assets.ResponseData
-	22, // 83: assets.AssetsService.CheckContactUser:output_type -> assets.ResponseData
-	22, // 84: assets.AssetsService.TransactionDetail:output_type -> assets.ResponseData
-	22, // 85: assets.AssetsService.AdminUpdateBalance:output_type -> assets.ResponseData
-	22, // 86: assets.AssetsService.GetTxCode:output_type -> assets.ResponseData
-	22, // 87: assets.AssetsService.HandlerURLCodeWithdrawlWithAccount:output_type -> assets.ResponseData
-	22, // 88: assets.AssetsService.CreateNewAsset:output_type -> assets.ResponseData
-	22, // 89: assets.AssetsService.WalletSocket:output_type -> assets.ResponseData
-	55, // [55:90] is the sub-list for method output_type
-	20, // [20:55] is the sub-list for method input_type
+	4,  // 54: assets.AssetsService.UpdateExchangeRateServer:input_type -> assets.OneStringRequest
+	2,  // 55: assets.AssetsService.WalletSocket:input_type -> assets.WalletNotifyRequest
+	22, // 56: assets.AssetsService.CreateNewAddress:output_type -> assets.ResponseData
+	22, // 57: assets.AssetsService.SyncTransactions:output_type -> assets.ResponseData
+	22, // 58: assets.AssetsService.SendTradingRequest:output_type -> assets.ResponseData
+	22, // 59: assets.AssetsService.TransferAmount:output_type -> assets.ResponseData
+	22, // 60: assets.AssetsService.AddToContact:output_type -> assets.ResponseData
+	22, // 61: assets.AssetsService.FilterTxHistory:output_type -> assets.ResponseData
+	22, // 62: assets.AssetsService.GetCodeListData:output_type -> assets.ResponseData
+	22, // 63: assets.AssetsService.GetAddressListDataWithStatus:output_type -> assets.ResponseData
+	22, // 64: assets.AssetsService.ConfirmAmount:output_type -> assets.ResponseData
+	22, // 65: assets.AssetsService.ConfirmWithdrawal:output_type -> assets.ResponseData
+	22, // 66: assets.AssetsService.UpdateNewLabel:output_type -> assets.ResponseData
+	22, // 67: assets.AssetsService.GetBalanceSummary:output_type -> assets.ResponseData
+	22, // 68: assets.AssetsService.GetAssetDBList:output_type -> assets.ResponseData
+	22, // 69: assets.AssetsService.GetUserAssetDB:output_type -> assets.ResponseData
+	22, // 70: assets.AssetsService.GetAddressList:output_type -> assets.ResponseData
+	22, // 71: assets.AssetsService.CountAddress:output_type -> assets.ResponseData
+	22, // 72: assets.AssetsService.CheckHasCodeList:output_type -> assets.ResponseData
+	22, // 73: assets.AssetsService.GetContactList:output_type -> assets.ResponseData
+	22, // 74: assets.AssetsService.FilterTxCode:output_type -> assets.ResponseData
+	22, // 75: assets.AssetsService.GetTxHistory:output_type -> assets.ResponseData
+	22, // 76: assets.AssetsService.FilterAddressList:output_type -> assets.ResponseData
+	22, // 77: assets.AssetsService.CheckAndCreateAccountToken:output_type -> assets.ResponseData
+	22, // 78: assets.AssetsService.FetchRate:output_type -> assets.ResponseData
+	22, // 79: assets.AssetsService.CheckAssetMatchWithUser:output_type -> assets.ResponseData
+	22, // 80: assets.AssetsService.CheckAddressMatchWithUser:output_type -> assets.ResponseData
+	22, // 81: assets.AssetsService.GetAddress:output_type -> assets.ResponseData
+	22, // 82: assets.AssetsService.ConfirmAddressAction:output_type -> assets.ResponseData
+	22, // 83: assets.AssetsService.CancelUrlCode:output_type -> assets.ResponseData
+	22, // 84: assets.AssetsService.CheckContactUser:output_type -> assets.ResponseData
+	22, // 85: assets.AssetsService.TransactionDetail:output_type -> assets.ResponseData
+	22, // 86: assets.AssetsService.AdminUpdateBalance:output_type -> assets.ResponseData
+	22, // 87: assets.AssetsService.GetTxCode:output_type -> assets.ResponseData
+	22, // 88: assets.AssetsService.HandlerURLCodeWithdrawlWithAccount:output_type -> assets.ResponseData
+	22, // 89: assets.AssetsService.CreateNewAsset:output_type -> assets.ResponseData
+	22, // 90: assets.AssetsService.UpdateExchangeRateServer:output_type -> assets.ResponseData
+	22, // 91: assets.AssetsService.WalletSocket:output_type -> assets.ResponseData
+	56, // [56:92] is the sub-list for method output_type
+	20, // [20:56] is the sub-list for method input_type
 	20, // [20:20] is the sub-list for extension type_name
 	20, // [20:20] is the sub-list for extension extendee
 	0,  // [0:20] is the sub-list for field type_name
