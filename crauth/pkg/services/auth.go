@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 )
@@ -42,8 +43,13 @@ func (s *Server) BeginRegistration(ctx context.Context, reqData *pb.WithUsername
 	}
 
 	user := passkey.Datastore.GetUser(username) // Find or create the new user
-
-	options, session, err := passkey.WebAuthn.BeginRegistration(user)
+	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
+		credCreationOpts.CredentialExcludeList = user.CredentialExcludeList()
+		credCreationOpts.AuthenticatorSelection.ResidentKey = protocol.ResidentKeyRequirementRequired
+		credCreationOpts.AuthenticatorSelection.RequireResidentKey = protocol.ResidentKeyRequired()
+		credCreationOpts.AuthenticatorSelection.UserVerification = protocol.VerificationRequired
+	}
+	options, session, err := passkey.WebAuthn.BeginRegistration(user, registerOptions)
 	if err != nil {
 		passkey.Datastore.RemoveUser(username)
 		return ResponseError("can't begin registration", utils.GetFuncName(), nil)

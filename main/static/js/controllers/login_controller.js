@@ -12,7 +12,7 @@ export default class extends BaseController {
     const { startAuthentication } = SimpleWebAuthnBrowser;
     let asseResp;
     try {
-      asseResp = await startAuthentication(opts.publicKey, startConditionalUI);
+      asseResp = await startAuthentication({ optionsJSON: opts.publicKey, useBrowserAutofill: startConditionalUI });
     } catch (error) {
       console.log("Conditional UI request was aborted");
       $("#loadingArea").addClass("d-none");
@@ -189,11 +189,12 @@ export default class extends BaseController {
   }
 
   async handlerFinishRegistration(options, sessionKey) {
+    const { startRegistration } = SimpleWebAuthnBrowser;
     let attestationResponse;
     const _this = this;
     try {
-      attestationResponse = await SimpleWebAuthnBrowser.startRegistration(
-        options.publicKey
+      attestationResponse = await startRegistration(
+        { optionsJSON: options.publicKey }
       );
     } catch (error) {
       _this.cancelRegisterUser(sessionKey);

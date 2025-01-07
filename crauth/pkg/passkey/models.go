@@ -3,6 +3,7 @@ package passkey
 import (
 	"encoding/json"
 
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
@@ -13,6 +14,7 @@ type PasskeyUser interface {
 	UpdateCredential(*webauthn.Credential)
 	GetUserCredsJson() string
 	SetCredential([]webauthn.Credential)
+	CredentialExcludeList() []protocol.CredentialDescriptor
 }
 
 type PasskeyStore interface {
@@ -83,4 +85,16 @@ func (o *User) GetUserCredsJson() string {
 		return ""
 	}
 	return string(jsonByte)
+}
+
+func (o *User) CredentialExcludeList() []protocol.CredentialDescriptor {
+	credentialExcludeList := []protocol.CredentialDescriptor{}
+	for _, cred := range o.creds {
+		descriptor := protocol.CredentialDescriptor{
+			Type:         protocol.PublicKeyCredentialType,
+			CredentialID: cred.ID,
+		}
+		credentialExcludeList = append(credentialExcludeList, descriptor)
+	}
+	return credentialExcludeList
 }
