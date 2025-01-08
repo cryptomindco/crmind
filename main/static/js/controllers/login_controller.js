@@ -83,8 +83,7 @@ export default class extends BaseController {
   setSignupComponent() {
     $("#usernameConfirmArea").removeClass("d-none")
     $("#switchModeText").text("Back to login")
-    $("#modeLink").addClass("t-decor-none")
-    $("#backIcon").removeClass("d-none")
+    $("#backIcon").html("undo")
     $("#refreshUsernameBtn").removeClass("d-none")
     $("#randomText").removeClass("d-none")
     $("#loginButton").addClass("d-none");
@@ -105,8 +104,7 @@ export default class extends BaseController {
 
   setLoginComponent() {
     $("#switchModeText").text("Signup")
-    $("#modeLink").removeClass("t-decor-none")
-    $("#backIcon").addClass("d-none")
+    $("#backIcon").html("app_registration")
     $("#randomText").addClass("d-none")
     $("#loginButton").removeClass("d-none");
     $("#confirmButton").addClass("d-none");
