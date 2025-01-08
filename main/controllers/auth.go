@@ -327,6 +327,41 @@ func (this *AuthController) GenRandomUsername() {
 	this.ServeJSON()
 }
 
+func (this *AuthController) LoginByPassword() {
+	username := this.GetString("username")
+	password := this.GetString("password")
+	resData, err := services.LoginByPassword(this.Ctx.Request.Context(), &authpb.WithPasswordRequest{
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		this.ResponseError("Login failed", utils.GetFuncName(), err)
+		return
+	}
+	var data map[string]any
+	err = utils.JsonStringToObject(resData.Data, &data)
+	if err != nil {
+		this.ResponseError("Parse res data failed", utils.GetFuncName(), err)
+	}
+	var authClaim models.AuthClaims
+	user, userExist := data["user"]
+	token, tokenExist := data["token"]
+	if !userExist || !tokenExist {
+		this.ResponseError("Get login token failed", utils.GetFuncName(), fmt.Errorf("Get login token failed"))
+		return
+	}
+	tokenString := token.(string)
+	err = utils.CatchObject(user, &authClaim)
+	if err != nil {
+		this.ResponseError("Parse login user failed", utils.GetFuncName(), err)
+		return
+	}
+	//set token on session
+	this.SetSession(utils.Tokenkey, tokenString)
+	this.SetSession(utils.LoginUserKey, authClaim)
+	this.ResponseSuccessfully(0, "Login successfully. loading homepage...", utils.GetFuncName())
+}
+
 func (this *AuthController) RegisterByPassword() {
 	username := this.GetString("username")
 	password := this.GetString("password")

@@ -139,6 +139,35 @@ func (s *Server) CheckUser(ctx context.Context, reqData *pb.WithUsernameRequest)
 	})
 }
 
+func (s *Server) LoginByPassword(ctx context.Context, reqData *pb.WithPasswordRequest) (*pb.ResponseData, error) {
+	username := reqData.Username
+	password := reqData.Password
+	if utils.IsEmpty(username) || utils.IsEmpty(password) {
+		return ResponseError("Username/password param not found", utils.GetFuncName(), nil)
+	}
+	user, err := s.H.GetUserByUsername(username)
+	if err != nil {
+		return ResponseError("Get login user failed", utils.GetFuncName(), err)
+	}
+	// if login type is passkey, return error
+	if user.LoginType == int(utils.LoginWithPasskey) {
+		return ResponseError("User is registered with passkey. Cannot log in with password.", utils.GetFuncName(), nil)
+	}
+	if !utils.CheckPasswordHash(password, user.Password) {
+		return ResponseError("Login failed. Password is incorrect!", utils.GetFuncName(), nil)
+	}
+	// Login handler
+	tokenString, authClaim, err := s.Jwt.CreateAuthClaimSession(user)
+	if err != nil {
+		return ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+	}
+	loginResponse := map[string]any{
+		"token": tokenString,
+		"user":  *authClaim,
+	}
+	return ResponseSuccessfullyWithAnyData("", "Finish login successfully", utils.GetFuncName(), loginResponse)
+}
+
 func (s *Server) RegisterByPassword(ctx context.Context, reqData *pb.WithPasswordRequest) (*pb.ResponseData, error) {
 	username := reqData.Username
 	password := reqData.Password

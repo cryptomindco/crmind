@@ -291,3 +291,15 @@ func RegisterByPassword(ctx context.Context, req *authpb.WithPasswordRequest) (*
 	}
 	return res, nil
 }
+
+func LoginByPassword(ctx context.Context, req *authpb.WithPasswordRequest) (*authpb.ResponseData, error) {
+	err := CheckAndInitAuthClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AuthCli.Client).LoginByPassword(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}

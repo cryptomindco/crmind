@@ -130,6 +130,9 @@ export default class extends BaseController {
   }
 
   inputBlur() {
+    if (!this.isRegister) {
+      return
+    }
     const curUsername = $("#usernameInput").val();
     if (!curUsername || curUsername == "") {
       $("#usernameInput").val(this.randomUsername);
@@ -177,6 +180,11 @@ export default class extends BaseController {
   registerByPassword() {
     const newUsername = $("#usernameInput").val().trim();
     const password = $("#passwordLoginInput").val().trim();
+    if (password == "") {
+      $("#passloginerr_msg").removeClass("d-none")
+      $("#passloginerr_msg").text("Password cannot be blank")
+      return
+    }
     $.ajax({
       data: {
         username: newUsername,
@@ -313,16 +321,23 @@ export default class extends BaseController {
   }
 
   usernameChange() {
-    $("#registererr_msg").addClass("d-none");
     const newUsername = $("#usernameInput").val().trim();
     if (!newUsername || newUsername == "") {
+      if (!this.isRegister) {
+        $("#registererr_msg").removeClass("d-none");
+        $("#registererr_msg").text("Username cannot be blank")
+      }
       $("#confirmButton").prop("disabled", true);
       return;
     }
     $("#confirmButton").prop("disabled", false);
+    $("#registererr_msg").addClass("d-none");
   }
 
   inputFocus() {
+    if (!this.isRegister) {
+      return
+    }
     $("#registererr_msg").addClass("d-none");
     if (this.randomUsername != $("#usernameInput").val().trim()) {
       return;
@@ -332,7 +347,7 @@ export default class extends BaseController {
     $("#usernameInput").val("");
   }
 
-  openLogin() {
+  openLoginWithPasskey() {
     $("#loadingArea").removeClass("d-none");
     $("#sectionTitle").text("Select your Passkey");
     $("#loadingText").text("Loading...");
@@ -358,6 +373,41 @@ export default class extends BaseController {
         }
       },
     });
+  }
+
+  loginWithPassword() {
+    const newUsername = $("#usernameInput").val().trim();
+    const password = $("#passwordLoginInput").val().trim();
+    if (newUsername == "") {
+      $("#registererr_msg").removeClass("d-none")
+      $("#registererr_msg").text("Username cannot be blank")
+      return
+    }
+    if (password == "") {
+      $("#passloginerr_msg").removeClass("d-none")
+      $("#passloginerr_msg").text("Password cannot be blank")
+      return
+    }
+    $.ajax({
+      data: {
+        username: newUsername,
+        password: password,
+      },
+      type: "POST",
+      url: "/password/login",
+      success: function (res) {
+        if (!res.error) {
+          window.location.href = "/";
+        } else {
+          $("#registererr_msg").removeClass("d-none");
+          $("#registererr_msg").text(res.msg);
+        }
+      },
+    });
+  }
+
+  openLogin() {
+    this.usePassword ? this.loginWithPassword() : this.openLoginWithPasskey()
   }
   
   refreshRandomUsername(e) {

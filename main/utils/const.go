@@ -25,7 +25,7 @@ var ServiceList = []string{"auth", "chat", "assets"}
 var LoginExcludeUrl = []string{"/404", "/exit", "/login", "/LoginSubmit", "/checkLogin", "/register", "/RegisterSubmit", "/walletSocket", "/withdrawl",
 	"/confirmWithdraw", "/passkey/registerStart", "/passkey/registerFinish", "/assertion/options",
 	"/assertion/result", "/passkey/cancelRegister", "/assertion/withdrawConfirmLoginResult", "/passkey/withdrawWithNewAccountFinish", "/gen-random-username",
-	"/check-user", "/password/register"}
+	"/check-user", "/password/register", "/password/login"}
 
 var AssetUrl = []string{"/walletSocket", "/withdrawl", "/confirmWithdraw", "/assertion/withdrawConfirmLoginResult", "/passkey/withdrawWithNewAccountFinish",
 	"/adminUpdateBalance", "/transfer/GetHistoryList", "/check-contact-user", "/confirmAmount", "/transfer-amount", "/updateNewLabel", "/send-trading-request",

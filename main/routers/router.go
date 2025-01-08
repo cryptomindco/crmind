@@ -28,6 +28,7 @@ func init() {
 	beego.Router("/assertion/withdrawConfirmLoginResult", &controllers.AuthController{}, "post:WithdrawConfirmLoginResult")
 	beego.Router("/passkey/withdrawWithNewAccountFinish", &controllers.AuthController{}, "post:WithdrawWithNewAccountFinish")
 	beego.Router("/password/register", &controllers.AuthController{}, "post:RegisterByPassword")
+	beego.Router("/password/login", &controllers.AuthController{}, "post:LoginByPassword")
 	//Profile router
 	beego.Router("/profile", &controllers.ProfileController{})
 
