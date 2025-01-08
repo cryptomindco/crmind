@@ -32,10 +32,10 @@
                     refresh
                   </span></a>
               </div>
+              <span class="error d-none" id="registererr_msg"></span>
               <div id="randomText" class="mt-1" style="height: 25px;">
                 <span id="randomUsernameMsg" class="fs-15">Randomly generated</span>
               </div>
-              <span class="error d-none" id="registererr_msg"></span>
             </div>
           </div>
         </div>
@@ -45,7 +45,7 @@
               <div class="d-flex ai-center username-input-group">
                 <div class="kinput vBubble mb-0 mt-3">
                   <input type="password" id="passwordLoginInput"
-                    data-action="input->login#usernameChange focus->login#inputFocus blur->login#inputBlur"
+                    data-action="input->login#passwordChange"
                     autocomplete="off">
                   <label>Password</label>
                 </div>

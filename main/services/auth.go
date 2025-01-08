@@ -279,3 +279,15 @@ func CheckUserHandler(ctx context.Context, req *authpb.WithUsernameRequest) (*au
 	}
 	return res, nil
 }
+
+func RegisterByPassword(ctx context.Context, req *authpb.WithPasswordRequest) (*authpb.ResponseData, error) {
+	err := CheckAndInitAuthClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AuthCli.Client).RegisterByPassword(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}

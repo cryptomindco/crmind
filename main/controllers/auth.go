@@ -327,6 +327,41 @@ func (this *AuthController) GenRandomUsername() {
 	this.ServeJSON()
 }
 
+func (this *AuthController) RegisterByPassword() {
+	username := this.GetString("username")
+	password := this.GetString("password")
+	resData, err := services.RegisterByPassword(this.Ctx.Request.Context(), &authpb.WithPasswordRequest{
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		this.ResponseError("Error registering account", utils.GetFuncName(), err)
+		return
+	}
+	var data map[string]any
+	err = utils.JsonStringToObject(resData.Data, &data)
+	if err != nil {
+		this.ResponseError("Parse res data failed", utils.GetFuncName(), err)
+	}
+	var authClaim models.AuthClaims
+	user, userExist := data["user"]
+	token, tokenExist := data["token"]
+	if !userExist || !tokenExist {
+		this.ResponseError("Get login token failed", utils.GetFuncName(), fmt.Errorf("Get login token failed"))
+		return
+	}
+	tokenString := token.(string)
+	err = utils.CatchObject(user, &authClaim)
+	if err != nil {
+		this.ResponseError("Parse login user failed", utils.GetFuncName(), err)
+		return
+	}
+	//set token on session
+	this.SetSession(utils.Tokenkey, tokenString)
+	this.SetSession(utils.LoginUserKey, authClaim)
+	this.ResponseSuccessfully(0, "Registration successfully. Logging in...", utils.GetFuncName())
+}
+
 func (this *AuthController) ChangeUsernameFinish() {
 	oldUsername := this.Ctx.Request.Header.Get("Old-Username")
 	res, err := services.ChangeUsernameFinishHandler(this.Ctx.Request.Context(), &authpb.ChangeUsernameFinishRequest{

@@ -4,6 +4,7 @@ var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345
 
 type UserRole int
 type UserStatus int
+type LoginType int
 
 const (
 	UserListSessionKey = "userList"
@@ -18,6 +19,11 @@ const (
 const (
 	StatusDeactive UserStatus = iota
 	StatusActive
+)
+
+const (
+	LoginWithPasskey LoginType = iota
+	LoginWithPassword
 )
 
 type ResponseData struct {

@@ -159,7 +159,8 @@ export default class extends BaseController {
               $("#confirmButton").prop("disabled", true);
               return;
             }
-            _this.handlerRegister(newUsername);
+            _this.usePassword ? _this.registerByPassword() : _this.handlerRegister(newUsername);
+            return
           } else {
             $("#confirmButton").prop("disabled", true);
             $("#registererr_msg").removeClass("d-none");
@@ -170,7 +171,28 @@ export default class extends BaseController {
       });
       return;
     }
-    this.handlerRegister(newUsername);
+    this.usePassword ? this.registerByPassword() : this.handlerRegister(newUsername);
+  }
+
+  registerByPassword() {
+    const newUsername = $("#usernameInput").val().trim();
+    const password = $("#passwordLoginInput").val().trim();
+    $.ajax({
+      data: {
+        username: newUsername,
+        password: password,
+      },
+      type: "POST",
+      url: "/password/register",
+      success: function (res) {
+        if (!res.error) {
+          window.location.href = "/";
+        } else {
+          $("#registererr_msg").removeClass("d-none");
+          $("#registererr_msg").text(res.msg);
+        }
+      },
+    });
   }
 
   handlerRegister(newUsername) {
@@ -218,6 +240,21 @@ export default class extends BaseController {
         }
       },
     });
+  }
+
+  passwordChange() {
+    if (!this.usePassword) {
+      $("#passloginerr_msg").addClass("d-none")
+      return
+    }
+    const pass = $("#passwordLoginInput").val().trim();
+    if (pass == "") {
+      $("#passloginerr_msg").removeClass("d-none")
+      $("#passloginerr_msg").text("Password cannot be blank")
+      return
+    }
+    $("#passloginerr_msg").addClass("d-none")
+    // TODO: Will check the password reliability later.
   }
 
   resetToStartPage() {

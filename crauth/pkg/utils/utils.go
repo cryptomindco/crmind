@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func IsEmpty(x interface{}) bool {
@@ -68,4 +70,14 @@ func ConvertBodyJsonToRequest(bodyJson string) (*http.Request, error) {
 	bodyReadCloser := io.NopCloser(bodyReader)
 	request.Body = bodyReadCloser
 	return &request, nil
+}
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }

@@ -138,3 +138,48 @@ func (s *Server) CheckUser(ctx context.Context, reqData *pb.WithUsernameRequest)
 		"exist": exist,
 	})
 }
+
+func (s *Server) RegisterByPassword(ctx context.Context, reqData *pb.WithPasswordRequest) (*pb.ResponseData, error) {
+	username := reqData.Username
+	password := reqData.Password
+	if utils.IsEmpty(username) || utils.IsEmpty(password) {
+		return ResponseError("Username/password param not found", utils.GetFuncName(), nil)
+	}
+	exist, err := s.H.CheckUserExist(username)
+	if err != nil {
+		return ResponseError("Check exist user failed", utils.GetFuncName(), nil)
+	}
+	if exist {
+		return ResponseError("Username already exists, cannot register", utils.GetFuncName(), nil)
+	}
+	user := models.User{}
+	hashPassword, err := utils.HashPassword(password)
+	if err != nil {
+		return ResponseError(err.Error(), utils.GetFuncName(), nil)
+	}
+	user.Username = username
+	user.Password = hashPassword
+	user.Status = int(utils.StatusActive)
+	user.Role = int(utils.RoleRegular)
+	user.LoginType = int(utils.LoginWithPassword)
+	user.Createdt = time.Now().Unix()
+	user.Updatedt = user.Createdt
+	user.LastLogindt = user.Createdt
+	tx := s.H.DB.Begin()
+	err2 := tx.Create(&user).Error
+	if err2 != nil {
+		tx.Rollback()
+		return ResponseError("User creation error. Try again!", utils.GetFuncName(), err2)
+	}
+	tx.Commit()
+	// Login after registration
+	tokenString, authClaim, err := s.Jwt.CreateAuthClaimSession(&user)
+	if err != nil {
+		return ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+	}
+	loginResponse := map[string]any{
+		"token": tokenString,
+		"user":  *authClaim,
+	}
+	return ResponseSuccessfullyWithAnyData("", "Finish registration successfully", utils.GetFuncName(), loginResponse)
+}

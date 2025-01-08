@@ -24,11 +24,18 @@ service AuthService{
   rpc IsLoggingOn(CommonRequest) returns (ResponseData);
   rpc GenRandomUsername(CommonRequest) returns (ResponseData);
   rpc CheckUser(WithUsernameRequest) returns (ResponseData);
+  rpc RegisterByPassword(WithPasswordRequest) returns (ResponseData);
 }
 
 message WithUsernameRequest {
   CommonRequest common = 1;
   string username = 2;
+}
+
+message WithPasswordRequest {
+  CommonRequest common = 1;
+  string username = 2;
+  string password = 3;
 }
 
 message WithUserIdRequest {
