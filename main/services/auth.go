@@ -303,3 +303,15 @@ func LoginByPassword(ctx context.Context, req *authpb.WithPasswordRequest) (*aut
 	}
 	return res, nil
 }
+
+func UpdatePassword(ctx context.Context, req *authpb.WithPasswordRequest) (*authpb.ResponseData, error) {
+	err := CheckAndInitAuthClient()
+	if err != nil {
+		return nil, err
+	}
+	res, err := (*AuthCli.Client).UpdatePassword(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}

@@ -168,6 +168,32 @@ func (s *Server) LoginByPassword(ctx context.Context, reqData *pb.WithPasswordRe
 	return ResponseSuccessfullyWithAnyData("", "Finish login successfully", utils.GetFuncName(), loginResponse)
 }
 
+func (s *Server) UpdatePassword(ctx context.Context, reqData *pb.WithPasswordRequest) (*pb.ResponseData, error) {
+	authClaims, isLogin := s.Jwt.HanlderCheckLogin(reqData.Common.AuthToken)
+	if !isLogin {
+		return ResponseError("User is not login", utils.GetFuncName(), nil)
+	}
+	password := reqData.Password
+	user, err := s.H.GetUserFromId(authClaims.Id)
+	if err != nil {
+		return ResponseLoginError(authClaims.Username, "Get user from DB error. Please try again!", utils.GetFuncName(), err)
+	}
+	hashPassword, hashErr := utils.HashPassword(password)
+	if hashErr != nil {
+		return ResponseLoginError(authClaims.Username, "Hash password failed. Please try again!", utils.GetFuncName(), hashErr)
+	}
+	user.Password = hashPassword
+	user.Updatedt = time.Now().Unix()
+	tx := s.H.DB.Begin()
+	//update user
+	updateErr := tx.Save(&user).Error
+	if updateErr != nil {
+		return ResponseLoginRollbackError(authClaims.Username, tx, "Update user password failed. Please try again!", utils.GetFuncName(), updateErr)
+	}
+	tx.Commit()
+	return ResponseSuccessfully(authClaims.Username, "Update password successfully!", utils.GetFuncName())
+}
+
 func (s *Server) RegisterByPassword(ctx context.Context, reqData *pb.WithPasswordRequest) (*pb.ResponseData, error) {
 	username := reqData.Username
 	password := reqData.Password

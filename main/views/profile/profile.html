@@ -90,7 +90,7 @@
     <div>
       <span class="error d-none profile-left-align" id="updateErr"></span>
     </div>
-    <div class="d-flex profile-left-align mt-2">
+    <div class="d-flex profile-left-align mt-2 {{if eq .LoginUser.LoginType 1}}d-none{{end}}" id="passkeyUpdateButtonGroup">
       <a class="card-link text-main read-more two cursor-pointer px-3 t-decor-none"
         data-action="click->profile#showUpdatePasskeyDialog" data-toggle="tooltip" data-placement="top"
         title="Reset passkey method">
@@ -102,16 +102,39 @@
         Add Key
       </a>
     </div>
+    <div class="d-flex profile-left-align mt-2 {{if eq .LoginUser.LoginType 0}}d-none{{end}}" id="passwordUpdateBtn">
+      <a class="card-link text-main read-more two cursor-pointer px-3 t-decor-none"
+        data-action="click->profile#showUpdatePasswordDialog" data-toggle="tooltip" data-placement="top"
+        title="Update password">
+        Update Password
+      </a>
+    </div>
   </div>
   <div class="modal fade" id="usernameChangeConfirm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
     aria-labelledby="usernameChangeConfirmLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-body">
-          <span id="dialogContent"></span>
+          <h5 class="d-none mb-4" id="confirmDialogTitle">Update Password</h5>
+          <span id="dialogContent" class="d-none"></span>
+          <div class="d-none" id="passwordUpdateFields">
+            <div class="kinput required vBubble mb-0">
+              <input type="password" class="w-100" autocomplete="off"
+              autocomplete="off" name="password" id="password" data-action="input->profile#passwordChange">
+              <label>New Password</label>
+            </div>
+            <span class="error d-none" id="passwordError"></span>
+            <div class="kinput required vBubble mb-0 mt-4">
+              <input type="password" class="w-100" autocomplete="off"
+              autocomplete="off" name="cpassword" id="cpassword" data-action="input->profile#cpasswordChange">
+              <label>Confirmation Password</label>
+            </div>
+            <span class="error d-none" id="cpasswordError">Confirmation password does not match</span>
+            <span class="error d-none" id="updateErr">Update password failed</span>
+          </div>
         </div>
         <div class="modal-footer">
-          <button type="button" data-action="click->profile#confirmDialogYes"
+          <button type="button" id="confirmBtn" data-action="click->profile#confirmDialogYes"
             class="btn btn-linkedin">Yes</button>
           <button type="button" data-action="click->profile#closeConfirmDialog" class="btn btn-secondary"
             data-bs-dismiss="modal">Cancel</button>

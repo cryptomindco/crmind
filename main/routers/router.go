@@ -31,6 +31,7 @@ func init() {
 	beego.Router("/password/login", &controllers.AuthController{}, "post:LoginByPassword")
 	//Profile router
 	beego.Router("/profile", &controllers.ProfileController{})
+	beego.Router("/profile/updatePassword", &controllers.ProfileController{}, "post:UpdatePassword")
 
 	//Admin router
 	beego.Router("/admin", &controllers.AdminController{})

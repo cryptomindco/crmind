@@ -26,6 +26,7 @@ service AuthService{
   rpc CheckUser(WithUsernameRequest) returns (ResponseData);
   rpc RegisterByPassword(WithPasswordRequest) returns (ResponseData);
   rpc LoginByPassword(WithPasswordRequest) returns (ResponseData);
+  rpc UpdatePassword(WithPasswordRequest) returns (ResponseData);
 }
 
 message WithUsernameRequest {

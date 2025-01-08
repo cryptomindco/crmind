@@ -26,10 +26,55 @@ export default class extends BaseController {
         break;
       case "reset":
         this.handlerUpdatePasskey(true);
+        break;
+      case "password": {
+        this.handlerUpdatePassword()
+      }
     }
   }
 
+  handlerUpdatePassword() {
+    const cpass = $("#cpassword").val().trim()
+    const pass = $("#password").val().trim()
+    if (pass == "") {
+      $("#passwordError").removeClass("d-none")
+      $("#passwordError").text("Password cannot be blank")
+      return
+    }
+    $("#passwordError").addClass("d-none")
+    if (cpass != pass) {
+      $("#cpasswordError").removeClass("d-none")
+      return
+    }
+    $("#cpasswordError").addClass("d-none")
+    const _this = this
+    $.ajax({
+      data: {
+        newpassword: pass,
+      },
+      type: "POST",
+      url: "/profile/updatePassword",
+      success: function (res) {
+        if (!res.error) {
+          $("#password").val("")
+          $("#cpassword").val("")
+          _this.showSuccessToast("Update password successfully");
+          $("#usernameChangeConfirm")
+          .on("shown.bs.modal", function () {})
+          .modal("hide");
+        } else {
+          $("#updateErr").removeClass("d-none");
+          $("#updateErr").text(res.msg);
+        }
+      },
+    });
+  }
+
   showAddCredentialDialog() {
+    $("#dialogContent").removeClass("d-none")
+    $("#confirmDialogTitle").addClass("d-none")
+    $("#passwordUpdateFields").addClass("d-none")
+    $("#confirmBtn").html("Yes")
     $("#dialogContent").text(
       "Resend your current passkey to your passkey manager. Would you like to continue?"
     );
@@ -39,7 +84,42 @@ export default class extends BaseController {
       .modal("show");
   }
 
+  showUpdatePasswordDialog() {
+    $("#dialogContent").addClass("d-none")
+    $("#confirmDialogTitle").removeClass("d-none")
+    $("#passwordUpdateFields").removeClass("d-none")
+    $("#confirmBtn").html("Update")
+    this.dialogType = "password"
+    $("#usernameChangeConfirm")
+      .on("shown.bs.modal", function () {})
+      .modal("show");
+  }
+
+  passwordChange() {
+    const pass = $("#password").val().trim()
+    if (!pass || pass == "") {
+      $("#passwordError").removeClass("d-none")
+      $("#passwordError").text("Password cannot be blank")
+      return
+    }
+    $("#passwordError").addClass("d-none")
+  }
+
+  cpasswordChange() {
+    const cpass = $("#cpassword").val().trim()
+    const pass = $("#password").val().trim()
+    if (cpass != pass) {
+      $("#cpasswordError").removeClass("d-none")
+      return
+    }
+    $("#cpasswordError").addClass("d-none")
+  }
+
   showUpdatePasskeyDialog() {
+    $("#dialogContent").removeClass("d-none")
+    $("#confirmDialogTitle").addClass("d-none")
+    $("#passwordUpdateFields").addClass("d-none")
+    $("#confirmBtn").html("Yes")
     $("#dialogContent").text(
       "Invalidated your current passkey and makes a new one. Would you like to continue?"
     );
@@ -159,9 +239,13 @@ export default class extends BaseController {
           _this.newUsername = newUsername;
           $("#loadingArea").removeClass("d-none");
           $("#loadingText").text("Updating username");
+          $("#dialogContent").removeClass("d-none")
           $("#dialogContent").text(
             "Changing your user name will require changing your passkey to work with your new username. Would you like to continue?"
           );
+          $("#confirmDialogTitle").addClass("d-none")
+          $("#passwordUpdateFields").addClass("d-none")
+          $("#confirmBtn").html("Yes")
           _this.dialogType = "username";
           $("#usernameChangeConfirm")
             .on("shown.bs.modal", function () {})

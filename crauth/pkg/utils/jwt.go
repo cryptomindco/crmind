@@ -18,6 +18,7 @@ func (w *JWTWrapper) CreateAuthClaimSession(loginUser *models.User) (string, *mo
 	authClaims := models.AuthClaims{
 		Id:          loginUser.Id,
 		Username:    loginUser.Username,
+		LoginType:   loginUser.LoginType,
 		Expire:      time.Now().Add(time.Hour * time.Duration(w.ExpirationHours)).Unix(),
 		Role:        loginUser.Role,
 		Createdt:    loginUser.Createdt,

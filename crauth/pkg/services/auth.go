@@ -203,6 +203,7 @@ func (s *Server) FinishRegistration(ctx context.Context, reqData *pb.SessionKeyA
 	tx := s.H.DB.Begin()
 	insertUser := models.User{
 		Username:     username,
+		LoginType:    int(utils.LoginWithPasskey),
 		Status:       int(utils.StatusActive),
 		Role:         int(utils.RoleRegular),
 		Createdt:     time.Now().Unix(),

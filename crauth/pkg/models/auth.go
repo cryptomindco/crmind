@@ -11,6 +11,7 @@ type AuthClaims struct {
 	jwt.StandardClaims
 	Id          int64  `json:"id"`
 	Username    string `json:"username"`
+	LoginType   int    `json:"loginType"`
 	Expire      int64  `json:"expire"`
 	Role        int    `json:"role"`
 	Createdt    int64  `json:"createdt"`

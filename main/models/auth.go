@@ -3,6 +3,7 @@ package models
 type AuthClaims struct {
 	Id          int64  `json:"id"`
 	Username    string `json:"username"`
+	LoginType   int    `json:"loginType"`
 	Expire      int64  `json:"expire"`
 	Role        int    `json:"role"`
 	Createdt    int64  `json:"createdt"`
@@ -12,6 +13,8 @@ type AuthClaims struct {
 type User struct {
 	Id           int64  `orm:"column(id);auto;size(11)" json:"id"`
 	Username     string `json:"username"`
+	Password     string `json:"password"`
+	LoginType    int    `json:"loginType"`
 	Name         string `json:"name"`
 	Role         int    `json:"role"`
 	Status       int    `json:"status"`
