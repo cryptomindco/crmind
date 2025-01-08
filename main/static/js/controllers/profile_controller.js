@@ -5,10 +5,12 @@ export default class extends BaseController {
     username: String,
     newUsername: String,
     dialogType: String,
+    loginType: Number,
   };
 
   async initialize() {
     this.username = this.data.get("username");
+    this.loginType = Number(this.data.get("logintype"));
     const successFlg = this.data.get("successFlg");
     const successMsg = this.data.get("successfullyMsg");
     if (successFlg == "true") {
@@ -241,7 +243,9 @@ export default class extends BaseController {
           $("#loadingText").text("Updating username");
           $("#dialogContent").removeClass("d-none")
           $("#dialogContent").text(
-            "Changing your user name will require changing your passkey to work with your new username. Would you like to continue?"
+            _this.loginType == 0 ?
+            "Changing your username will require changing your passkey to work with your new username. Would you like to continue?" :
+            "Changing your username may cause all your old data to be re-synced. Would you like to continue?"
           );
           $("#confirmDialogTitle").addClass("d-none")
           $("#passwordUpdateFields").addClass("d-none")
@@ -258,21 +262,12 @@ export default class extends BaseController {
     });
   }
 
-  confirmChangeUsername() {
-    $("#usernameChangeConfirm")
-      .on("shown.bs.modal", function () {})
-      .modal("hide");
-    if (!this.newUsername || this.newUsername == "") {
-      $("#newUsernameErr").removeClass("d-none");
-      $("#newUsernameErr").text("Get new username failed");
-      $("#loadingArea").addClass("d-none");
-      return;
-    }
+  changeUsernameWithPasskey(newUsername) {
     const _this = this;
     //check and create new username
     $.ajax({
       data: {
-        username: _this.newUsername,
+        username: newUsername,
       },
       type: "POST", //OR GET
       url: "/passkey/registerStart", //The same form's action URL
@@ -303,6 +298,38 @@ export default class extends BaseController {
         }
       },
     });
+  }
+
+  changeUsernameWithPassword(newUsername) {
+    $.ajax({
+      data: {
+        newUsername: newUsername,
+      },
+      type: "POST",
+      url: "/profile/updateUsername",
+      success: function (res) {
+        if (!res.error) {
+          window.location.reload();
+        } else {
+          $("#newUsernameErr").removeClass("d-none");
+          $("#newUsernameErr").text(res.msg);
+          $("#loadingArea").addClass("d-none");
+        }
+      },
+    });
+  }
+
+  confirmChangeUsername() {
+    $("#usernameChangeConfirm")
+      .on("shown.bs.modal", function () {})
+      .modal("hide");
+    if (!this.newUsername || this.newUsername == "") {
+      $("#newUsernameErr").removeClass("d-none");
+      $("#newUsernameErr").text("Get new username failed");
+      $("#loadingArea").addClass("d-none");
+      return;
+    }
+    this.loginType == 0 ? this.changeUsernameWithPasskey(this.newUsername) : this.changeUsernameWithPassword(this.newUsername)
   }
 
   async handlerFinishChangeUsername(options, sessionKey) {

@@ -864,7 +864,7 @@ var file_auth_proto_rawDesc = []byte{
 	0x72, 0x6f, 0x72, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
 	0x09, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x6d, 0x73, 0x67, 0x18, 0x03,
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6d, 0x73, 0x67, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74,
-	0x61, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x32, 0xb3, 0x0c,
+	0x61, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x32, 0xf8, 0x0c,
 	0x0a, 0x0b, 0x41, 0x75, 0x74, 0x68, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x46, 0x0a,
 	0x11, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x72, 0x61, 0x74, 0x69,
 	0x6f, 0x6e, 0x12, 0x1b, 0x2e, 0x63, 0x72, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x57, 0x69, 0x74, 0x68,
@@ -964,8 +964,12 @@ var file_auth_proto_rawDesc = []byte{
 	0x12, 0x1b, 0x2e, 0x63, 0x72, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x57, 0x69, 0x74, 0x68, 0x50, 0x61,
 	0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x14, 0x2e,
 	0x63, 0x72, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44,
-	0x61, 0x74, 0x61, 0x42, 0x05, 0x5a, 0x03, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x61, 0x74, 0x61, 0x12, 0x43, 0x0a, 0x0e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x55, 0x73, 0x65,
+	0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1b, 0x2e, 0x63, 0x72, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x57,
+	0x69, 0x74, 0x68, 0x50, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x14, 0x2e, 0x63, 0x72, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x44, 0x61, 0x74, 0x61, 0x42, 0x05, 0x5a, 0x03, 0x2f, 0x70, 0x62, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1030,30 +1034,32 @@ var file_auth_proto_depIdxs = []int32{
 	1,  // 31: crauth.AuthService.RegisterByPassword:input_type -> crauth.WithPasswordRequest
 	1,  // 32: crauth.AuthService.LoginByPassword:input_type -> crauth.WithPasswordRequest
 	1,  // 33: crauth.AuthService.UpdatePassword:input_type -> crauth.WithPasswordRequest
-	11, // 34: crauth.AuthService.BeginRegistration:output_type -> crauth.ResponseData
-	11, // 35: crauth.AuthService.CancelRegister:output_type -> crauth.ResponseData
-	11, // 36: crauth.AuthService.BeginUpdatePasskey:output_type -> crauth.ResponseData
-	11, // 37: crauth.AuthService.FinishUpdatePasskey:output_type -> crauth.ResponseData
-	11, // 38: crauth.AuthService.FinishRegistration:output_type -> crauth.ResponseData
-	11, // 39: crauth.AuthService.AssertionOptions:output_type -> crauth.ResponseData
-	11, // 40: crauth.AuthService.AssertionResult:output_type -> crauth.ResponseData
-	11, // 41: crauth.AuthService.BeginConfirmPasskey:output_type -> crauth.ResponseData
-	11, // 42: crauth.AuthService.FinishConfirmPasskey:output_type -> crauth.ResponseData
-	11, // 43: crauth.AuthService.ChangeUsernameFinish:output_type -> crauth.ResponseData
-	11, // 44: crauth.AuthService.SyncUsernameDB:output_type -> crauth.ResponseData
-	11, // 45: crauth.AuthService.GetAdminUserList:output_type -> crauth.ResponseData
-	11, // 46: crauth.AuthService.GetUserInfoByUsername:output_type -> crauth.ResponseData
-	11, // 47: crauth.AuthService.GetAdminUserInfo:output_type -> crauth.ResponseData
-	11, // 48: crauth.AuthService.GetExcludeLoginUserNameList:output_type -> crauth.ResponseData
-	11, // 49: crauth.AuthService.ChangeUserStatus:output_type -> crauth.ResponseData
-	11, // 50: crauth.AuthService.IsLoggingOn:output_type -> crauth.ResponseData
-	11, // 51: crauth.AuthService.GenRandomUsername:output_type -> crauth.ResponseData
-	11, // 52: crauth.AuthService.CheckUser:output_type -> crauth.ResponseData
-	11, // 53: crauth.AuthService.RegisterByPassword:output_type -> crauth.ResponseData
-	11, // 54: crauth.AuthService.LoginByPassword:output_type -> crauth.ResponseData
-	11, // 55: crauth.AuthService.UpdatePassword:output_type -> crauth.ResponseData
-	34, // [34:56] is the sub-list for method output_type
-	12, // [12:34] is the sub-list for method input_type
+	1,  // 34: crauth.AuthService.UpdateUsername:input_type -> crauth.WithPasswordRequest
+	11, // 35: crauth.AuthService.BeginRegistration:output_type -> crauth.ResponseData
+	11, // 36: crauth.AuthService.CancelRegister:output_type -> crauth.ResponseData
+	11, // 37: crauth.AuthService.BeginUpdatePasskey:output_type -> crauth.ResponseData
+	11, // 38: crauth.AuthService.FinishUpdatePasskey:output_type -> crauth.ResponseData
+	11, // 39: crauth.AuthService.FinishRegistration:output_type -> crauth.ResponseData
+	11, // 40: crauth.AuthService.AssertionOptions:output_type -> crauth.ResponseData
+	11, // 41: crauth.AuthService.AssertionResult:output_type -> crauth.ResponseData
+	11, // 42: crauth.AuthService.BeginConfirmPasskey:output_type -> crauth.ResponseData
+	11, // 43: crauth.AuthService.FinishConfirmPasskey:output_type -> crauth.ResponseData
+	11, // 44: crauth.AuthService.ChangeUsernameFinish:output_type -> crauth.ResponseData
+	11, // 45: crauth.AuthService.SyncUsernameDB:output_type -> crauth.ResponseData
+	11, // 46: crauth.AuthService.GetAdminUserList:output_type -> crauth.ResponseData
+	11, // 47: crauth.AuthService.GetUserInfoByUsername:output_type -> crauth.ResponseData
+	11, // 48: crauth.AuthService.GetAdminUserInfo:output_type -> crauth.ResponseData
+	11, // 49: crauth.AuthService.GetExcludeLoginUserNameList:output_type -> crauth.ResponseData
+	11, // 50: crauth.AuthService.ChangeUserStatus:output_type -> crauth.ResponseData
+	11, // 51: crauth.AuthService.IsLoggingOn:output_type -> crauth.ResponseData
+	11, // 52: crauth.AuthService.GenRandomUsername:output_type -> crauth.ResponseData
+	11, // 53: crauth.AuthService.CheckUser:output_type -> crauth.ResponseData
+	11, // 54: crauth.AuthService.RegisterByPassword:output_type -> crauth.ResponseData
+	11, // 55: crauth.AuthService.LoginByPassword:output_type -> crauth.ResponseData
+	11, // 56: crauth.AuthService.UpdatePassword:output_type -> crauth.ResponseData
+	11, // 57: crauth.AuthService.UpdateUsername:output_type -> crauth.ResponseData
+	35, // [35:58] is the sub-list for method output_type
+	12, // [12:35] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
 	12, // [12:12] is the sub-list for extension extendee
 	0,  // [0:12] is the sub-list for field type_name

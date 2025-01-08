@@ -32,6 +32,7 @@ func init() {
 	//Profile router
 	beego.Router("/profile", &controllers.ProfileController{})
 	beego.Router("/profile/updatePassword", &controllers.ProfileController{}, "post:UpdatePassword")
+	beego.Router("/profile/updateUsername", &controllers.ProfileController{}, "post:UpdateUsername")
 
 	//Admin router
 	beego.Router("/admin", &controllers.AdminController{})

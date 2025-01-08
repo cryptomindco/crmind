@@ -238,3 +238,48 @@ func (s *Server) RegisterByPassword(ctx context.Context, reqData *pb.WithPasswor
 	}
 	return ResponseSuccessfullyWithAnyData("", "Finish registration successfully", utils.GetFuncName(), loginResponse)
 }
+
+func (s *Server) UpdateUsername(ctx context.Context, reqData *pb.WithPasswordRequest) (*pb.ResponseData, error) {
+	authClaims, isLogin := s.Jwt.HanlderCheckLogin(reqData.Common.AuthToken)
+	if !isLogin {
+		return ResponseError("User is not login", utils.GetFuncName(), nil)
+	}
+	newUsername := reqData.Username
+	if utils.IsEmpty(newUsername) {
+		return ResponseError("Username/password param not found", utils.GetFuncName(), nil)
+	}
+	if newUsername == authClaims.Username {
+		return ResponseError("Username is the same as data on db, no update is performed", utils.GetFuncName(), nil)
+	}
+	exist, err := s.H.CheckUserExist(newUsername)
+	if err != nil {
+		return ResponseError("Check exist user failed", utils.GetFuncName(), nil)
+	}
+	if exist {
+		return ResponseError("New username already exists in db, cannot update", utils.GetFuncName(), nil)
+	}
+	user, err := s.H.GetUserFromId(authClaims.Id)
+	if err != nil {
+		return ResponseLoginError(authClaims.Username, "Get user from DB error. Please try again!", utils.GetFuncName(), err)
+	}
+	user.Username = newUsername
+	user.Updatedt = time.Now().Unix()
+	tx := s.H.DB.Begin()
+	//update user
+	updateErr := tx.Save(&user).Error
+	if updateErr != nil {
+		return ResponseLoginRollbackError(authClaims.Username, tx, "Update user password failed. Please try again!", utils.GetFuncName(), updateErr)
+	}
+	tx.Commit()
+	// re-login
+	tokenString, authClaim, err := s.Jwt.CreateAuthClaimSession(user)
+	if err != nil {
+		tx.Rollback()
+		return ResponseError("Creating login session token failed", utils.GetFuncName(), err)
+	}
+	loginResponse := map[string]any{
+		"token": tokenString,
+		"user":  *authClaim,
+	}
+	return ResponseSuccessfullyWithAnyData("", "Finish update username successfully", utils.GetFuncName(), loginResponse)
+}
