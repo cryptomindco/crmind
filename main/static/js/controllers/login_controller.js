@@ -4,6 +4,8 @@ export default class extends BaseController {
   static values = {
     randomUsername: String,
     isConfirm: Boolean,
+    usePassword: Boolean,
+    isRegister: Boolean,
   };
 
   async initialize() {}
@@ -18,8 +20,6 @@ export default class extends BaseController {
       $("#loadingArea").addClass("d-none");
       $("#loginButton").removeClass("d-none");
       $("#sectionTitle").text("Login with passkey");
-      $("#createAccount").removeClass("d-none");
-      $("#orText").removeClass("d-none");
       return;
     }
     fetch("/assertion/result", {
@@ -42,14 +42,22 @@ export default class extends BaseController {
           $("#loadingArea").addClass("d-none");
           $("#loginButton").removeClass("d-none");
           $("#sectionTitle").text("Login with passkey");
-          $("#createAccount").removeClass("d-none");
-          $("#orText").removeClass("d-none");
         }
       });
   }
 
-  registerUser(e) {
+  loginWithPassBtn() {
+    this.usePassword = !this.usePassword
+    this.isRegister ? this.setSignupComponent() : this.setLoginComponent()
+  }
+
+  switchMode(e) {
     const _this = this;
+    this.isRegister = !this.isRegister
+    if (!this.isRegister) {
+      this.setLoginComponent()
+      return
+    }
     e.preventDefault();
     $.ajax({
       data: {},
@@ -60,17 +68,9 @@ export default class extends BaseController {
           const result = JSON.parse(res.data);
           _this.randomUsername = result.username;
           _this.isConfirm = true;
-          $("#loginButton").addClass("d-none");
-          $("#confirmButton").removeClass("d-none");
-          $("#createAccount").addClass("d-none");
-          $("#orText").addClass("d-none");
-          $("#usernameConfirmArea").removeClass("d-none");
-          $("#usernameInput").val(_this.randomUsername);
-          $("#sectionTitle").text("Create Account");
-          $("#registerBtn").addClass("d-none");
-          $("#footerArea").removeClass("d-none");
-          $("#backBtn").removeClass("d-none");
           $("#loginErr_msg").addClass("d-none");
+          _this.isRegister = true
+          _this.setSignupComponent()
         }
         if (res.error) {
           $("#loginErr_msg").removeClass("d-none");
@@ -78,6 +78,55 @@ export default class extends BaseController {
         }
       },
     });
+  }
+
+  setSignupComponent() {
+    $("#usernameConfirmArea").removeClass("d-none")
+    $("#switchModeText").text("Back to login")
+    $("#modeLink").addClass("t-decor-none")
+    $("#backIcon").removeClass("d-none")
+    $("#refreshUsernameBtn").removeClass("d-none")
+    $("#randomText").removeClass("d-none")
+    $("#loginButton").addClass("d-none");
+    $("#confirmButton").removeClass("d-none");
+    $("#usernameInput").val(this.randomUsername);
+    if (this.usePassword) {
+      $("#passwordLoginArea").removeClass("d-none")
+      $("#loginTypeBtnText").text("Signup with passkey")
+      $("#sectionTitle").text("Signup with password")
+      $("#loginModeIcon").html("fingerprint")
+    } else {
+      $("#passwordLoginArea").addClass("d-none")
+      $("#loginTypeBtnText").text("Signup with password")
+      $("#sectionTitle").text("Signup with passkey")
+      $("#loginModeIcon").html("keyboard_lock")
+    }
+  }
+
+  setLoginComponent() {
+    $("#switchModeText").text("Signup")
+    $("#modeLink").removeClass("t-decor-none")
+    $("#backIcon").addClass("d-none")
+    $("#randomText").addClass("d-none")
+    $("#loginButton").removeClass("d-none");
+    $("#confirmButton").addClass("d-none");
+    $("#usernameInput").val("");
+    if (this.usePassword) {
+      $("#usernameConfirmArea").removeClass("d-none")
+      $("#refreshUsernameBtn").addClass("d-none")
+      $("#passwordLoginArea").removeClass("d-none")
+      $("#loginTypeBtnText").text("Login with passkey")
+      $("#sectionTitle").text("Login with password")
+      $("#loginIcon").html("keyboard_lock")
+      $("#loginModeIcon").html("fingerprint")
+    } else {
+      $("#usernameConfirmArea").addClass("d-none")
+      $("#passwordLoginArea").addClass("d-none")
+      $("#loginTypeBtnText").text("Login with password")
+      $("#sectionTitle").text("Login with passkey")
+      $("#loginIcon").html("fingerprint")
+      $("#loginModeIcon").html("keyboard_lock")
+    }
   }
 
   inputBlur() {
@@ -131,7 +180,6 @@ export default class extends BaseController {
     $("#usernameConfirmArea").addClass("d-none");
     $("#loadingArea").removeClass("d-none");
     $("#loadingText").text("Creating new account...");
-    $("#footerArea").addClass("d-none");
     $("#confirmButton").addClass("d-none");
     $("#sectionTitle").addClass("d-none");
     //check and create new username
@@ -153,7 +201,6 @@ export default class extends BaseController {
               _this.cancelRegisterUser(sessionKey);
             }
             $("#loadingArea").addClass("d-none");
-            $("#footerArea").removeClass("d-none");
             $("#confirmButton").removeClass("d-none");
             $("#registererr_msg").removeClass("d-none");
             $("#registererr_msg").text("Registration error. Please try again!");
@@ -164,7 +211,6 @@ export default class extends BaseController {
         } else {
           _this.cancelRegisterUser(sessionKey);
           $("#loadingArea").addClass("d-none");
-          $("#footerArea").removeClass("d-none");
           $("#confirmButton").removeClass("d-none");
           $("#registererr_msg").removeClass("d-none");
           $("#registererr_msg").text(res.msg);
@@ -176,10 +222,7 @@ export default class extends BaseController {
 
   resetToStartPage() {
     $("#loginButton").removeClass("d-none");
-    $("#footerArea").addClass("d-none");
     $("#confirmButton").addClass("d-none");
-    $("#createAccount").removeClass("d-none");
-    $("#orText").removeClass("d-none");
     $("#usernameConfirmArea").addClass("d-none");
     $("#sectionTitle").text("Login with passkey");
     $("#registererr_msg").addClass("d-none");
@@ -254,8 +297,6 @@ export default class extends BaseController {
 
   openLogin() {
     $("#loadingArea").removeClass("d-none");
-    $("#createAccount").addClass("d-none");
-    $("#orText").addClass("d-none");
     $("#sectionTitle").text("Select your Passkey");
     $("#loadingText").text("Loading...");
     $("#loginButton").addClass("d-none");

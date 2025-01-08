@@ -26,16 +26,31 @@
                     autocomplete="off" type="text">
                   <label>Username</label>
                 </div>
-                <a class="c-black-grey t-decor-none name-refresh" type="button"
+                <a id="refreshUsernameBtn" class="c-black-grey t-decor-none name-refresh" type="button"
                   data-action="click->login#refreshRandomUsername" title="Refresh random username">
                   <span class="material-symbols-outlined">
                     refresh
                   </span></a>
               </div>
-              <div class="mt-1" style="height: 25px;">
+              <div id="randomText" class="mt-1" style="height: 25px;">
                 <span id="randomUsernameMsg" class="fs-15">Randomly generated</span>
               </div>
               <span class="error d-none" id="registererr_msg"></span>
+            </div>
+          </div>
+        </div>
+        <div id="passwordLoginArea" class="d-none mt-2">
+          <div class="d-flex justify-content-center ai-center">
+            <div>
+              <div class="d-flex ai-center username-input-group">
+                <div class="kinput vBubble mb-0 mt-3">
+                  <input type="password" id="passwordLoginInput"
+                    data-action="input->login#usernameChange focus->login#inputFocus blur->login#inputBlur"
+                    autocomplete="off">
+                  <label>Password</label>
+                </div>
+              </div>
+              <span class="error d-none" id="passloginerr_msg"></span>
             </div>
           </div>
         </div>
@@ -47,28 +62,40 @@
             <button type="button" data-action="click->login#openLogin" id="loginButton"
               class="btn btn-primary btn-flat me-2">
               <div class="d-flex ai-center">
-                <span class="material-symbols-outlined">
-                  admin_panel_settings
+                <span id="loginIcon" class="material-symbols-outlined">
+                  fingerprint
                 </span>
                 &nbsp;Login
               </div>
             </button>
-            <span id="orText" class="c-primary">or</span>
-            <a class="c-primary d-flex ai-center ms-2" id="createAccount" type="button"
-              data-action="click->login#registerUser">
-              <span class="hover-underline">Signup</span></a>
             <button type="button" data-action="click->login#confirmRegister" id="confirmButton"
               class="d-none btn btn-primary btn-flat">
               <div class="d-flex ai-center">
                 <span class="material-symbols-outlined">
-                  how_to_reg
+                  person_add
                 </span>
                 &nbsp;Create
               </div>
             </button>
           </div>
         </div>
-        <div id="footerArea" class="mt-3 d-none">
+        <div class="d-flex mt-3 justify-content-center">
+            <a class="c-primary t-decor-none ai-center d-flex" id="loginWithPassword" type="button"
+              data-action="click->login#loginWithPassBtn">
+              <span id="loginModeIcon" class="material-symbols-outlined">
+                keyboard_lock
+              </span>
+              <span id="loginTypeBtnText" class="hover-underline ms-1">Login With Password</span></a>
+        </div>
+      <div class="d-flex justify-content-center mt-2">
+        <a class="c-primary d-flex ai-center" id="modeLink" type="button"
+              data-action="click->login#switchMode">
+              <span id="backIcon" class="material-symbols-outlined d-none">
+                undo
+              </span>
+              <span id="switchModeText" class="hover-underline ms-1">Signup</span></a>
+      </div>
+        {{/* <div id="footerArea" class="mt-3 d-none">
           <div class="d-flex justify-content-start mt-1">
             <a class="c-primary t-decor-none d-none d-flex ai-center" id="backBtn" type="button"
               data-action="click->login#resetToStartPage">
@@ -77,7 +104,7 @@
               </span>
               <span class="hover-underline ms-1">Back</span></a>
           </div>
-        </div>
+        </div> */}}
       </div>
     </div>
   </div>
