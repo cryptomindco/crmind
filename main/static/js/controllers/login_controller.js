@@ -54,6 +54,9 @@ export default class extends BaseController {
   switchMode(e) {
     const _this = this;
     this.isRegister = !this.isRegister
+    $("#loginErr_msg").addClass("d-none");
+    $("#passloginerr_msg").addClass("d-none");
+    $("#registererr_msg").addClass("d-none");
     if (!this.isRegister) {
       this.setLoginComponent()
       return
@@ -68,7 +71,6 @@ export default class extends BaseController {
           const result = JSON.parse(res.data);
           _this.randomUsername = result.username;
           _this.isConfirm = true;
-          $("#loginErr_msg").addClass("d-none");
           _this.isRegister = true
           _this.setSignupComponent()
         }
@@ -155,8 +157,8 @@ export default class extends BaseController {
             //check result
             const exist = res.data;
             if (exist) {
-              $("#registererr_msg").removeClass("d-none");
-              $("#registererr_msg").text("That name is not available");
+              $("#loginErr_msg").removeClass("d-none");
+              $("#loginErr_msg").text("That name is not available");
               $("#confirmButton").prop("disabled", true);
               return;
             }
@@ -164,8 +166,8 @@ export default class extends BaseController {
             return
           } else {
             $("#confirmButton").prop("disabled", true);
-            $("#registererr_msg").removeClass("d-none");
-            $("#registererr_msg").text(res.msg);
+            $("#loginErr_msg").removeClass("d-none");
+            $("#loginErr_msg").text(res.msg);
             return;
           }
         },
@@ -194,8 +196,8 @@ export default class extends BaseController {
         if (!res.error) {
           window.location.href = "/";
         } else {
-          $("#registererr_msg").removeClass("d-none");
-          $("#registererr_msg").text(res.msg);
+          $("#loginErr_msg").removeClass("d-none");
+          $("#loginErr_msg").text(res.msg);
         }
       },
     });
@@ -230,8 +232,8 @@ export default class extends BaseController {
             }
             $("#loadingArea").addClass("d-none");
             $("#confirmButton").removeClass("d-none");
-            $("#registererr_msg").removeClass("d-none");
-            $("#registererr_msg").text("Registration error. Please try again!");
+            $("#loginErr_msg").removeClass("d-none");
+            $("#loginErr_msg").text("Registration error. Please try again!");
             $("#sectionTitle").removeClass("d-none");
             return;
           }
@@ -240,8 +242,8 @@ export default class extends BaseController {
           _this.cancelRegisterUser(sessionKey);
           $("#loadingArea").addClass("d-none");
           $("#confirmButton").removeClass("d-none");
-          $("#registererr_msg").removeClass("d-none");
-          $("#registererr_msg").text(res.msg);
+          $("#loginErr_msg").removeClass("d-none");
+          $("#loginErr_msg").text(res.msg);
           $("#sectionTitle").removeClass("d-none");
         }
       },
@@ -310,8 +312,8 @@ export default class extends BaseController {
           $("#loadingArea").addClass("d-none");
           $("#sectionTitle").removeClass("d-none");
           $("#confirmButton").removeClass("d-none");
-          $("#registererr_msg").removeClass("d-none");
-          $("#registererr_msg").text(json.msg);
+          $("#loginErr_msg").removeClass("d-none");
+          $("#loginErr_msg").text(json.msg);
           _this.cancelRegisterUser(sessionKey);
           _this.resetToStartPage();
         }
@@ -397,8 +399,8 @@ export default class extends BaseController {
         if (!res.error) {
           window.location.href = "/";
         } else {
-          $("#registererr_msg").removeClass("d-none");
-          $("#registererr_msg").text(res.msg);
+          $("#loginErr_msg").removeClass("d-none");
+          $("#loginErr_msg").text(res.msg);
         }
       },
     });

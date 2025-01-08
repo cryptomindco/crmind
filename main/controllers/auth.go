@@ -335,13 +335,14 @@ func (this *AuthController) LoginByPassword() {
 		Password: password,
 	})
 	if err != nil {
-		this.ResponseError("Login failed", utils.GetFuncName(), err)
+		this.ResponseError(err.Error(), utils.GetFuncName(), err)
 		return
 	}
 	var data map[string]any
 	err = utils.JsonStringToObject(resData.Data, &data)
 	if err != nil {
 		this.ResponseError("Parse res data failed", utils.GetFuncName(), err)
+		return
 	}
 	var authClaim models.AuthClaims
 	user, userExist := data["user"]
@@ -370,13 +371,14 @@ func (this *AuthController) RegisterByPassword() {
 		Password: password,
 	})
 	if err != nil {
-		this.ResponseError("Error registering account", utils.GetFuncName(), err)
+		this.ResponseError(resData.Msg, utils.GetFuncName(), err)
 		return
 	}
 	var data map[string]any
 	err = utils.JsonStringToObject(resData.Data, &data)
 	if err != nil {
 		this.ResponseError("Parse res data failed", utils.GetFuncName(), err)
+		return
 	}
 	var authClaim models.AuthClaims
 	user, userExist := data["user"]
