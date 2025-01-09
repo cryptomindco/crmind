@@ -47,7 +47,7 @@ func UpdateUnreadForChatHandler(ctx context.Context, req *chatpb.UpdateUnreadFor
 	}
 	res, err := (*ChatCli.Client).UpdateUnreadForChat(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -59,7 +59,7 @@ func DeleteChatHandler(ctx context.Context, req *chatpb.DeleteChatRequest) (*cha
 	}
 	res, err := (*ChatCli.Client).DeleteChat(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -71,7 +71,7 @@ func CheckAndCreateChatHandler(ctx context.Context, req *chatpb.CheckAndCreateCh
 	}
 	res, err := (*ChatCli.Client).CheckAndCreateChat(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -83,7 +83,7 @@ func SendChatMessageHandler(ctx context.Context, req *chatpb.SendChatMessageRequ
 	}
 	res, err := (*ChatCli.Client).SendChatMessage(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -95,7 +95,7 @@ func CheckChatExistHandler(ctx context.Context, req *chatpb.CheckChatExistReques
 	}
 	res, err := (*ChatCli.Client).CheckChatExist(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -107,7 +107,7 @@ func GetChatMsgDisplayListHandler(ctx context.Context, req *chatpb.CommonRequest
 	}
 	res, err := (*ChatCli.Client).GetChatMsgDisplayList(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -119,7 +119,7 @@ func GetChatMsgHandler(ctx context.Context, req *chatpb.GetChatMsgRequest) (*cha
 	}
 	res, err := (*ChatCli.Client).GetChatMsg(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -131,7 +131,7 @@ func CreateHelloChatHandler(ctx context.Context, req *chatpb.CreateHelloChatRequ
 	}
 	res, err := (*ChatCli.Client).CreateHelloChat(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }

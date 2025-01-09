@@ -47,7 +47,7 @@ func CreateNewAddressHandler(ctx context.Context, req *assetspb.OneStringRequest
 	}
 	res, err := (*AssetsCli.Client).CreateNewAddress(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -59,7 +59,7 @@ func SyncTransactionsHandler(ctx context.Context, req *assetspb.CommonRequest) (
 	}
 	res, err := (*AssetsCli.Client).SyncTransactions(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -71,7 +71,7 @@ func SendTradingRequestHandler(ctx context.Context, req *assetspb.SendTradingDat
 	}
 	res, err := (*AssetsCli.Client).SendTradingRequest(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -83,7 +83,7 @@ func TransferAmountHandler(ctx context.Context, req *assetspb.TransferAmountRequ
 	}
 	res, err := (*AssetsCli.Client).TransferAmount(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -95,7 +95,7 @@ func AddToContactHandler(ctx context.Context, req *assetspb.OneStringRequest) (*
 	}
 	res, err := (*AssetsCli.Client).AddToContact(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -107,7 +107,7 @@ func FilterTxHistoryHandler(ctx context.Context, req *assetspb.FilterTxHistoryRe
 	}
 	res, err := (*AssetsCli.Client).FilterTxHistory(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -119,7 +119,7 @@ func GetCodeListDataHandler(ctx context.Context, req *assetspb.GetCodeListReques
 	}
 	res, err := (*AssetsCli.Client).GetCodeListData(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -131,7 +131,7 @@ func GetAddressListDataWithStatusHandler(ctx context.Context, req *assetspb.GetA
 	}
 	res, err := (*AssetsCli.Client).GetAddressListDataWithStatus(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -143,7 +143,7 @@ func ConfirmAmountHandler(ctx context.Context, req *assetspb.ConfirmAmountReques
 	}
 	res, err := (*AssetsCli.Client).ConfirmAmount(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -155,7 +155,7 @@ func ConfirmWithdrawalHandler(ctx context.Context, req *assetspb.ConfirmWithdraw
 	}
 	res, err := (*AssetsCli.Client).ConfirmWithdrawal(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -167,7 +167,7 @@ func UpdateNewLabelHandler(ctx context.Context, req *assetspb.UpdateLabelRequest
 	}
 	res, err := (*AssetsCli.Client).UpdateNewLabel(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -179,7 +179,7 @@ func GetBalanceSummaryHandler(ctx context.Context, req *assetspb.OneStringReques
 	}
 	res, err := (*AssetsCli.Client).GetBalanceSummary(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -191,7 +191,7 @@ func GetAssetDBListHandler(ctx context.Context, req *assetspb.GetAssetDBListRequ
 	}
 	res, err := (*AssetsCli.Client).GetAssetDBList(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -203,7 +203,7 @@ func GetUserAssetDBHandler(ctx context.Context, req *assetspb.GetUserAssetDBRequ
 	}
 	res, err := (*AssetsCli.Client).GetUserAssetDB(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -215,7 +215,7 @@ func GetAddressListHandler(ctx context.Context, req *assetspb.OneIntegerRequest)
 	}
 	res, err := (*AssetsCli.Client).GetAddressList(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -227,7 +227,7 @@ func CountAddressHandler(ctx context.Context, req *assetspb.CountAddressRequest)
 	}
 	res, err := (*AssetsCli.Client).CountAddress(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -239,7 +239,7 @@ func CheckHasCodeListHandler(ctx context.Context, req *assetspb.OneStringRequest
 	}
 	res, err := (*AssetsCli.Client).CheckHasCodeList(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -251,7 +251,7 @@ func GetContactListHandler(ctx context.Context, req *assetspb.CommonRequest) (*a
 	}
 	res, err := (*AssetsCli.Client).GetContactList(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -263,7 +263,7 @@ func FilterTxCodeHandler(ctx context.Context, req *assetspb.FilterTxCodeRequest)
 	}
 	res, err := (*AssetsCli.Client).FilterTxCode(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -275,7 +275,7 @@ func GetTxHistoryHandler(ctx context.Context, req *assetspb.OneIntegerRequest) (
 	}
 	res, err := (*AssetsCli.Client).GetTxHistory(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -287,7 +287,7 @@ func FilterAddressListHandler(ctx context.Context, req *assetspb.FilterAddressLi
 	}
 	res, err := (*AssetsCli.Client).FilterAddressList(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -299,7 +299,7 @@ func CheckAndCreateAccountTokenHandler(ctx context.Context, req *assetspb.CheckA
 	}
 	res, err := (*AssetsCli.Client).CheckAndCreateAccountToken(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -311,7 +311,7 @@ func FetchRateHandler(ctx context.Context) (*assetspb.ResponseData, error) {
 	}
 	res, err := (*AssetsCli.Client).FetchRate(ctx, &assetspb.CommonRequest{})
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -323,7 +323,7 @@ func CheckAssetMatchWithUserHandler(ctx context.Context, req *assetspb.OneIntege
 	}
 	res, err := (*AssetsCli.Client).CheckAssetMatchWithUser(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -335,7 +335,7 @@ func CheckAddressMatchWithUserHandler(ctx context.Context, req *assetspb.CheckAd
 	}
 	res, err := (*AssetsCli.Client).CheckAddressMatchWithUser(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -347,7 +347,7 @@ func GetAddressHandler(ctx context.Context, req *assetspb.OneIntegerRequest) (*a
 	}
 	res, err := (*AssetsCli.Client).GetAddress(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -359,7 +359,7 @@ func ConfirmAddressActionHandler(ctx context.Context, req *assetspb.ConfirmAddre
 	}
 	res, err := (*AssetsCli.Client).ConfirmAddressAction(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -371,7 +371,7 @@ func CancelUrlCodeHandler(ctx context.Context, req *assetspb.OneIntegerRequest) 
 	}
 	res, err := (*AssetsCli.Client).CancelUrlCode(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -383,7 +383,7 @@ func CheckContactUserHandler(ctx context.Context, req *assetspb.OneStringRequest
 	}
 	res, err := (*AssetsCli.Client).CheckContactUser(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -395,7 +395,7 @@ func WalletSocketHandler(ctx context.Context, req *assetspb.WalletNotifyRequest)
 	}
 	res, err := (*AssetsCli.Client).WalletSocket(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -407,7 +407,7 @@ func GetTxCodeHandler(ctx context.Context, req *assetspb.OneStringRequest) (*ass
 	}
 	res, err := (*AssetsCli.Client).GetTxCode(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -419,7 +419,7 @@ func AdminUpdateBalanceHandler(ctx context.Context, req *assetspb.AdminBalanceUp
 	}
 	res, err := (*AssetsCli.Client).AdminUpdateBalance(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -431,7 +431,7 @@ func TransactionDetailHandler(ctx context.Context, req *assetspb.OneIntegerReque
 	}
 	res, err := (*AssetsCli.Client).TransactionDetail(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -443,7 +443,7 @@ func HandlerURLCodeWithdrawlWithAccountHandler(ctx context.Context, req *assetsp
 	}
 	res, err := (*AssetsCli.Client).HandlerURLCodeWithdrawlWithAccount(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -455,7 +455,7 @@ func CreateNewAssetHandler(ctx context.Context, req *assetspb.OneStringRequest) 
 	}
 	res, err := (*AssetsCli.Client).CreateNewAsset(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -467,7 +467,7 @@ func UpdateExchangeRateServerHandler(ctx context.Context, req *assetspb.OneStrin
 	}
 	res, err := (*AssetsCli.Client).UpdateExchangeRateServer(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }

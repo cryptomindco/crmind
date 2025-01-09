@@ -47,7 +47,7 @@ func CheckMiddlewareLogin(ctx context.Context, req *authpb.CommonRequest) (bool,
 	}
 	_, err = (*AuthCli.Client).IsLoggingOn(ctx, req)
 	if err != nil {
-		return false, err
+		return false, utils.HandlerRPCError(err)
 	}
 	return true, nil
 }
@@ -59,7 +59,7 @@ func BeginRegistrationHandler(ctx context.Context, req *authpb.WithUsernameReque
 	}
 	res, err := (*AuthCli.Client).BeginRegistration(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -71,7 +71,7 @@ func CancelRegisterHandler(ctx context.Context, req *authpb.CancelRegisterReques
 	}
 	res, err := (*AuthCli.Client).CancelRegister(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -83,7 +83,7 @@ func BeginUpdatePasskeyHandler(ctx context.Context, req *authpb.CommonRequest) (
 	}
 	res, err := (*AuthCli.Client).BeginUpdatePasskey(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -95,7 +95,7 @@ func FinishUpdatePasskeyHandler(ctx context.Context, req *authpb.FinishUpdatePas
 	}
 	res, err := (*AuthCli.Client).FinishUpdatePasskey(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -107,7 +107,7 @@ func FinishRegistrationHandler(ctx context.Context, req *authpb.SessionKeyAndHtt
 	}
 	res, err := (*AuthCli.Client).FinishRegistration(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -119,7 +119,7 @@ func AssertionOptionsHandler(ctx context.Context) (*authpb.ResponseData, error) 
 	}
 	res, err := (*AuthCli.Client).AssertionOptions(ctx, &authpb.CommonRequest{})
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -131,7 +131,7 @@ func AssertionResultHandler(ctx context.Context, req *authpb.SessionKeyAndHttpRe
 	}
 	res, err := (*AuthCli.Client).AssertionResult(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -143,7 +143,7 @@ func BeginConfirmPasskeyHandler(ctx context.Context, req *authpb.CommonRequest) 
 	}
 	res, err := (*AuthCli.Client).BeginConfirmPasskey(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -155,7 +155,7 @@ func FinishConfirmPasskeyHandler(ctx context.Context, req *authpb.SessionKeyAndH
 	}
 	res, err := (*AuthCli.Client).FinishConfirmPasskey(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -167,7 +167,7 @@ func ChangeUsernameFinishHandler(ctx context.Context, req *authpb.ChangeUsername
 	}
 	res, err := (*AuthCli.Client).ChangeUsernameFinish(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -179,7 +179,7 @@ func SyncUsernameDBHandler(ctx context.Context, req *authpb.SyncUsernameDBReques
 	}
 	res, err := (*AuthCli.Client).SyncUsernameDB(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -191,7 +191,7 @@ func GetAdminUserListHandler(ctx context.Context, req *authpb.CommonRequest) (*a
 	}
 	res, err := (*AuthCli.Client).GetAdminUserList(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -203,7 +203,7 @@ func GetUserInfoByUsernameHandler(ctx context.Context, req *authpb.WithUsernameR
 	}
 	res, err := (*AuthCli.Client).GetUserInfoByUsername(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -215,7 +215,7 @@ func GetAdminUserInfoHandler(ctx context.Context, req *authpb.WithUserIdRequest)
 	}
 	res, err := (*AuthCli.Client).GetAdminUserInfo(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -227,7 +227,7 @@ func GetExcludeLoginUserNameListHandler(ctx context.Context, req *authpb.CommonR
 	}
 	res, err := (*AuthCli.Client).GetExcludeLoginUserNameList(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -239,7 +239,7 @@ func ChangeUserStatusHandler(ctx context.Context, req *authpb.ChangeUserStatusRe
 	}
 	res, err := (*AuthCli.Client).ChangeUserStatus(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -251,7 +251,7 @@ func IsLoggingOnHandler(ctx context.Context, req *authpb.CommonRequest) (*authpb
 	}
 	res, err := (*AuthCli.Client).IsLoggingOn(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -263,7 +263,7 @@ func GenRandomUsernameHandler(ctx context.Context) (*authpb.ResponseData, error)
 	}
 	res, err := (*AuthCli.Client).GenRandomUsername(ctx, &authpb.CommonRequest{})
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -275,7 +275,7 @@ func CheckUserHandler(ctx context.Context, req *authpb.WithUsernameRequest) (*au
 	}
 	res, err := (*AuthCli.Client).CheckUser(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -287,7 +287,7 @@ func RegisterByPassword(ctx context.Context, req *authpb.WithPasswordRequest) (*
 	}
 	res, err := (*AuthCli.Client).RegisterByPassword(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -299,7 +299,7 @@ func LoginByPassword(ctx context.Context, req *authpb.WithPasswordRequest) (*aut
 	}
 	res, err := (*AuthCli.Client).LoginByPassword(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -311,7 +311,7 @@ func UpdatePassword(ctx context.Context, req *authpb.WithPasswordRequest) (*auth
 	}
 	res, err := (*AuthCli.Client).UpdatePassword(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
@@ -323,7 +323,7 @@ func UpdateUsername(ctx context.Context, req *authpb.WithPasswordRequest) (*auth
 	}
 	res, err := (*AuthCli.Client).UpdateUsername(ctx, req)
 	if err != nil {
-		return res, err
+		return res, utils.HandlerRPCError(err)
 	}
 	return res, nil
 }
