@@ -334,10 +334,11 @@ export default class extends BaseController {
 
   async handlerFinishChangeUsername(options, sessionKey) {
     let attestationResponse;
+    const { startRegistration } = SimpleWebAuthnBrowser;
     const _this = this;
     try {
-      attestationResponse = await SimpleWebAuthnBrowser.startRegistration(
-        options.publicKey
+      attestationResponse = await startRegistration(
+        { optionsJSON: options.publicKey }
       );
     } catch (error) {
       _this.cancelRegisterUser(sessionKey);
@@ -370,8 +371,9 @@ export default class extends BaseController {
   }
 
   async handlerFinishUpdatePasskey(options, sessionKey, isReset) {
-    const attestationResponse = await SimpleWebAuthnBrowser.startRegistration(
-      options.publicKey
+    const { startRegistration } = SimpleWebAuthnBrowser;
+    const attestationResponse = await startRegistration(
+      { optionsJSON: options.publicKey }
     );
     const _this = this;
     fetch("/passkey/updateFinish", {

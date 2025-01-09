@@ -83,8 +83,13 @@ func (s *Server) BeginUpdatePasskey(ctx context.Context, reqData *pb.CommonReque
 	logpack.Info(fmt.Sprintf("begin update passkey of: %s", loginUser.Username), utils.GetFuncName())
 	//check if user exist in inmem
 	user := passkey.Datastore.GetUser(loginUser.Username) // Find or create the new user
-
-	options, session, err := passkey.WebAuthn.BeginRegistration(user)
+	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
+		credCreationOpts.CredentialExcludeList = user.CredentialExcludeList()
+		credCreationOpts.AuthenticatorSelection.ResidentKey = protocol.ResidentKeyRequirementRequired
+		credCreationOpts.AuthenticatorSelection.RequireResidentKey = protocol.ResidentKeyRequired()
+		credCreationOpts.AuthenticatorSelection.UserVerification = protocol.VerificationRequired
+	}
+	options, session, err := passkey.WebAuthn.BeginRegistration(user, registerOptions)
 	if err != nil {
 		return ResponseLoginError(loginUser.Username, "can't begin update passkey", utils.GetFuncName(), nil)
 	}
