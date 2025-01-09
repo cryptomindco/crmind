@@ -288,9 +288,8 @@ export default class extends BaseController {
       _this.cancelRegisterUser(sessionKey);
       console.log("Cancel user registration");
       $("#loadingArea").addClass("d-none");
-      $("#confirmButton").removeClass("d-none");
       $("#sectionTitle").removeClass("d-none");
-      _this.resetToStartPage();
+      _this.setSignupComponent();
       return;
     }
     fetch("/passkey/registerFinish", {
@@ -311,11 +310,10 @@ export default class extends BaseController {
         } else {
           $("#loadingArea").addClass("d-none");
           $("#sectionTitle").removeClass("d-none");
-          $("#confirmButton").removeClass("d-none");
           $("#loginErr_msg").removeClass("d-none");
           $("#loginErr_msg").text(json.msg);
           _this.cancelRegisterUser(sessionKey);
-          _this.resetToStartPage();
+          _this.setSignupComponent();
         }
       });
   }
